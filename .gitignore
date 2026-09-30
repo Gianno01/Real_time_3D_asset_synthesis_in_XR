@@ -1,0 +1,7 @@
+# Ignora file di sistema OS
+.DS_Store
+Thumbs.db
+
+# Ignora file di configurazione sensibili di n8n/Docker
+.env
+*.env
