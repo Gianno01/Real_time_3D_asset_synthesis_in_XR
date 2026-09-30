@@ -1,0 +1,13 @@
+﻿<linker>
+	<assembly fullname="Microsoft.MixedReality.Toolkit" preserve="all"/>
+	<assembly fullname="Microsoft.MixedReality.Toolkit.SDK" preserve="all"/>
+	<assembly fullname="Microsoft.MixedReality.Toolkit.Services.InputSystem" preserve="all"/>
+	<assembly fullname="Microsoft.MixedReality.Toolkit.Services.SpatialAwarenessSystem" preserve="all"/>
+	<assembly fullname="Microsoft.MixedReality.Toolkit.Providers.WindowsMixedReality" preserve="all"/>
+	<assembly fullname="Microsoft.MixedReality.Toolkit.Providers.WindowsMixedReality.Shared" preserve="all"/>
+	<assembly fullname="Microsoft.MixedReality.Toolkit.Providers.WindowsVoiceInput" preserve="all"/>
+	<assembly fullname="Microsoft.MixedReality.Toolkit.Providers.XRSDK.WindowsMixedReality" preserve="all"/>
+	<assembly fullname="Microsoft.MixedReality.Toolkit.Providers.WindowsSceneUnderstanding" preserve="all"/>
+	<assembly fullname="MixedReality.Toolkit.Speech.Windows" preserve="all"/>
+	<assembly fullname="MixedReality.Toolkit.Input" preserve="all"/>
+</linker>
