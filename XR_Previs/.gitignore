@@ -1,0 +1,66 @@
+# Questo .gitignore è basato sul template ufficiale di GitHub per Unity.
+
+# Cartelle generate automaticamente da Unity
+[Ll]ibrary/
+[Tt]emp/
+[Oo]bj/
+[Bb]uild/
+[Bb]uilds/
+[Ll]ogs/
+[Uu]ser[Ss]ettings/
+
+# MemoryCaptures can get excessive in size.
+# They also could contain extremely sensitive data
+[Mm]emoryCaptures/
+
+# Asset meta data should only be ignored when the asset itself is not tracked
+*.private
+*.private.meta
+^*.private.[0-9]+$
+^*.private.[0-9]+.meta$
+
+# File autogenerati di Crashlytics e Addressables
+[Aa]ssets/Plugins/Crashlytics/Generated/*
+[Aa]ssets/AddressableAssetsData/*/*.bin*
+[Aa]ssets/StreamingAssets/aa.meta
+
+# File di progetto IDE (Visual Studio, Rider, ecc.)
+.vs/
+.gradle/
+.idea/
+ExportedObj/
+.consulo/
+*.csproj
+*.unityproj
+*.sln
+*.suo
+*.tmp
+*.user
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
+
+# I file meta associati ai file IDE non vanno tracciati
+*.pidb.meta
+*.pdb.meta
+*.mdb.meta
+
+# Build ed esportazioni
+*.apk
+*.aab
+*.app
+*.unitypackage
+
+# File di sistema OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
