@@ -476,8 +476,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1d36c65ba3674bd4c9542eab759311e5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  n8nWebhookUrl: http://10.54.128.33:5678/webhook-test/hololens-generate
-  timeoutSeconds: 120
+  n8nWebhookUrl: http://10.54.15.50:5678/webhook-test/hololens-generate
+  timeoutSeconds: 1000
   placementDistance: 1.5
   targetObjectSize: 0.3
   successSound: {fileID: 0}
