@@ -154,3 +154,13 @@ services:
     image: ollama/ollama:rocm
     depends_on:
      - ollama-gpu-amd
+
+  whisper:
+    image: fedirz/faster-whisper-server:latest-cpu
+    container_name: whisper
+    ports:
+      - "9001:8000"
+    environment:
+      - WHISPER__MODEL=Systran/faster-whisper-medium
+    networks:
+      - demo
