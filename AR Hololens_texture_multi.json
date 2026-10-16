@@ -1,0 +1,483 @@
+{
+  "name": "AR Hololens_texture_multi",
+  "nodes": [
+    {
+      "parameters": {
+        "model": "qwen3:30b-a3b-instruct-2507-q8_0",
+        "options": {
+          "temperature": 0.2
+        }
+      },
+      "id": "89bd5d4a-3eac-4a9d-9d4d-a36adabc0653",
+      "name": "AI Agent — Ollama",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
+      "typeVersion": 1,
+      "position": [
+        528,
+        352
+      ],
+      "credentials": {
+        "ollamaApi": {
+          "id": "YOhFALfeu5dHLGBF",
+          "name": "Ollama account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// L'output dell'AI Agent arriva in output.text o output.output\nconst agentOutput = $input.first().json.output \n  ?? $input.first().json.text \n  ?? $input.first().json.content\n  ?? '';\n\nlet sessionId;\ntry {\n  sessionId = $('Estrai prompt + session_id').first().json.session_id;\n} catch (e) {\n  sessionId = 'test_' + Date.now().toString();\n}\n\nlet parsed;\ntry {\n  const clean = agentOutput.replace(/```json|```/gi, '').trim();\n  const match = clean.match(/\\{[\\s\\S]*\\}/);\n  if (!match) throw new Error('Nessun JSON trovato');\n  parsed = JSON.parse(match[0]);\n} catch(e) {\n  console.log('JSON parse fallito, uso fallback. Output:', agentOutput.substring(0, 200));\n  parsed = {\n    flux_prompt: `${agentOutput.substring(0, 200)}, white background, studio lighting, product photography`,\n    object_name: 'object',\n    style_tags: ''\n  };\n}\n\nif (!parsed.flux_prompt) {\n  throw new Error(`flux_prompt mancante. Parsed: ${JSON.stringify(parsed)}`);\n}\n\nreturn [{ json: {\n  flux_prompt: parsed.flux_prompt,\n  object_name: parsed.object_name ?? 'object',\n  style_tags: parsed.style_tags ?? '',\n  session_id: sessionId,\n  seed: Math.floor(Math.random() * 9999999999)\n} }];"
+      },
+      "id": "28e8e939-06e2-456b-9b24-301b4970a8cf",
+      "name": "Estrai JSON dall'agente",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        864,
+        176
+      ]
+    },
+    {
+      "parameters": {
+        "workflow": "={{ JSON.stringify({\n  \"103\": {\n    \"inputs\": {\n      \"vae_name\": \"qwen_image_vae.safetensors\"\n    },\n    \"class_type\": \"VAELoader\",\n    \"_meta\": {\n      \"title\": \"Carica VAE\"\n    }\n  },\n  \"104\": {\n    \"inputs\": {\n      \"clip_name\": \"qwen_2.5_vl_7b_fp8_scaled.safetensors\",\n      \"type\": \"qwen_image\",\n      \"device\": \"default\"\n    },\n    \"class_type\": \"CLIPLoader\",\n    \"_meta\": {\n      \"title\": \"Carica CLIP\"\n    }\n  },\n  \"105\": {\n    \"inputs\": {\n      \"unet_name\": \"qwen_image_2512_fp8_e4m3fn.safetensors\",\n      \"weight_dtype\": \"default\"\n    },\n    \"class_type\": \"UNETLoader\",\n    \"_meta\": {\n      \"title\": \"Carica modello di diffusione\"\n    }\n  },\n  \"106\": {\n    \"inputs\": {\n      \"seed\": $json.seed,\n      \"steps\": 2,\n      \"cfg\": 1,\n      \"sampler_name\": \"euler\",\n      \"scheduler\": \"simple\",\n      \"denoise\": 1,\n      \"model\": [\n        \"110\",\n        0\n      ],\n      \"positive\": [\n        \"108\",\n        0\n      ],\n      \"negative\": [\n        \"128\",\n        0\n      ],\n      \"latent_image\": [\n        \"107\",\n        0\n      ]\n    },\n    \"class_type\": \"KSampler\",\n    \"_meta\": {\n      \"title\": \"KSampler\"\n    }\n  },\n  \"107\": {\n    \"inputs\": {\n      \"width\": 800,\n      \"height\": 800,\n      \"batch_size\": 1\n    },\n    \"class_type\": \"EmptySD3LatentImage\",\n    \"_meta\": {\n      \"title\": \"Immagine Latent Vuota SD3\"\n    }\n  },\n  \"108\": {\n    \"inputs\": {\n      \"text\": $json.flux_prompt,\n      \"clip\": [\n        \"104\",\n        0\n      ]\n    },\n    \"class_type\": \"CLIPTextEncode\",\n    \"_meta\": {\n      \"title\": \"CLIP Text Encode (Positive Prompt)\"\n    }\n  },\n  \"109\": {\n    \"inputs\": {\n      \"samples\": [\n        \"106\",\n        0\n      ],\n      \"vae\": [\n        \"103\",\n        0\n      ]\n    },\n    \"class_type\": \"VAEDecode\",\n    \"_meta\": {\n      \"title\": \"Decodifica VAE\"\n    }\n  },\n  \"110\": {\n    \"inputs\": {\n      \"shift\": 3,\n      \"sampling\": \"flow\",\n      \"model\": [\n        \"114\",\n        0\n      ]\n    },\n    \"class_type\": \"ModelSamplingAuraFlow\",\n    \"_meta\": {\n      \"title\": \"ModelSamplingAuraFlow\"\n    }\n  },\n  \"114\": {\n    \"inputs\": {\n      \"lora_name\": \"Wuli-Qwen-Image-2512-Turbo-LoRA-2steps-V1.0-bf16.safetensors\",\n      \"strength_model\": 1,\n      \"model\": [\n        \"105\",\n        0\n      ]\n    },\n    \"class_type\": \"LoraLoaderModelOnly\",\n    \"_meta\": {\n      \"title\": \"Carica LoRA\"\n    }\n  },\n  \"123\": {\n    \"inputs\": {\n      \"filename_prefix\": \"Qwen-2512-2steps-LoRA\",\n      \"images\": [\n        \"109\",\n        0\n      ]\n    },\n    \"class_type\": \"SaveImage\",\n    \"_meta\": {\n      \"title\": \"Salva Immagine\"\n    }\n  },\n  \"128\": {\n    \"inputs\": {\n      \"conditioning\": [\n        \"108\",\n        0\n      ]\n    },\n    \"class_type\": \"ConditioningZeroOut\",\n    \"_meta\": {\n      \"title\": \"Condizionamento Azzerato\"\n    }\n  }\n}) }}"
+      },
+      "type": "n8n-nodes-comfyui.comfyui",
+      "typeVersion": 1,
+      "position": [
+        1072,
+        176
+      ],
+      "id": "16160c94-89d4-4445-b17a-10303a7cea66",
+      "name": "ComfyUI - Immagine",
+      "credentials": {
+        "comfyUIApi": {
+          "id": "p4tagYdsfM1Hho7R",
+          "name": "ComfyUI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first();\nconst agentData = $('Estrai JSON dall\\'agente').first().json;\nconst sessionId = agentData.session_id;\nconst objectName = agentData.object_name;\nconst seed = agentData.seed;\n\n// Il nodo comfyui mason276752 restituisce le immagini come binary\n// La chiave binary può essere 'data', 'image', o il filename\nconst binaryKeys = Object.keys(item.binary ?? {});\nconsole.log('Binary keys disponibili da FLUX:', JSON.stringify(binaryKeys));\nconsole.log('JSON da FLUX:', JSON.stringify(item.json).substring(0, 400));\n\nif (binaryKeys.length === 0) {\n  throw new Error(`Nessun binary trovato nell output FLUX. JSON: ${JSON.stringify(item.json).substring(0, 300)}`);\n}\n\nconst binaryKey = binaryKeys[0];\nconst buffer = await this.helpers.getBinaryDataBuffer(0, binaryKey);\nconst base64Image = buffer.toString('base64');\n\nconst dataUri = base64Image;\n\nconsole.log(`Immagine convertita: ${Math.round(buffer.length / 1024)}KB, key: ${binaryKey}`);\n\nreturn [{ json: {\n  image_base64: dataUri,\n  session_id: sessionId,\n  object_name: objectName,\n  seed: seed\n} }];"
+      },
+      "id": "7a77c394-6b7b-47ec-9d86-1f5924ee0b37",
+      "name": "PNG → Base64 per Hunyuan",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1264,
+        176
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {}
+      },
+      "id": "1e00bedb-7421-449f-b456-bfcfdc4aea19",
+      "name": "Rispondi a Unity",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        2784,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=http://192.168.1.27:8000/api/history/{{ $('Comfy3D - Meshy').first().json.prompt_id }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1920,
+        176
+      ],
+      "id": "cd395bc3-e8ac-400b-af52-99b0022f29f3",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Polling del GLB legato a QUESTA esecuzione (tramite prompt_id di ComfyUI)\nconst history   = $input.first().json;\nconst agentData = $('Estrai JSON dall\\'agente').first().json;\nconst promptId  = $('Comfy3D - Meshy').first().json.prompt_id;\n\nif (!promptId) {\n  throw new Error('prompt_id mancante nella risposta di Comfy3D - Meshy');\n}\n\nlet attempts;\ntry {\n  attempts = ($('If').first().json._attempts ?? 0) + 1;\n} catch (e) {\n  attempts = 1;\n}\nconst MAX_ATTEMPTS = 15;\n\n// /api/history/{prompt_id} restituisce {} finché il prompt non è completato\nconst entry = history[promptId];\n\nif (entry?.status?.status_str === 'error') {\n  throw new Error(`ComfyUI: esecuzione fallita per prompt ${promptId}`);\n}\n\n// Tutti i GLB prodotti da questo prompt (i SaveGLB sono due: 11 e 12)\nconst glbs = [];\nfor (const out of Object.values(entry?.outputs ?? {})) {\n  const meshArray = out?.meshes || out?.['3d'] || [];\n  for (const mesh of meshArray) {\n    if (mesh.filename?.endsWith('.glb')) glbs.push(mesh);\n  }\n}\n// Come nella versione precedente, si usa l'ultimo trovato\nconst glb = glbs.length ? glbs[glbs.length - 1] : null;\n\n// GLB di questa richiesta non ancora pronto\nif (!glb) {\n  if (attempts >= MAX_ATTEMPTS) {\n    throw new Error(`Timeout: nessun GLB per prompt ${promptId} dopo ${MAX_ATTEMPTS} tentativi (${MAX_ATTEMPTS * 30}s)`);\n  }\n  return [{ json: {\n    _ready: false,\n    _attempts: attempts,\n    prompt_id: promptId,\n    session_id: agentData.session_id,\n    object_name: agentData.object_name\n  }}];\n}\n\n// GLB pronto\nconst host = \"192.168.1.27\";\nconst port = 8000;\nconst glbUrl = `http://${host}:${port}/view?filename=${encodeURIComponent(glb.filename)}&type=${glb.type || 'output'}&subfolder=${encodeURIComponent(glb.subfolder || '3d')}`;\n\nreturn [{ json: {\n  _ready: true,\n  _attempts: attempts,\n  status: \"ready\",\n  glb_url: glbUrl,\n  prompt_id: promptId,\n  object_name: agentData.object_name,\n  session_id: agentData.session_id,\n  message: \"Oggetto generato con successo!\"\n}}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2112,
+        176
+      ],
+      "id": "8d249710-d5ff-42a3-9e9a-abf12306f081",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "resource": "image",
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-3-pro-image",
+          "mode": "list",
+          "cachedResultName": "models/gemini-3-pro-image (Nano Banana Pro)"
+        },
+        "prompt": "=",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        1072,
+        368
+      ],
+      "id": "c8b016d6-15ab-4202-abde-222169b72528",
+      "name": "Generate an image",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "kRugsoac1vrxH2d4",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://host.docker.internal:8000/prompt",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"prompt\": {\n    \"6\": { \"inputs\": { \"model_file\": [\"7\", 0], \"image\": \"\" }, \"class_type\": \"Preview3D\", \"_meta\": { \"title\": \"Preview 3D & Animation\" } },\n    \"7\": { \"inputs\": { \"model\": \"latest\", \"should_remesh\": \"true\", \"should_remesh.topology\": \"triangle\", \"should_remesh.target_polycount\": 300000, \"symmetry_mode\": \"auto\", \"should_texture\": \"true\", \"should_texture.enable_pbr\": true, \"should_texture.texture_prompt\": \"\", \"pose_mode\": \"\", \"seed\": 795649874, \"image\": [\"13\", 0] }, \"class_type\": \"MeshyImageToModelNode\", \"_meta\": { \"title\": \"Meshy: Image to Model\" } },\n    \"11\": { \"inputs\": { \"filename_prefix\": \"3d/meshy_image2model\", \"image\": \"\", \"mesh\": [\"7\", 2] }, \"class_type\": \"SaveGLB\", \"_meta\": { \"title\": \"Save 3D Model\" } },\n    \"12\": { \"inputs\": { \"filename_prefix\": \"3d/meshy_image2model\", \"image\": \"\", \"mesh\": [\"7\", 3] }, \"class_type\": \"SaveGLB\", \"_meta\": { \"title\": \"Save 3D Model\" } },\n    \"13\": { \"inputs\": { \"base64_data\": \"{{ $json.image_base64 }}\", \"image_output\": \"Preview\", \"save_prefix\": \"ComfyUI\" }, \"class_type\": \"easy loadImageBase64\", \"_meta\": { \"title\": \"Load Image (Base64)\" } }\n  },\n  \"extra_data\": {\n    \"api_key_comfy_org\": \"comfyui-cfafd7b79265271fc7fd546084090e88781f085eaeba5be802b28d77515b9d03\"\n  }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1504,
+        176
+      ],
+      "id": "9ca8cc7c-f4ae-477e-824b-faff1ffbb3d3",
+      "name": "Comfy3D - Meshy"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.1-flash-lite",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        544,
+        544
+      ],
+      "id": "ac43d385-88bf-4689-b011-8433ab8c9290",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "kRugsoac1vrxH2d4",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        64,
+        656
+      ],
+      "id": "3cb847d4-35dd-4a36-b853-ebef4db922c3",
+      "name": "When chat message received",
+      "webhookId": "0fa2e3ec-326c-43d0-bfbd-1b5df8d2b620"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.prompt }}",
+        "options": {
+          "systemMessage": "You are an expert at writing image generation prompts for Qwen image generation models and 3D asset pipelines.\n\nThe input will be a short object description in ITALIAN or ENGLISH. If the input is in Italian, translate it to English before generating the prompt.\n\nGiven the object description, you must produce a JSON object with exactly these fields:\n{\n  \"flux_prompt\": \"<detailed English prompt for Qwen image generation, 40-60 words. Describe: object shape, materials, surface details, style. The object MUST be on a PURE WHITE background with studio lighting, product photography style, no shadows, no reflections. Use clear, direct descriptive language without artistic jargon>\",\n  \"object_name\": \"<short English name of the object, 1-3 words>\",\n  \"style_tags\": \"<3-5 comma-separated style keywords, e.g. medieval, worn leather, iron rivets>\"\n}\n\nSTRICT RULES:\n- The input language is always ITALIAN or ENGLISH — translate to English if needed\n- flux_prompt must describe a SINGLE object on a PURE WHITE background\n- flux_prompt must always be in English regardless of input language\n- The object must be centered, front-facing, fully visible, isolated\n- Use simple and descriptive language: Qwen responds better to direct descriptions than to stylistic or technical photography terms\n- Do NOT use FLUX-specific tokens or keywords like \"flux\", \"v1\", \"lora\", or model-specific syntax\n- Do NOT include people, scenes, backgrounds, or multiple objects\n- Reply with valid JSON only — no markdown fences, no explanations, no extra text before or after the JSON\n\nIMPORTANT: Reply ONLY with a JSON object. No explanations, no descriptions, no preamble. Start your response with { and end with }.\n\nDo NOT explain your reasoning. Do NOT think out loud. Output ONLY the JSON object, nothing else."
+        }
+      },
+      "id": "81132372-2224-470e-9709-bf7b9e354754",
+      "name": "AI Agent QWEN",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        528,
+        176
+      ]
+    },
+    {
+      "parameters": {
+        "amount": 30
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1712,
+        176
+      ],
+      "id": "65a1f37c-9392-4974-a13d-67e43dc35278",
+      "name": "Wait",
+      "webhookId": "c0436599-dd53-42cd-a45d-a247d3753dec"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "0d98d413-ae11-465c-8317-2df2a56b9121",
+              "leftValue": "={{ $json._ready }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        2336,
+        176
+      ],
+      "id": "af7e3f6a-7a70-4964-bec1-d48d76d09c84",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "jsCode": "console.log('✅ Pipeline completata!');\nconsole.log('GLB URL:', $json.glb_url);\nconsole.log('Oggetto:', $json.object_name);\nconsole.log('Tentativi:', $json._attempts);\nreturn [$input.first()];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2576,
+        160
+      ],
+      "id": "592f9b25-c03c-42fc-a50f-ae76436dfa2a",
+      "name": "Code in JavaScript1"
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.first().json;\nconst msg = data.body?.prompt \n  ?? data.prompt \n  ?? data.chatInput \n  ?? data.input \n  ?? data.message \n  ?? 'una sedia medievale';\n\nconst sessionId = data.body?.session_id \n  ?? data.session_id \n  ?? 'test_' + Date.now().toString();\n\nreturn [{ json: { prompt: msg.trim(), session_id: sessionId } }];"
+      },
+      "id": "381890ee-ad13-4e24-9d5b-d40efb68e308",
+      "name": "Estrai prompt + session_id",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        304,
+        176
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "hololens-generate",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        96,
+        176
+      ],
+      "id": "8f0b345b-30aa-4581-9a83-f70a3d0548f9",
+      "name": "Webhook",
+      "webhookId": "3737a7b8-33f4-4fba-9abb-e8a558c9e7a8"
+    },
+    {
+      "parameters": {
+        "content": "## IP\nCambiare **l'indirizzo IP** nei nodi **HTTP Request** e **Code** "
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1952,
+        0
+      ],
+      "id": "cd47abe8-e624-4220-ada9-817807105a6f",
+      "name": "Sticky Note"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "AI Agent — Ollama": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent QWEN",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Estrai JSON dall'agente": {
+      "main": [
+        [
+          {
+            "node": "ComfyUI - Immagine",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ComfyUI - Immagine": {
+      "main": [
+        [
+          {
+            "node": "PNG → Base64 per Hunyuan",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PNG → Base64 per Hunyuan": {
+      "main": [
+        [
+          {
+            "node": "Comfy3D - Meshy",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Comfy3D - Meshy": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When chat message received": {
+      "main": [
+        []
+      ]
+    },
+    "AI Agent QWEN": {
+      "main": [
+        [
+          {
+            "node": "Estrai JSON dall'agente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Estrai prompt + session_id",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Estrai prompt + session_id": {
+      "main": [
+        [
+          {
+            "node": "AI Agent QWEN",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "Rispondi a Unity",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "fcc6af9f-f05c-4ed6-9c5c-14b4cdb3b348",
+  "meta": {
+    "instanceId": "558d88703fb65b2d0e44613bc35916258b0f0bf983c5d4730c00c424b77ca36a"
+  },
+  "id": "Nd1cxG4AtUiFvACn",
+  "tags": []
+}
