@@ -1,0 +1,2 @@
+C:\Users\Polito_User\Desktop\Real_time_3D_asset_synthesis_in_XR\MQ_XR_Previs\VR_Previs_MQ\Library\Bee\Android\Prj\IL2CPP\Gradle\unityLibrary\src\main\cpp\CMakeLists.txt
+C:\Users\Polito_User\Desktop\Real_time_3D_asset_synthesis_in_XR\MQ_XR_Previs\VR_Previs_MQ\Library\Bee\Android\Prj\IL2CPP\Gradle\unityLibrary\src\main\cpp\GameActivity\CMakeLists.txt

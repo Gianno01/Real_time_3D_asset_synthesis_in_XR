@@ -1,0 +1,17 @@
+C:\Users\Polito_User\Desktop\Real_time_3D_asset_synthesis_in_XR\MQ_XR_Previs\VR_Previs_MQ\Library\Bee\Android\Prj\IL2CPP\Gradle\unityLibrary\src\main\cpp\GameActivity\GAToUnityCallbacks.h
+C:\Users\Polito_User\Desktop\Real_time_3D_asset_synthesis_in_XR\MQ_XR_Previs\VR_Previs_MQ\Library\Bee\Android\Prj\IL2CPP\Gradle\unityLibrary\src\main\cpp\GameActivity\MacroEnd.h
+C:\Users\Polito_User\Desktop\Real_time_3D_asset_synthesis_in_XR\MQ_XR_Previs\VR_Previs_MQ\Library\Bee\Android\Prj\IL2CPP\Gradle\unityLibrary\src\main\cpp\GameActivity\MacroHeaderBegin.h
+C:\Users\Polito_User\Desktop\Real_time_3D_asset_synthesis_in_XR\MQ_XR_Previs\VR_Previs_MQ\Library\Bee\Android\Prj\IL2CPP\Gradle\unityLibrary\src\main\cpp\GameActivity\MacroSourceBegin.h
+C:\Users\Polito_User\Desktop\Real_time_3D_asset_synthesis_in_XR\MQ_XR_Previs\VR_Previs_MQ\Library\Bee\Android\Prj\IL2CPP\Gradle\unityLibrary\src\main\cpp\GameActivity\UGAApplication.h
+C:\Users\Polito_User\Desktop\Real_time_3D_asset_synthesis_in_XR\MQ_XR_Previs\VR_Previs_MQ\Library\Bee\Android\Prj\IL2CPP\Gradle\unityLibrary\src\main\cpp\GameActivity\UGAConfiguration.h
+C:\Users\Polito_User\Desktop\Real_time_3D_asset_synthesis_in_XR\MQ_XR_Previs\VR_Previs_MQ\Library\Bee\Android\Prj\IL2CPP\Gradle\unityLibrary\src\main\cpp\GameActivity\UGADebug.h
+C:\Users\Polito_User\Desktop\Real_time_3D_asset_synthesis_in_XR\MQ_XR_Previs\VR_Previs_MQ\Library\Bee\Android\Prj\IL2CPP\Gradle\unityLibrary\src\main\cpp\GameActivity\UGAEvents.h
+C:\Users\Polito_User\Desktop\Real_time_3D_asset_synthesis_in_XR\MQ_XR_Previs\VR_Previs_MQ\Library\Bee\Android\Prj\IL2CPP\Gradle\unityLibrary\src\main\cpp\GameActivity\UGAInput.h
+C:\Users\Polito_User\Desktop\Real_time_3D_asset_synthesis_in_XR\MQ_XR_Previs\VR_Previs_MQ\Library\Bee\Android\Prj\IL2CPP\Gradle\unityLibrary\src\main\cpp\GameActivity\UGASoftKeyboard.h
+C:\Users\Polito_User\Desktop\Real_time_3D_asset_synthesis_in_XR\MQ_XR_Previs\VR_Previs_MQ\Library\Bee\Android\Prj\IL2CPP\Gradle\unityLibrary\src\main\cpp\GameActivity\UGASoftKeyboardCallbacks.h
+C:\Users\Polito_User\Desktop\Real_time_3D_asset_synthesis_in_XR\MQ_XR_Previs\VR_Previs_MQ\Library\Bee\Android\Prj\IL2CPP\Gradle\unityLibrary\src\main\cpp\GameActivity\UGATypes.h
+C:\Users\Polito_User\Desktop\Real_time_3D_asset_synthesis_in_XR\MQ_XR_Previs\VR_Previs_MQ\Library\Bee\Android\Prj\IL2CPP\Gradle\unityLibrary\src\main\cpp\GameActivity\UGAVersion.h
+C:\Users\Polito_User\Desktop\Real_time_3D_asset_synthesis_in_XR\MQ_XR_Previs\VR_Previs_MQ\Library\Bee\Android\Prj\IL2CPP\Gradle\unityLibrary\src\main\cpp\GameActivity\UnityToGACallbacks.h
+C:\Users\Polito_User\Desktop\Real_time_3D_asset_synthesis_in_XR\MQ_XR_Previs\VR_Previs_MQ\Library\Bee\Android\Prj\IL2CPP\Gradle\unityLibrary\src\main\cpp\GameActivity\UnityToGAConfigurationCallbacks.h
+C:\Users\Polito_User\Desktop\Real_time_3D_asset_synthesis_in_XR\MQ_XR_Previs\VR_Previs_MQ\Library\Bee\Android\Prj\IL2CPP\Gradle\unityLibrary\src\main\cpp\GameActivity\UnityToGAKeyEventCallbacks.h
+C:\Users\Polito_User\Desktop\Real_time_3D_asset_synthesis_in_XR\MQ_XR_Previs\VR_Previs_MQ\Library\Bee\Android\Prj\IL2CPP\Gradle\unityLibrary\src\main\cpp\GameActivity\UnityToGAMotionEventCallbacks.h
