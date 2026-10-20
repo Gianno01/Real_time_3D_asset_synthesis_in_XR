@@ -4,7 +4,7 @@ Voice-driven, real-time generation of 3D assets inside a Mixed Reality applicati
 
 The user presses a button on the controller, says the name of an object (e.g. *"a wooden medieval chair"*), and after a short wait the object appears in front of them as a 3D model, overlaid on the real room through passthrough. The object can then be grabbed, moved, rotated and scaled with hands or controllers.
 
-The project was developed as part of a Master's thesis and internship at RAI on real-time 3D asset synthesis for XR.
+The project was developed as part of a Master's thesis and internship at RAI-Radio Televisione Italiana on real-time 3D asset synthesis for XR.
 
 ---
 

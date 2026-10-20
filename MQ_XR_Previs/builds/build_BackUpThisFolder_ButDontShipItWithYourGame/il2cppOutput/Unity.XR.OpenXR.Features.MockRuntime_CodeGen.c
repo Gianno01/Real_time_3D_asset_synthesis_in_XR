@@ -125,9 +125,9 @@ static Il2CppMethodPointer s_methodPointers[55] =
 };
 static const Il2CppTokenIndexMethodTuple s_reversePInvokeIndices[3] = 
 {
-	{ 0x06000004, 199,  (void**)&MockRuntime_ReceiveScriptEvent_m4A8AAF0A455A02262E3B74CB3DB498A88C84AD14_RuntimeMethod_var, 0 },
-	{ 0x06000005, 198,  (void**)&MockRuntime_BeforeFunctionCallback_m70AB6148D0D9FCD315ACDB6B46131514D128380D_RuntimeMethod_var, 0 },
-	{ 0x06000006, 197,  (void**)&MockRuntime_AfterFunctionCallback_mFBBF94D9868CA6870E3A6A78D831145376372D46_RuntimeMethod_var, 0 },
+	{ 0x06000004, 198,  (void**)&MockRuntime_ReceiveScriptEvent_m4A8AAF0A455A02262E3B74CB3DB498A88C84AD14_RuntimeMethod_var, 0 },
+	{ 0x06000005, 197,  (void**)&MockRuntime_BeforeFunctionCallback_m70AB6148D0D9FCD315ACDB6B46131514D128380D_RuntimeMethod_var, 0 },
+	{ 0x06000006, 196,  (void**)&MockRuntime_AfterFunctionCallback_mFBBF94D9868CA6870E3A6A78D831145376372D46_RuntimeMethod_var, 0 },
 };
 IL2CPP_EXTERN_C const Il2CppCodeGenModule g_Unity_XR_OpenXR_Features_MockRuntime_CodeGenModule;
 const Il2CppCodeGenModule g_Unity_XR_OpenXR_Features_MockRuntime_CodeGenModule = 

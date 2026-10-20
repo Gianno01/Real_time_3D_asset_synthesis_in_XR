@@ -163,8 +163,11 @@ extern void RaycastHit_get_point_m02B764612562AFE0F998CC7CFB2EEDE41BA47F39 (void
 extern void RaycastHit_get_normal_mD8741B70D2039C5CAFC4368D4CE59D89562040B5 (void);
 extern void RaycastHit_get_distance_m035194B0E9BB6229259CFC43B095A9C8E5011C78 (void);
 extern void RaycastHit_set_distance_mD5C9C6A5F7EDFFAC302DA4981F3483AA9981A9DC (void);
+extern void RaycastHit_CalculateRaycastTexCoord_mC5BED12CA41A6FD68E81B2D529E132FF845BA075 (void);
+extern void RaycastHit_get_textureCoord_m71F12781E6A806033B42B2D6D1D42DDA2069FE6D (void);
 extern void RaycastHit_get_transform_m89DB7FCFC50E0213A37CBE089400064B8FA19155 (void);
 extern void RaycastHit_get_rigidbody_mE6FCB1B1A9F0C8D4185A484C10B9A5403CCD6005 (void);
+extern void RaycastHit_CalculateRaycastTexCoord_Injected_m615EEAC63033B6437145D6588AAF2E9B53B0748E (void);
 extern void Rigidbody_get_linearVelocity_m367F5415641E5FB968440A91BAE2FCB8CAEA2C8C (void);
 extern void Rigidbody_set_linearVelocity_m29AE03D5FC079EAD4202FCF72E2AEBDC19363985 (void);
 extern void Rigidbody_get_angularVelocity_m4EACCFCF15CA441CCD53B24322C2E7B8EEBDF6A8 (void);
@@ -218,7 +221,7 @@ extern void SphereCollider__ctor_mA8570CBE8C0E74C607669DC4E0CCA6CB1E4CB200 (void
 extern void SphereCollider_get_center_Injected_m092FEA1F41E394E8C2E25921DFD2A1425F8874E9 (void);
 extern void SphereCollider_get_radius_Injected_mF96901A391F7DBD16C5895D85C4853B65CD033A0 (void);
 extern void SphereCollider_set_radius_Injected_m1A4885A34095D7CE22CE2001BA6D47022F387747 (void);
-static Il2CppMethodPointer s_methodPointers[211] = 
+static Il2CppMethodPointer s_methodPointers[214] = 
 {
 	EmbeddedAttribute__ctor_m97DAFCB0D0AB5343C00A91C28E32BC2BB8949B37,
 	RefSafetyRulesAttribute__ctor_m8F1FAFFA7508731C7EA4C4138F035BDCBCE0DFED,
@@ -376,8 +379,11 @@ static Il2CppMethodPointer s_methodPointers[211] =
 	RaycastHit_get_normal_mD8741B70D2039C5CAFC4368D4CE59D89562040B5,
 	RaycastHit_get_distance_m035194B0E9BB6229259CFC43B095A9C8E5011C78,
 	RaycastHit_set_distance_mD5C9C6A5F7EDFFAC302DA4981F3483AA9981A9DC,
+	RaycastHit_CalculateRaycastTexCoord_mC5BED12CA41A6FD68E81B2D529E132FF845BA075,
+	RaycastHit_get_textureCoord_m71F12781E6A806033B42B2D6D1D42DDA2069FE6D,
 	RaycastHit_get_transform_m89DB7FCFC50E0213A37CBE089400064B8FA19155,
 	RaycastHit_get_rigidbody_mE6FCB1B1A9F0C8D4185A484C10B9A5403CCD6005,
+	RaycastHit_CalculateRaycastTexCoord_Injected_m615EEAC63033B6437145D6588AAF2E9B53B0748E,
 	Rigidbody_get_linearVelocity_m367F5415641E5FB968440A91BAE2FCB8CAEA2C8C,
 	Rigidbody_set_linearVelocity_m29AE03D5FC079EAD4202FCF72E2AEBDC19363985,
 	Rigidbody_get_angularVelocity_m4EACCFCF15CA441CCD53B24322C2E7B8EEBDF6A8,
@@ -447,7 +453,7 @@ IL2CPP_EXTERN_C const Il2CppCodeGenModule g_UnityEngine_PhysicsModule_CodeGenMod
 const Il2CppCodeGenModule g_UnityEngine_PhysicsModule_CodeGenModule = 
 {
 	"UnityEngine.PhysicsModule.dll",
-	211,
+	214,
 	s_methodPointers,
 	4,
 	s_adjustorThunks,

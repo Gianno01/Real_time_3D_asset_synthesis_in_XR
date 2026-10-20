@@ -15,6 +15,8 @@ extern void Error_NoElements_m49C996124733B026EA2FDBE9382AAD136CA22362 (void);
 extern void Error_NoMatch_mD5BC0E5ED29A185D01A63F3C17EA2C29E32C2BE4 (void);
 extern void Enumerable_Range_m4FB9BBBA09BEF5177C13506DB385CF4467C15FD8 (void);
 extern void Enumerable_RangeIterator_mAD9E9F85AF2156C74E78C2EA554F0F32EA0E91C9 (void);
+extern void Enumerable_Min_m3D3C3E5CE25D27D94448CA832FB5AB9F702D5443 (void);
+extern void Enumerable_Max_mF33848068459BE74BF534D16F6B678BB677EE704 (void);
 extern void U3CRangeIteratorU3Ed__115__ctor_m28402F68F863084357F710F6546910CC4417800C (void);
 extern void U3CRangeIteratorU3Ed__115_System_IDisposable_Dispose_mACF95799F65FBE5A805C33ABD0ABBB8D90B865E9 (void);
 extern void U3CRangeIteratorU3Ed__115_MoveNext_m4B882BD1A41035B16713BD5C47695ACEFF7A3B91 (void);
@@ -85,7 +87,7 @@ extern void ReaderWriterLockSlim_get_WaitingWriteCount_m8FE677BDB0E776125691C0A4
 extern void TimeoutTracker__ctor_mBFE73B99C5BBB93D251DF9731B9C5D824F30CDCE (void);
 extern void TimeoutTracker_get_RemainingMilliseconds_mDAA8A0E545F8E28D3688095CA346B0A04337BC23 (void);
 extern void TimeoutTracker_get_IsExpired_m5E08DCC01117EF66ADEBA5472B27833577289813 (void);
-static Il2CppMethodPointer s_methodPointers[321] = 
+static Il2CppMethodPointer s_methodPointers[323] = 
 {
 	SR_GetString_m2213C501E26D6A1AE8D0644E9685AF8A4204CA7F,
 	SR_Format_m7198B645F5C0A5E33F30AEF003C1F1D1415A9F86,
@@ -136,6 +138,8 @@ static Il2CppMethodPointer s_methodPointers[321] =
 	NULL,
 	NULL,
 	NULL,
+	Enumerable_Min_m3D3C3E5CE25D27D94448CA832FB5AB9F702D5443,
+	Enumerable_Max_mF33848068459BE74BF534D16F6B678BB677EE704,
 	NULL,
 	NULL,
 	NULL,
@@ -413,7 +417,7 @@ IL2CPP_EXTERN_C const Il2CppCodeGenModule g_System_Core_CodeGenModule;
 const Il2CppCodeGenModule g_System_Core_CodeGenModule = 
 {
 	"System.Core.dll",
-	321,
+	323,
 	s_methodPointers,
 	0,
 	NULL,
