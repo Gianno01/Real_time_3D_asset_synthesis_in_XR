@@ -4,13 +4,15 @@
 // Pipeline: voce → Whisper (STT) → n8n (LLM + ComfyUI) → download .glb → glTFast
 //           → oggetto davanti all'utente, afferrabile/ruotabile/scalabile con mani o controller.
 //
-// Due modi per avviare una richiesta:
-//   1) MANI LIBERE (handsFreeMode): l'app ascolta sempre; ogni frase viene trascritta e,
-//      se inizia con una parola di attivazione ("genera", "crea"...), il resto della frase è la richiesta.
-//      Es. "Genera una sedia di legno". Dicendo solo "Genera" l'app aspetta l'oggetto nella frase successiva.
+// Avvio di una richiesta:
+//   1) MANI LIBERE (handsFreeMode): ascolto continuo; le frasi che iniziano con una parola di attivazione
+//      ("genera", "crea") avviano la generazione. Es. "Genera una sedia di legno".
 //   2) PULSANTE (recordButton): premi per registrare, la registrazione si chiude dopo una pausa.
 //
-// Espone uno stato pubblico (State, StateChanged, tempi, stima, MicLevel, IsListening) letto da GenerationStatusUI.
+// Annullamento: CancelRequest() — dal pulsante "Annulla" dell'interfaccia (GenerationStatusUI).
+//
+// Espone uno stato pubblico (State, StateChanged, tempi, stima, MicLevel, IsListening, CanCancel)
+// letto da GenerationStatusUI.
 
 using System;
 using System.Collections;
@@ -24,7 +26,7 @@ using UnityEngine.XR.Interaction.Toolkit.Interactables;
 using UnityEngine.XR.Interaction.Toolkit.Transformers;
 using GLTFast;
 
-public enum PipelineState { Idle, Recording, Transcribing, Generating, Downloading, Loading, Done, Error }
+public enum PipelineState { Idle, Recording, Transcribing, Generating, Downloading, Loading, Done, Error, Cancelled }
 
 public class QuestObjectGenerator : MonoBehaviour
 {
@@ -35,7 +37,6 @@ public class QuestObjectGenerator : MonoBehaviour
     public InputActionReference recordButton;
 
     [Header("Mani libere (parola di attivazione)")]
-    [Tooltip("Ascolto continuo: le frasi che iniziano con una parola di attivazione avviano la generazione")]
     public bool handsFreeMode = true;
     [Tooltip("Parole di attivazione (minuscolo). Vale anche l'inizio della parola: 'genera' riconosce 'generami'")]
     public string[] wakeWords = { "genera", "crea" };
@@ -54,6 +55,8 @@ public class QuestObjectGenerator : MonoBehaviour
     public string whisperPrompt = "Genera una sedia di legno. Genera un vaso di ceramica. Crea una lampada da tavolo.";
     [Tooltip("Indirizzo di ComfyUI come lo vede il VISORE (con adb reverse: http://127.0.0.1:8188). Vuoto = usa il glb_url così com'è")]
     public string comfyUrl = "http://127.0.0.1:8188";
+    [Tooltip("All'annullamento, interrompe anche l'esecuzione in corso su ComfyUI (/interrupt)")]
+    public bool interruptComfyOnCancel = true;
     public float timeoutSeconds = 700f;
 
     [Header("Riferimenti XR")]
@@ -87,12 +90,15 @@ public class QuestObjectGenerator : MonoBehaviour
     public float StateStartTime { get; private set; }
     public string LastTranscript { get; private set; } = "";
     public string LastObjectName { get; private set; } = "";
-    /// <summary>Volume istantaneo del microfono (0–1), sia in ascolto continuo sia in registrazione.</summary>
     public float MicLevel { get; private set; }
-    /// <summary>True quando l'app è in ascolto continuo della parola di attivazione.</summary>
     public bool IsListening { get; private set; }
     public float EstimatedGenerationSeconds => PlayerPrefs.GetFloat(PREF_AVG_GEN, 0f);
     public Transform Head => GetHead();
+
+    /// <summary>True quando c'è qualcosa da annullare (registrazione, trascrizione, generazione, download).</summary>
+    public bool CanCancel =>
+        State == PipelineState.Recording || State == PipelineState.Transcribing ||
+        State == PipelineState.Generating || State == PipelineState.Downloading || State == PipelineState.Loading;
 
     // ── Stato interno ─────────────────────────────────────────────────
 
@@ -101,14 +107,16 @@ public class QuestObjectGenerator : MonoBehaviour
     private bool _isGenerating = false;
     private bool _isRecording = false;
     private bool _awaitingCommand = false;
+    private int _requestId = 0;                 // cambia a ogni nuova richiesta e a ogni annullamento
+    private UnityWebRequest _activeRequest;     // richiesta di rete in corso (per poterla interrompere)
     private AudioSource _audioSource;
     private string _sessionId;
     private float _sttSeconds, _genSeconds, _dlSeconds, _loadSeconds;
 
     // ── Audio ─────────────────────────────────────────────────────────
 
-    private AudioClip _recordingClip;   // registrazione con pulsante (non in loop)
-    private AudioClip _listenClip;      // ascolto continuo (buffer circolare)
+    private AudioClip _recordingClip;
+    private AudioClip _listenClip;
     private Coroutine _listenRoutine;
     private string _micDevice;
     private const int SAMPLE_RATE = 16000;
@@ -157,8 +165,13 @@ public class QuestObjectGenerator : MonoBehaviour
     void Update()
     {
 #if UNITY_EDITOR
-        if (Keyboard.current != null && Keyboard.current.spaceKey.wasPressedThisFrame && !_isGenerating)
-            TriggerGeneration("un vaso di ceramica decorato");
+        if (Keyboard.current != null)
+        {
+            if (Keyboard.current.spaceKey.wasPressedThisFrame && !_isGenerating)
+                TriggerGeneration("un vaso di ceramica decorato");
+            if (Keyboard.current.escapeKey.wasPressedThisFrame)
+                CancelRequest();
+        }
 #endif
     }
 
@@ -196,17 +209,63 @@ public class QuestObjectGenerator : MonoBehaviour
         return $"{s / 60}:{s % 60:00}";
     }
 
-    // ── Pulsante ──────────────────────────────────────────────────────
+    // ── Annullamento ──────────────────────────────────────────────────
+
+    /// <summary>Annulla la richiesta in corso. Chiamabile dalla UI, da un tasto o dalla voce.</summary>
+    public void CancelRequest()
+    {
+        if (!CanCancel) return;
+
+        bool comfyMayBeWorking = State == PipelineState.Generating;
+        _requestId++;   // invalida le coroutine della richiesta corrente
+
+        if (_activeRequest != null)
+        {
+            try { _activeRequest.Abort(); } catch { /* già conclusa */ }
+            _activeRequest = null;
+        }
+        if (_isRecording)
+        {
+            Microphone.End(_micDevice);
+            _isRecording = false;
+        }
+
+        _awaitingCommand = false;
+        _isGenerating = false;
+        MicLevel = 0f;
+
+        if (comfyMayBeWorking && interruptComfyOnCancel) StartCoroutine(InterruptComfy());
+
+        SetState(PipelineState.Cancelled, "Richiesta annullata");
+        if (handsFreeMode) StartListening();
+    }
+
+    private IEnumerator InterruptComfy()
+    {
+        if (string.IsNullOrEmpty(comfyUrl)) yield break;
+
+        using var r = new UnityWebRequest(comfyUrl.TrimEnd('/') + "/interrupt", "POST");
+        r.uploadHandler = new UploadHandlerRaw(Encoding.UTF8.GetBytes("{}"));
+        r.downloadHandler = new DownloadHandlerBuffer();
+        r.SetRequestHeader("Content-Type", "application/json");
+        r.timeout = 5;
+        yield return r.SendWebRequest();
+
+        Debug.Log(r.result == UnityWebRequest.Result.Success
+            ? "[QuestObjectGenerator] ComfyUI: esecuzione interrotta"
+            : $"[QuestObjectGenerator] ComfyUI interrupt non riuscito: {r.error}");
+    }
+
+    // ── Pulsante di registrazione ─────────────────────────────────────
 
     private void OnRecordButtonPressed(InputAction.CallbackContext context)
     {
         if (_isGenerating || State == PipelineState.Transcribing) return;
-        if (GenerationStatusUI.IsPointerOverUI) return;   // il grilletto sta premendo un pulsante della UI
 
         if (!_isRecording)
         {
             _awaitingCommand = false;
-            StopListening();      // il pulsante ha la precedenza sull'ascolto continuo
+            StopListening();
             StartRecording();
         }
         else StopRecordingAndSend();
@@ -216,7 +275,7 @@ public class QuestObjectGenerator : MonoBehaviour
 
     private void StartListening()
     {
-        if (!handsFreeMode || IsListening || _isGenerating || _isRecording) return;
+        if (!handsFreeMode || IsListening || _isRecording) return;
         IsListening = true;
         _listenRoutine = StartCoroutine(ListenLoop());
     }
@@ -243,8 +302,8 @@ public class QuestObjectGenerator : MonoBehaviour
         Debug.Log("[QuestObjectGenerator] Ascolto continuo attivo: di' \"" + string.Join("\" o \"", wakeWords) + "\" seguito dall'oggetto");
 
         int total = _listenClip.samples;
-        int window = SAMPLE_RATE / 10;       // 100 ms
-        int preRoll = SAMPLE_RATE * 3 / 10;  // 300 ms prima dell'inizio della voce
+        int window = SAMPLE_RATE / 10;
+        int preRoll = SAMPLE_RATE * 3 / 10;
         float[] buf = new float[window];
         var wait = new WaitForSeconds(0.1f);
 
@@ -257,7 +316,7 @@ public class QuestObjectGenerator : MonoBehaviour
             int pos = Microphone.GetPosition(_micDevice);
             int start = pos - window;
             if (start < 0) start += total;
-            _listenClip.GetData(buf, start); // per clip in loop la lettura si avvolge da sola
+            _listenClip.GetData(buf, start);
 
             float max = 0f;
             foreach (float s in buf) max = Mathf.Max(max, Mathf.Abs(s));
@@ -285,7 +344,7 @@ public class QuestObjectGenerator : MonoBehaviour
                     int len = pos - speechStart;
                     if (len < 0) len += total;
 
-                    if (len >= SAMPLE_RATE * 6 / 10) // ignora rumori brevi (< 0,6 s)
+                    if (len >= SAMPLE_RATE * 6 / 10)
                     {
                         float[] samples = new float[len];
                         _listenClip.GetData(samples, speechStart);
@@ -297,19 +356,20 @@ public class QuestObjectGenerator : MonoBehaviour
         }
     }
 
-    // Una frase ascoltata in modalità mani libere: la trascrive e cerca la parola di attivazione
     private IEnumerator HandleUtterance(float[] samples)
     {
         string text = null, error = null;
-        yield return StartCoroutine(Transcribe(ConvertToWav(samples, SAMPLE_RATE), (t, e) => { text = t; error = e; }));
+        yield return StartCoroutine(Transcribe(ConvertToWav(samples, SAMPLE_RATE), (t, e) => { text = t; error = e; }, trackForCancel: false));
 
         if (text == null)
         {
             Debug.LogWarning($"[QuestObjectGenerator] Ascolto: trascrizione fallita ({error})");
-            yield break; // in ascolto continuo non disturbiamo l'utente con errori
+            yield break;
         }
-
+        if (IsHallucination(text)) yield break;
         Debug.Log($"[QuestObjectGenerator] Sentito: \"{text}\"");
+
+        if (_isGenerating) yield break; // durante la generazione le frasi vengono ignorate
 
         if (_awaitingCommand)
         {
@@ -317,16 +377,14 @@ public class QuestObjectGenerator : MonoBehaviour
             string cmd = CleanCommand(text);
             if (TryExtractCommand(text, out string again) && !string.IsNullOrEmpty(again)) cmd = again;
             if (cmd.Length < 2) { Fail("Non ho capito l'oggetto: riprova"); yield break; }
-            StopListening();
             TriggerGeneration(cmd);
             yield break;
         }
 
-        if (!TryExtractCommand(text, out string command)) yield break; // frase normale: ignorata
+        if (!TryExtractCommand(text, out string command)) yield break;
 
         if (string.IsNullOrEmpty(command))
         {
-            // Ha detto solo "genera": aspetta l'oggetto nella prossima frase
             _awaitingCommand = true;
             PlaySound(recordingStartSound);
             SetState(PipelineState.Recording, "Dimmi quale oggetto vuoi generare");
@@ -334,7 +392,6 @@ public class QuestObjectGenerator : MonoBehaviour
             yield break;
         }
 
-        StopListening();
         TriggerGeneration(command);
     }
 
@@ -349,16 +406,16 @@ public class QuestObjectGenerator : MonoBehaviour
         }
     }
 
+    private static string[] SplitWords(string text) =>
+        text.Split(new[] { ' ', '\t', ',', '.', '!', '?', ';', ':', '"', '«', '»' }, StringSplitOptions.RemoveEmptyEntries);
+
     // "Ok, genera una sedia di legno." → true, command = "una sedia di legno"
     private bool TryExtractCommand(string text, out string command)
     {
         command = null;
         if (string.IsNullOrWhiteSpace(text)) return false;
 
-        var words = text.Split(new[] { ' ', '\t', ',', '.', '!', '?', ';', ':', '"', '«', '»' },
-                               StringSplitOptions.RemoveEmptyEntries);
-
-        // la parola di attivazione può trovarsi tra le prime 3 parole ("ok genera...", "allora crea...")
+        var words = SplitWords(text);
         for (int i = 0; i < Mathf.Min(words.Length, 3); i++)
         {
             string w = words[i].ToLowerInvariant();
@@ -373,6 +430,16 @@ public class QuestObjectGenerator : MonoBehaviour
     }
 
     private static string CleanCommand(string text) => text.Trim().Trim('.', '!', '?', ',', ' ');
+
+    private static readonly string[] HallucinationMarkers =
+        { "amara.org", "amara org", "sottotitoli", "sottotitolato", "grazie per la visione", "iscriviti al canale" };
+
+    private static bool IsHallucination(string text)
+    {
+        string t = text.ToLowerInvariant();
+        foreach (var m in HallucinationMarkers) if (t.Contains(m)) return true;
+        return false;
+    }
 
     // ── Registrazione con pulsante ────────────────────────────────────
 
@@ -462,12 +529,14 @@ public class QuestObjectGenerator : MonoBehaviour
 
     private IEnumerator TranscribeAndGenerate(byte[] wav)
     {
+        int myId = _requestId;
         string text = null, error = null;
-        yield return StartCoroutine(Transcribe(wav, (t, e) => { text = t; error = e; }));
+        yield return StartCoroutine(Transcribe(wav, (t, e) => { text = t; error = e; }, trackForCancel: true));
+        if (myId != _requestId) yield break; // annullata
 
         if (text == null) { Fail(error); yield break; }
+        if (IsHallucination(text)) { Fail("Non ho sentito nulla: riprova"); yield break; }
 
-        // Se l'utente ha detto comunque "genera ...", togli la parola di attivazione
         string prompt = TryExtractCommand(text, out string cmd) && !string.IsNullOrEmpty(cmd) ? cmd : CleanCommand(text);
         if (prompt.Length < 2) { Fail("Non ho capito: riprova"); yield break; }
 
@@ -502,8 +571,7 @@ public class QuestObjectGenerator : MonoBehaviour
 
     // ── Whisper ───────────────────────────────────────────────────────
 
-    // callback(testo, errore): testo != null se la trascrizione è riuscita
-    private IEnumerator Transcribe(byte[] wavData, Action<string, string> callback)
+    private IEnumerator Transcribe(byte[] wavData, Action<string, string> callback, bool trackForCancel)
     {
         string boundary = "----UnityBoundary" + DateTime.Now.Ticks;
         var bodyStream = new System.IO.MemoryStream();
@@ -524,10 +592,12 @@ public class QuestObjectGenerator : MonoBehaviour
         request.uploadHandler = new UploadHandlerRaw(bodyStream.ToArray());
         request.downloadHandler = new DownloadHandlerBuffer();
         request.SetRequestHeader("Content-Type", $"multipart/form-data; boundary={boundary}");
-        request.timeout = 120; // la prima richiesta dopo l'avvio può caricare il modello
+        request.timeout = 120;
 
+        if (trackForCancel) _activeRequest = request;
         float t0 = Time.realtimeSinceStartup;
         yield return request.SendWebRequest();
+        if (trackForCancel && _activeRequest == request) _activeRequest = null;
         _sttSeconds = Time.realtimeSinceStartup - t0;
 
         if (request.result != UnityWebRequest.Result.Success)
@@ -558,18 +628,21 @@ public class QuestObjectGenerator : MonoBehaviour
 
     private IEnumerator RunPipeline(string prompt)
     {
+        int myId = ++_requestId;
         _isGenerating = true;
-        StopListening(); // niente ascolto durante la generazione
         _sessionId = Guid.NewGuid().ToString("N").Substring(0, 8);
         LastTranscript = prompt;
         LastObjectName = "";
 
         PlaySound(recordingStartSound);
         SetState(PipelineState.Generating, prompt);
+        StopListening(); // niente ascolto durante la generazione
+
         float t0 = Time.realtimeSinceStartup;
         N8NResponse result = null;
         string error = null;
         yield return StartCoroutine(CallN8N(prompt, (r, e) => { result = r; error = e; }));
+        if (myId != _requestId) yield break; // annullata
         _genSeconds = Time.realtimeSinceStartup - t0;
 
         if (result == null)
@@ -582,7 +655,12 @@ public class QuestObjectGenerator : MonoBehaviour
 
         string glbUrl = RewriteToComfyHost(result.glb_url);
         GameObject loadedObject = null;
-        yield return StartCoroutine(LoadGLB(glbUrl, (obj, e) => { loadedObject = obj; error = e; }));
+        yield return StartCoroutine(LoadGLB(glbUrl, myId, (obj, e) => { loadedObject = obj; error = e; }));
+        if (myId != _requestId)
+        {
+            if (loadedObject != null) Destroy(loadedObject);
+            yield break;
+        }
 
         if (loadedObject == null)
         {
@@ -636,7 +714,9 @@ public class QuestObjectGenerator : MonoBehaviour
         request.timeout = (int)timeoutSeconds;
 
         Debug.Log($"[QuestObjectGenerator] POST → {n8nWebhookUrl} | {payload}");
+        _activeRequest = request;
         yield return request.SendWebRequest();
+        if (_activeRequest == request) _activeRequest = null;
 
         string body = request.downloadHandler?.text ?? "";
         if (request.result != UnityWebRequest.Result.Success)
@@ -659,14 +739,17 @@ public class QuestObjectGenerator : MonoBehaviour
 
     // ── Caricamento GLB con glTFast ───────────────────────────────────
 
-    private IEnumerator LoadGLB(string url, Action<GameObject, string> callback)
+    private IEnumerator LoadGLB(string url, int myId, Action<GameObject, string> callback)
     {
         SetState(PipelineState.Downloading, LastObjectName);
         float t0 = Time.realtimeSinceStartup;
 
         using var request = UnityWebRequest.Get(url);
         request.timeout = 120;
+        _activeRequest = request;
         yield return request.SendWebRequest();
+        if (_activeRequest == request) _activeRequest = null;
+        if (myId != _requestId) yield break;
         _dlSeconds = Time.realtimeSinceStartup - t0;
 
         if (request.result != UnityWebRequest.Result.Success)
@@ -682,6 +765,7 @@ public class QuestObjectGenerator : MonoBehaviour
         var gltf = new GltfImport();
         var loadTask = gltf.Load(data, new Uri(url));
         while (!loadTask.IsCompleted) yield return null;
+        if (myId != _requestId) yield break;
 
         if (!loadTask.Result)
         {
@@ -757,7 +841,7 @@ public class QuestObjectGenerator : MonoBehaviour
         grab.movementType = XRBaseInteractable.MovementType.Instantaneous;
         grab.useDynamicAttach = true;
         grab.throwOnDetach = false;
-        grab.selectMode = InteractableSelectMode.Multiple; // due mani (o due controller) insieme
+        grab.selectMode = InteractableSelectMode.Multiple;
 
         var transformer = obj.AddComponent<XRGeneralGrabTransformer>();
         transformer.allowTwoHandedScaling = true;
