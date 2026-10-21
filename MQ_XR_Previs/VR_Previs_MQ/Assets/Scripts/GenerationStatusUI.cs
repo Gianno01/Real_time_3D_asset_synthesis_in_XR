@@ -51,8 +51,12 @@ public class GenerationStatusUI : MonoBehaviour
 
     [Header("Riduci a icona")]
     public bool startMinimized = false;
-    [Tooltip("Opzionale: tasto del controller che alterna finestra/icona (es. B o Y)")]
+    [Tooltip("Opzionale: azione che alterna finestra/icona. Se vuoto usa Toggle Binding")]
     public InputActionReference toggleMinimizeButton;
+    [Tooltip("Binding usato se Toggle Minimize Button è vuoto (default: tasto A del controller destro)")]
+    public string toggleBinding = "<XRController>{RightHand}/primaryButton";
+
+    InputAction _toggleAction;
 
     /// <summary>True mentre il raggio punta un pulsante del pannello: il generator ignora il grilletto.</summary>
     public static bool IsPointerOverUI => _hoverCount > 0;
@@ -114,16 +118,20 @@ public class GenerationStatusUI : MonoBehaviour
     void OnEnable()
     {
         if (toggleMinimizeButton != null && toggleMinimizeButton.action != null)
+            _toggleAction = toggleMinimizeButton.action;
+        else if (!string.IsNullOrEmpty(toggleBinding))
+            _toggleAction ??= new InputAction("ToggleMinimize", InputActionType.Button, toggleBinding);
+
+        if (_toggleAction != null)
         {
-            toggleMinimizeButton.action.Enable();
-            toggleMinimizeButton.action.performed += OnToggleMinimize;
+            _toggleAction.Enable();
+            _toggleAction.performed += OnToggleMinimize;
         }
     }
 
     void OnDisable()
     {
-        if (toggleMinimizeButton != null && toggleMinimizeButton.action != null)
-            toggleMinimizeButton.action.performed -= OnToggleMinimize;
+        if (_toggleAction != null) _toggleAction.performed -= OnToggleMinimize;
         _hoverCount = 0;
     }
 
@@ -153,6 +161,7 @@ public class GenerationStatusUI : MonoBehaviour
     void OnDestroy()
     {
         if (generator != null) generator.StateChanged -= OnStateChanged;
+        if (toggleMinimizeButton == null) _toggleAction?.Dispose();   // creata da codice
     }
 
     void LateUpdate()
