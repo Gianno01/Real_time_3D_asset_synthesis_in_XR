@@ -75,6 +75,7 @@ extern void UnityWebRequest_Create_m0180FA724ACCE19C0C761A8B7AF280A489639CE9 (vo
 extern void UnityWebRequest_Release_m3835F83F59D3976462F1B98810C8FC42E2C512A2 (void);
 extern void UnityWebRequest_InternalDestroy_mEA38293D4F8B8DB58DA3D739DFEDFAF7BF418B92 (void);
 extern void UnityWebRequest_InternalSetDefaults_m6B95AE6129B13EAB3F66B103F6682AB33C27B3B0 (void);
+extern void UnityWebRequest__ctor_m68DB029AEF4E6093EDC2196C980134D2C0C969CA (void);
 extern void UnityWebRequest__ctor_mD4739B0BF1C4937479A83B24B531C6B819712A3E (void);
 extern void UnityWebRequest__ctor_m3798CB7D0BE685F2520AF1BBF83B523BBDD7980A (void);
 extern void UnityWebRequest__ctor_m5A34C506566DE765C0F4385EFB4ADCD5766E111A (void);
@@ -141,7 +142,7 @@ extern void UploadHandlerRaw_Create_m47BC9C3516DF02A1B09B7611D01BEED2B9E74075 (v
 extern void UploadHandlerRaw__ctor_m168C957B67E29CB3072E3542044D37E2F16C42B7 (void);
 extern void UploadHandlerRaw__ctor_mF9F2BAB1D9987051714541669B3D22EC9DBDCFEF (void);
 extern void UploadHandlerRaw_Dispose_m7BC523C04CD5582382B23AF4FC019149DE328A1B (void);
-static Il2CppMethodPointer s_methodPointers[134] = 
+static Il2CppMethodPointer s_methodPointers[135] = 
 {
 	EmbeddedAttribute__ctor_m605CF2EC73F5E97E51C30D532A96C62619821D81,
 	RefSafetyRulesAttribute__ctor_m4636C3D77ADA270ECE158FF42A4DE83B7FBBE1F4,
@@ -211,6 +212,7 @@ static Il2CppMethodPointer s_methodPointers[134] =
 	UnityWebRequest_Release_m3835F83F59D3976462F1B98810C8FC42E2C512A2,
 	UnityWebRequest_InternalDestroy_mEA38293D4F8B8DB58DA3D739DFEDFAF7BF418B92,
 	UnityWebRequest_InternalSetDefaults_m6B95AE6129B13EAB3F66B103F6682AB33C27B3B0,
+	UnityWebRequest__ctor_m68DB029AEF4E6093EDC2196C980134D2C0C969CA,
 	UnityWebRequest__ctor_mD4739B0BF1C4937479A83B24B531C6B819712A3E,
 	UnityWebRequest__ctor_m3798CB7D0BE685F2520AF1BBF83B523BBDD7980A,
 	UnityWebRequest__ctor_m5A34C506566DE765C0F4385EFB4ADCD5766E111A,
@@ -282,7 +284,7 @@ IL2CPP_EXTERN_C const Il2CppCodeGenModule g_UnityEngine_UnityWebRequestModule_Co
 const Il2CppCodeGenModule g_UnityEngine_UnityWebRequestModule_CodeGenModule = 
 {
 	"UnityEngine.UnityWebRequestModule.dll",
-	134,
+	135,
 	s_methodPointers,
 	0,
 	NULL,

@@ -820,7 +820,7 @@ IL2CPP_EXTERN_C int64_t STDCALL UnityOpenXRHands_GetHandMeshXrResult();
 #pragma clang diagnostic ignored "-Winvalid-offsetof"
 #pragma clang diagnostic ignored "-Wunused-variable"
 #endif
-// Method Definition Index: 79346
+// Method Definition Index: 79367
 IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR bool MetaOpenXRHandMeshData_TryGetMeshData_m1D6FD5B864462AD2C842146EDA63EEE3B5C3FF75 (MetaOpenXRHandMeshData_t75501DC062ED373CA6DFA558768AC30648FADD83* __this, XRHandMeshDataQueryResult_t31A040EB23A57CAAFEC4227E049BA03F8C1638F5* ___0_result, XRHandMeshDataQueryParams_tD2F5B8FA7C69F106E535B66025498042C430A7C9* ___1_queryParams, const RuntimeMethod* method) 
 {
 	//<source_info:<no-source>:1>
@@ -843,7 +843,7 @@ IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR bool MetaOpenXRHandMeshData_TryGetMeshData_m1
 		return (bool)((int32_t)((int32_t)L_3|(int32_t)L_8));
 	}
 }
-// Method Definition Index: 79347
+// Method Definition Index: 79368
 IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR bool MetaOpenXRHandMeshData_TryGetMeshData_m6B004FA5D8A2F7992E6C2D11C318C9CA39A6A32C (MetaOpenXRHandMeshData_t75501DC062ED373CA6DFA558768AC30648FADD83* __this, XRHandMeshDataQueryResult_t31A040EB23A57CAAFEC4227E049BA03F8C1638F5* ___0_result, int32_t ___1_allocator, int32_t ___2_handedness, const RuntimeMethod* method) 
 {
 	static bool s_Il2CppMethodInitialized;
@@ -1400,7 +1400,7 @@ IL_038e:
 		return (bool)1;
 	}
 }
-// Method Definition Index: 79348
+// Method Definition Index: 79369
 IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void MetaOpenXRHandMeshData_OnSubsystemStart_mB038B85FDFEDBF8B38235ACCFB2919CC8309E424 (MetaOpenXRHandMeshData_t75501DC062ED373CA6DFA558768AC30648FADD83* __this, const RuntimeMethod* method) 
 {
 	static bool s_Il2CppMethodInitialized;
@@ -1527,7 +1527,7 @@ IL_008c:
 		return;
 	}
 }
-// Method Definition Index: 79349
+// Method Definition Index: 79370
 IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR int32_t MetaOpenXRHandMeshData_OpenXRCondensedIndexToUnityJointIndex_mDE8F6D4DA9CC4619E931D2DEAF99EC852CB899AA (int32_t ___0_condensedIndex, const RuntimeMethod* method) 
 {
 	//<source_info:<no-source>:1>
@@ -1560,7 +1560,7 @@ IL_000b:
 		return L_2;
 	}
 }
-// Method Definition Index: 79350
+// Method Definition Index: 79371
 IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void MetaOpenXRHandMeshData__ctor_m3060196B6F8A4C49EF543780EF121EC01B5AE181 (MetaOpenXRHandMeshData_t75501DC062ED373CA6DFA558768AC30648FADD83* __this, const RuntimeMethod* method) 
 {
 	//<source_info:<no-source>:1>
@@ -1569,7 +1569,7 @@ IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void MetaOpenXRHandMeshData__ctor_m3060196B6F
 		return;
 	}
 }
-// Method Definition Index: 79351
+// Method Definition Index: 79372
 IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void MetaOpenXRHandMeshData__cctor_mE25268C94B9D7FAE6FB0E95B8757F9579E60B0D8 (const RuntimeMethod* method) 
 {
 	static bool s_Il2CppMethodInitialized;
@@ -1597,7 +1597,7 @@ IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void MetaOpenXRHandMeshData__cctor_mE25268C94
 #pragma clang diagnostic ignored "-Winvalid-offsetof"
 #pragma clang diagnostic ignored "-Wunused-variable"
 #endif
-// Method Definition Index: 79352
+// Method Definition Index: 79373
 IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR int32_t NativeApi_TryGetHandMeshDataCounts_m08E1A2F988D036F80A50A131D989130FB72D3C7C (int32_t* ___0_jointCount, int32_t* ___1_indexCount, int32_t* ___2_vertexCount, uint64_t ___3_xrHandTracker, const RuntimeMethod* method) 
 {
 	//<source_info:<no-source>:1>
@@ -1620,7 +1620,7 @@ IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR int32_t NativeApi_TryGetHandMeshDataCounts_m0
 
 	return returnValue;
 }
-// Method Definition Index: 79353
+// Method Definition Index: 79374
 IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR int32_t NativeApi_TryGetHandMeshData_mA8ED491D751CB23590634882899722EA0FCB9C21 (uint64_t ___0_xrHandTracker, int32_t ___1_jointCount, void* ___2_jointIDs, void* ___3_jointBindPoses, void* ___4_jointRadii, int32_t ___5_indexCount, void* ___6_indices, int32_t ___7_vertexCount, void* ___8_positions, void* ___9_normals, void* ___10_uvs, void* ___11_blendIndices, void* ___12_blendWeights, const RuntimeMethod* method) 
 {
 	//<source_info:<no-source>:1>
@@ -1643,7 +1643,7 @@ IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR int32_t NativeApi_TryGetHandMeshData_mA8ED491
 
 	return returnValue;
 }
-// Method Definition Index: 79354
+// Method Definition Index: 79375
 IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR int64_t NativeApi_GetXrResult_mBB0DE9634F3AD39CD7591A7487275C26A773D613 (const RuntimeMethod* method) 
 {
 	//<source_info:<no-source>:1>

@@ -1232,6 +1232,7 @@ MonoBehaviour:
   whisperUrl: http://127.0.0.1:9010
   whisperPrompt: ' Crea una lampada da tavolo.'
   comfyUrl: http://127.0.0.1:8188
+  interruptComfyOnCancel: 1
   timeoutSeconds: 700
   headTransform: {fileID: 0}
   targetObjectSize: 0.5
@@ -1240,7 +1241,7 @@ MonoBehaviour:
   faceUser: 1
   minScaleRatio: 0.25
   maxScaleRatio: 5
-  fallbackMaterial: {fileID: 2100000, guid: 5d46bb438eef41d449bb7588f4a77e06, type: 2}
+  fallbackMaterial: {fileID: 0}
   successSound: {fileID: 8300000, guid: 16fba6d30ed741d4a9fdd6e79ee2f3ac, type: 3}
   errorSound: {fileID: 8300000, guid: 4d96357df24d0854ba12f7446fc13cab, type: 3}
   recordingStartSound: {fileID: 8300000, guid: 16fba6d30ed741d4a9fdd6e79ee2f3ac, type: 3}
@@ -2482,18 +2483,22 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::GenerationStatusUI
   generator: {fileID: 0}
   head: {fileID: 0}
+  toggleButton: {fileID: 0}
+  startMinimized: 0
   idleHint: Premi il <b>grilletto destro</b> e di' il nome di un oggetto
   handsFreeHint: Di' <b>"Genera..."</b> seguito dall'oggetto, ad esempio <i>"Genera una sedia di legno"</i>
-  distance: 1
-  heightOffset: -0.3
+  distance: 0.7
+  heightOffset: -0.4
+  deskTilt: 22
+  recenterAngle: 40
   followSpeed: 2.5
+  movable: 1
+  recallWhenOutOfView: 1
   showIdleHint: 1
   showDoneSeconds: 6
   showErrorSeconds: 10
+  showCancelledSeconds: 3
   haptics: 1
-  startMinimized: 0
-  toggleMinimizeButton: {fileID: 0}
-  toggleBinding: <XRController>{RightHand}/primaryButton
 --- !u!4 &780294303
 Transform:
   m_ObjectHideFlags: 0

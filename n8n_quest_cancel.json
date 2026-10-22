@@ -1,0 +1,56 @@
+{
+  "name": "Quest - Annulla richiesta",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "quest-cancel",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "a1c0f001-0000-4000-8000-000000000001",
+      "name": "Webhook annulla",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 0],
+      "webhookId": "quest-cancel"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://10.54.15.50:8188/interrupt",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{}",
+        "options": { "timeout": 5000 }
+      },
+      "id": "a1c0f001-0000-4000-8000-000000000002",
+      "name": "ComfyUI - interrompi",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [240, 0],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://10.54.15.50:8188/queue",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{ \"clear\": true }",
+        "options": { "timeout": 5000 }
+      },
+      "id": "a1c0f001-0000-4000-8000-000000000003",
+      "name": "ComfyUI - svuota coda",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [480, 0],
+      "onError": "continueRegularOutput"
+    }
+  ],
+  "connections": {
+    "Webhook annulla": { "main": [[{ "node": "ComfyUI - interrompi", "type": "main", "index": 0 }]] },
+    "ComfyUI - interrompi": { "main": [[{ "node": "ComfyUI - svuota coda", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" }
+}

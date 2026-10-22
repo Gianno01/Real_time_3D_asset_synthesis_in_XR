@@ -33,8 +33,10 @@ public class QuestObjectGenerator : MonoBehaviour
     // ── Configurazione ────────────────────────────────────────────────
 
     [Header("Input Controller")]
-    [Tooltip("Azione per avviare/fermare la registrazione vocale (funziona anche in modalità mani libere)")]
+    [Tooltip("Azione per avviare/fermare la registrazione vocale. Lasciala VUOTA per usare il percorso qui sotto")]
     public InputActionReference recordButton;
+    [Tooltip("Usato se Record Button è vuoto. Default: pressione dello stick (pad) del controller destro")]
+    public string recordBindingPath = "<XRController>{RightHand}/{Primary2DAxisClick}";
 
     [Header("Mani libere (parola di attivazione)")]
     public bool handsFreeMode = true;
@@ -55,8 +57,11 @@ public class QuestObjectGenerator : MonoBehaviour
     public string whisperPrompt = "Genera una sedia di legno. Genera un vaso di ceramica. Crea una lampada da tavolo.";
     [Tooltip("Indirizzo di ComfyUI come lo vede il VISORE (con adb reverse: http://127.0.0.1:8188). Vuoto = usa il glb_url così com'è")]
     public string comfyUrl = "http://127.0.0.1:8188";
-    [Tooltip("All'annullamento, interrompe anche l'esecuzione in corso su ComfyUI (/interrupt)")]
-    public bool interruptComfyOnCancel = true;
+    [Tooltip("Interrompe DIRETTAMENTE ComfyUI all'annullamento. Ferma qualunque job in corso, anche di altri utenti: " +
+             "lascialo DISATTIVO con più visori (ci pensa il workflow n8n quest-cancel, che ferma solo i job della sessione)")]
+    public bool interruptComfyOnCancel = false;
+    [Tooltip("Webhook n8n che annulla l'esecuzione della sessione (workflow \"quest-cancel\"). Vuoto = non usato")]
+    public string n8nCancelUrl = "http://127.0.0.1:5678/webhook/quest-cancel";
     public float timeoutSeconds = 700f;
 
     [Header("Riferimenti XR")]
@@ -109,6 +114,8 @@ public class QuestObjectGenerator : MonoBehaviour
     private bool _awaitingCommand = false;
     private int _requestId = 0;                 // cambia a ogni nuova richiesta e a ogni annullamento
     private UnityWebRequest _activeRequest;     // richiesta di rete in corso (per poterla interrompere)
+    private InputAction _recordAction;          // azione effettivamente usata per la registrazione
+    private bool _ownsRecordAction;
     private AudioSource _audioSource;
     private string _sessionId;
     private float _sttSeconds, _genSeconds, _dlSeconds, _loadSeconds;
@@ -147,17 +154,29 @@ public class QuestObjectGenerator : MonoBehaviour
     {
         if (recordButton != null && recordButton.action != null)
         {
-            recordButton.action.Enable();
-            recordButton.action.started += OnRecordButtonPressed;
+            _recordAction = recordButton.action;
+            _ownsRecordAction = false;
+        }
+        else if (!string.IsNullOrEmpty(recordBindingPath))
+        {
+            _recordAction = new InputAction("RecordRequest", InputActionType.Button, recordBindingPath);
+            _ownsRecordAction = true;
+        }
+        if (_recordAction != null)
+        {
+            _recordAction.started += OnRecordButtonPressed;
+            _recordAction.Enable();
         }
     }
 
     void OnDisable()
     {
-        if (recordButton != null && recordButton.action != null)
+        if (_recordAction != null)
         {
-            recordButton.action.started -= OnRecordButtonPressed;
-            recordButton.action.Disable();
+            _recordAction.started -= OnRecordButtonPressed;
+            _recordAction.Disable();
+            if (_ownsRecordAction) _recordAction.Dispose();
+            _recordAction = null;
         }
         StopListening();
     }
@@ -217,6 +236,7 @@ public class QuestObjectGenerator : MonoBehaviour
         if (!CanCancel) return;
 
         bool comfyMayBeWorking = State == PipelineState.Generating;
+        string cancelledSession = _sessionId;
         _requestId++;   // invalida le coroutine della richiesta corrente
 
         if (_activeRequest != null)
@@ -234,10 +254,31 @@ public class QuestObjectGenerator : MonoBehaviour
         _isGenerating = false;
         MicLevel = 0f;
 
-        if (comfyMayBeWorking && interruptComfyOnCancel) StartCoroutine(InterruptComfy());
+        if (comfyMayBeWorking)
+        {
+            StartCoroutine(NotifyN8NCancel(cancelledSession));   // ferma il workflow n8n di questa sessione
+            if (interruptComfyOnCancel) StartCoroutine(InterruptComfy()); // ferma subito la GPU
+        }
 
         SetState(PipelineState.Cancelled, "Richiesta annullata");
         if (handsFreeMode) StartListening();
+    }
+
+    private IEnumerator NotifyN8NCancel(string sessionId)
+    {
+        if (string.IsNullOrEmpty(n8nCancelUrl)) yield break;
+
+        var payload = JsonUtility.ToJson(new N8NRequest { prompt = "", session_id = sessionId });
+        using var r = new UnityWebRequest(n8nCancelUrl, "POST");
+        r.uploadHandler = new UploadHandlerRaw(Encoding.UTF8.GetBytes(payload));
+        r.downloadHandler = new DownloadHandlerBuffer();
+        r.SetRequestHeader("Content-Type", "application/json");
+        r.timeout = 5;
+        yield return r.SendWebRequest();
+
+        Debug.Log(r.result == UnityWebRequest.Result.Success
+            ? $"[QuestObjectGenerator] n8n: annullamento inviato per la sessione {sessionId}"
+            : $"[QuestObjectGenerator] n8n: annullamento non riuscito ({r.error})");
     }
 
     private IEnumerator InterruptComfy()
