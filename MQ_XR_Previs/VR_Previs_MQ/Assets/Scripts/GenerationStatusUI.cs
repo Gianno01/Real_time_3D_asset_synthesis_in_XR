@@ -6,6 +6,7 @@
 //                 un certo angolo si ricentra con calma. Puoi anche afferrarla dalla MANIGLIA e lasciarla dove vuoi.
 //  • In attesa  → "pillola" con l'istruzione su come inviare la richiesta (pallino che reagisce alla voce)
 //  • In corso   → card: stato, cosa hai chiesto, 4 step, tempo trascorso, stima rimanente, barra, pulsante Annulla
+//  • Anteprima  → immagine generata, richiesta e prompt, pulsanti Correggi / Ripeti / Annulla / Prosegui
 //  • Esito      → conferma verde / errore rosso / annullata grigia, poi torna alla pillola
 //  • Riduci a icona → pulsante "–" in alto a destra o tasto A del controller destro; tocca l'icona per riaprire.
 //                 Da icona, il pallino colorato continua a mostrare lo stato (blu = in corso, verde = pronto, rosso = errore).
@@ -36,8 +37,10 @@ public class GenerationStatusUI : MonoBehaviour
     public bool startMinimized = false;
 
     [Header("Testi")]
-    [TextArea] public string idleHint = "Premi il <b>grilletto destro</b> e di' il nome di un oggetto";
+    [TextArea] public string idleHint = "<b>Premi lo stick destro</b> e di' il nome di un oggetto";
     [TextArea] public string handsFreeHint = "Di' <b>\"Genera...\"</b> seguito dall'oggetto, ad esempio <i>\"Genera una sedia di legno\"</i>";
+    [TextArea] public string previewHintHandsFree = "Di' <b>\"modifica...\"</b> o <b>\"aggiungi...\"</b> per correggerla · <b>\"genera...\"</b> per un altro oggetto";
+    [TextArea] public string previewHintButton = "Premi <b>Correggi</b> (o lo stick) e di' cosa cambiare";
 
     [Header("Posizione \"da scrivania\"")]
     [Tooltip("Distanza orizzontale davanti a te (m)")]
@@ -75,18 +78,23 @@ public class GenerationStatusUI : MonoBehaviour
     static readonly Color Ok       = new Color(0.33f, 0.86f, 0.56f);
     static readonly Color Bad      = new Color(1.00f, 0.43f, 0.41f);
 
-    static readonly string[] StepNames = { "Voce", "Testo", "Modello 3D", "Caricamento" };
+    static readonly string[] StepNames = { "Voce", "Immagine", "Modello 3D", "Caricamento" };
 
-    const float CardW = 640f, CardH = 304f, PillW = 620f, PillH = 72f, IconSize = 76f;
+    const float CardW = 640f, CardH = 304f, PillW = 620f, PillH = 72f, IconSize = 76f, PreviewW = 640f, PreviewH = 470f;
 
     // ── Riferimenti UI ────────────────────────────────────────────────
 
     Sprite _rounded, _circle;
-    CanvasGroup _pill, _card, _icon;
+    CanvasGroup _pill, _card, _icon, _preview;
     TextMeshProUGUI _hint, _title, _timer, _subline, _label, _quote, _footer;
     Image _statusDot, _barFill, _micDot, _handle, _iconDot;
     RectTransform _barFillRt, _handleRt;
     GameObject _cancelButton;
+
+    // Anteprima
+    RawImage _previewImage;
+    TextMeshProUGUI _pvTitle, _pvTimer, _pvSub, _pvRequest, _pvPrompt, _pvHint, _pvNoImage, _pvCorrectLabel;
+    Image _pvDot;
     readonly Image[] _stepDots = new Image[4];
     readonly TextMeshProUGUI[] _stepLabels = new TextMeshProUGUI[4];
     readonly Image[] _stepLinks = new Image[3];
@@ -113,7 +121,7 @@ public class GenerationStatusUI : MonoBehaviour
         _circle = MakeRoundedSprite(64, 32);
         BuildUI();
         if (movable) SetupGrab();
-        _pill.alpha = _card.alpha = _icon.alpha = 0f;
+        _pill.alpha = _card.alpha = _icon.alpha = _preview.alpha = 0f;
         _minimized = startMinimized;
     }
 
@@ -180,11 +188,13 @@ public class GenerationStatusUI : MonoBehaviour
             _state = PipelineState.Idle;
         }
 
-        Fade(_card, !_minimized && _showCard, dt * 5f);
+        bool previewOn = _showCard && _state == PipelineState.Preview;
+        Fade(_card, !_minimized && _showCard && !previewOn, dt * 5f);
+        Fade(_preview, !_minimized && previewOn, dt * 5f);
         Fade(_pill, !_minimized && !_showCard && showIdleHint, dt * 3f);
         Fade(_icon, _minimized, dt * 5f);
 
-        bool anyVisible = _card.alpha > 0f || _pill.alpha > 0f || _icon.alpha > 0f;
+        bool anyVisible = _card.alpha > 0f || _pill.alpha > 0f || _icon.alpha > 0f || _preview.alpha > 0f;
         if (_handleCollider != null) _handleCollider.gameObject.SetActive(anyVisible);
         if (!anyVisible) return;
 
@@ -204,6 +214,8 @@ public class GenerationStatusUI : MonoBehaviour
             UpdateBar(now, dt);
             if (now >= _nextText) { _nextText = now + 0.25f; UpdateTimeTexts(now); }
         }
+
+        if (_preview.alpha > 0f) UpdatePreview(now, dt);
     }
 
     static void Fade(CanvasGroup g, bool on, float step)
@@ -231,7 +243,8 @@ public class GenerationStatusUI : MonoBehaviour
     void OnStateChanged(PipelineState state, string detail)
     {
         float now = Time.realtimeSinceStartup;
-        bool startingNew = state == PipelineState.Recording || (state == PipelineState.Generating && _requestStart < 0f);
+        bool startingNew = state == PipelineState.Recording ||
+                           ((state == PipelineState.Generating || state == PipelineState.GeneratingImage) && _requestStart < 0f);
         _state = state;
         _stateShownAt = now;
         _nextText = 0f;
@@ -251,15 +264,29 @@ public class GenerationStatusUI : MonoBehaviour
 
             case PipelineState.Transcribing:
                 _requestStart = now;
-                _activeStep = 1;
+                _activeStep = 0;
                 Show("Richiesta inviata", "AUDIO INVIATO", detail, Accent);
                 Haptic(0.6f, 0.08f);
+                break;
+
+            case PipelineState.GeneratingImage:
+                if (_requestStart < 0f) { _requestStart = now; Haptic(0.6f, 0.08f); }
+                _activeStep = 1;
+                Show(generator.PreviewAttempt > 1 ? "Creo una nuova immagine" : "Creo l'immagine",
+                     "HAI CHIESTO", $"\"{detail}\"", Accent);
+                break;
+
+            case PipelineState.Preview:
+                _activeStep = 2;
+                Show("Ti piace?", "HAI CHIESTO", $"\"{generator.LastTranscript}\"", Ok);
+                ShowPreview();
+                StartCoroutine(DoubleHaptic());
                 break;
 
             case PipelineState.Generating:
                 if (_requestStart < 0f) { _requestStart = now; Haptic(0.6f, 0.08f); }
                 _activeStep = 2;
-                Show("Sto creando l'oggetto", "HAI CHIESTO", $"\"{detail}\"", Accent);
+                Show("Sto creando il modello 3D", "HAI CHIESTO", $"\"{detail}\"", Accent);
                 break;
 
             case PipelineState.Downloading:
@@ -349,9 +376,10 @@ public class GenerationStatusUI : MonoBehaviour
                 _timer.text = F(Elapsed(now));
                 _subline.text = "trascrizione in corso";
                 break;
+            case PipelineState.GeneratingImage:
             case PipelineState.Generating:
                 _timer.text = F(Elapsed(now));
-                float est = generator.EstimatedGenerationSeconds;
+                float est = _state == PipelineState.GeneratingImage ? generator.EstimatedImageSeconds : generator.EstimatedGenerationSeconds;
                 float genEl = now - generator.StateStartTime;
                 _subline.text = est <= 0f ? "prima generazione: stima in corso"
                               : est - genEl > 0f ? $"circa {F(est - genEl)} rimanenti"
@@ -411,8 +439,9 @@ public class GenerationStatusUI : MonoBehaviour
             case PipelineState.Recording:
                 target = Mathf.Clamp01(generator.MicLevel * 4f);
                 break;
+            case PipelineState.GeneratingImage:
             case PipelineState.Generating:
-                float est = generator.EstimatedGenerationSeconds;
+                float est = _state == PipelineState.GeneratingImage ? generator.EstimatedImageSeconds : generator.EstimatedGenerationSeconds;
                 float genEl = now - generator.StateStartTime;
                 target = est > 0f ? Mathf.Lerp(0.25f, 0.95f, Mathf.Clamp01(genEl / est))
                                   : 0.25f + 0.1f * Mathf.PingPong(now * 0.5f, 1f);
@@ -426,6 +455,43 @@ public class GenerationStatusUI : MonoBehaviour
 
         float x = Mathf.Lerp(_barFillRt.anchorMax.x, target, dt * 8f);
         _barFillRt.anchorMax = new Vector2(Mathf.Max(x, 0.02f), 1f);
+    }
+
+    // ── Anteprima ─────────────────────────────────────────────────────
+
+    void ShowPreview()
+    {
+        var tex = generator.PreviewTexture;
+        _previewImage.texture = tex;
+        _previewImage.color = tex != null ? Color.white : new Color(1f, 1f, 1f, 0f);
+        _pvNoImage.gameObject.SetActive(tex == null);
+
+        _pvTitle.text = generator.PreviewAttempt > 1 ? $"Ti piace? <size=70%><color=#9AA3B5>· immagine {generator.PreviewAttempt}</color></size>" : "Ti piace?";
+        _pvRequest.text = $"\"{generator.LastTranscript}\"";
+        _pvPrompt.text = string.IsNullOrEmpty(generator.PreviewPrompt) ? "" : $"<i>{generator.PreviewPrompt}</i>";
+        _pvSub.text = generator.EstimatedImageSeconds > 0f ? "scegli come continuare" : "";
+    }
+
+    void UpdatePreview(float now, float dt)
+    {
+        if (now >= _nextText)
+        {
+            _nextText = now + 0.25f;
+            _pvTimer.text = QuestObjectGenerator.FormatTime(Elapsed(now));
+        }
+
+        bool rec = generator.IsRecordingCorrection;
+        bool listening = generator.IsListening;
+        string hint = rec ? "<color=#66A3FF><b>Ti ascolto:</b></color> di' cosa cambiare..."
+                    : generator.handsFreeMode ? previewHintHandsFree : previewHintButton;
+        if (_pvHint.text != hint) _pvHint.text = hint;
+        string label = rec ? "Ascolto..." : "Correggi";
+        if (_pvCorrectLabel.text != label) _pvCorrectLabel.text = label;
+
+        // pallino: reagisce alla voce mentre ascolta (correzioni), altrimenti verde fisso
+        float level = (rec || listening) ? Mathf.Clamp01(generator.MicLevel * 6f) : 0f;
+        _pvDot.rectTransform.localScale = Vector3.Lerp(_pvDot.rectTransform.localScale, Vector3.one * (1f + level * 0.9f), dt * 15f);
+        _pvDot.color = rec || level > 0.05f ? Accent : Ok;
     }
 
     // ── Posizionamento ────────────────────────────────────────────────
@@ -516,7 +582,7 @@ public class GenerationStatusUI : MonoBehaviour
     {
         if (_handleRt == null) return;
 
-        float panelH = _minimized ? IconSize : _showCard ? CardH : PillH;
+        float panelH = _minimized ? IconSize : !_showCard ? PillH : _state == PipelineState.Preview ? PreviewH : CardH;
         float y = -(panelH / 2f + 22f);
         var p = _handleRt.anchoredPosition;
         p.y = Mathf.Lerp(p.y, y, dt * 10f);
@@ -631,6 +697,63 @@ public class GenerationStatusUI : MonoBehaviour
         _cancelButton = MakeButton(cardRt, "CancelButton", "Annulla", 482, 252, 130, 36,
                                    () => { if (generator != null) generator.CancelRequest(); });
         _cancelButton.SetActive(false);
+
+        // ── Anteprima (immagine + scelta) ──
+        var pvRt = Panel(root, "Preview", PreviewW, PreviewH, CardBg, out _preview, 1f);
+
+        _pvDot = Img(pvRt, "PreviewDot", _circle, Ok, false);
+        Place(_pvDot.rectTransform, 28, 30, 14, 14);
+        _pvDot.rectTransform.pivot = new Vector2(0.5f, 0.5f);
+        _pvDot.rectTransform.anchoredPosition = new Vector2(35, -37);
+
+        _pvTitle = Txt(pvRt, "Title", 30, FontStyles.Bold, TextMain, TextAlignmentOptions.MidlineLeft);
+        Place(_pvTitle.rectTransform, 52, 16, 340, 42);
+        _pvTimer = Txt(pvRt, "Timer", 36, FontStyles.Bold, TextMain, TextAlignmentOptions.MidlineRight);
+        Place(_pvTimer.rectTransform, 396, 12, 172, 46);
+        MakeRoundButton(pvRt, "MinimizePreview", "–", 584, 17, 36, ToggleMinimized);
+        _pvSub = Txt(pvRt, "Subline", 18, FontStyles.Normal, TextDim, TextAlignmentOptions.TopRight);
+        Place(_pvSub.rectTransform, 248, 58, 320, 26);
+
+        var frame = Img(pvRt, "ImageFrame", _rounded, Pending, true, 24f / 12f);
+        Place(frame.rectTransform, 28, 80, 300, 300);
+        var imgGo = new GameObject("PreviewImage", typeof(RectTransform), typeof(RawImage));
+        imgGo.transform.SetParent(frame.rectTransform, false);
+        _previewImage = imgGo.GetComponent<RawImage>();
+        _previewImage.raycastTarget = false;
+        var irt = _previewImage.rectTransform;
+        irt.anchorMin = Vector2.zero; irt.anchorMax = Vector2.one;
+        irt.offsetMin = new Vector2(4, 4); irt.offsetMax = new Vector2(-4, -4);
+        _pvNoImage = Txt(frame.rectTransform, "NoImage", 18, FontStyles.Normal, TextDim, TextAlignmentOptions.Center);
+        Stretch(_pvNoImage.rectTransform);
+        _pvNoImage.text = "Anteprima non disponibile";
+
+        var lbl1 = Txt(pvRt, "LabelRequest", 16, FontStyles.Bold, TextDim, TextAlignmentOptions.TopLeft);
+        lbl1.characterSpacing = 8f;
+        Place(lbl1.rectTransform, 348, 80, 264, 24);
+        lbl1.text = "HAI CHIESTO";
+        _pvRequest = Txt(pvRt, "Request", 22, FontStyles.Normal, TextMain, TextAlignmentOptions.TopLeft);
+        Place(_pvRequest.rectTransform, 348, 104, 264, 110);
+
+        var lbl2 = Txt(pvRt, "LabelPrompt", 16, FontStyles.Bold, TextDim, TextAlignmentOptions.TopLeft);
+        lbl2.characterSpacing = 8f;
+        Place(lbl2.rectTransform, 348, 224, 264, 24);
+        lbl2.text = "PROMPT";
+        _pvPrompt = Txt(pvRt, "Prompt", 15, FontStyles.Normal, TextDim, TextAlignmentOptions.TopLeft);
+        Place(_pvPrompt.rectTransform, 348, 248, 264, 132);
+
+        _pvHint = Txt(pvRt, "Hint", 18, FontStyles.Normal, TextDim, TextAlignmentOptions.MidlineLeft);
+        Place(_pvHint.rectTransform, 28, 384, 584, 30);
+
+        var correct = MakeButton(pvRt, "CorrectButton", "Correggi", 28, 420, 136, 36,
+                                 () => { if (generator != null) generator.StartCorrectionRecording(); });
+        _pvCorrectLabel = correct.GetComponentInChildren<TextMeshProUGUI>();
+        MakeButton(pvRt, "RetryButton", "Ripeti", 176, 420, 136, 36,
+                   () => { if (generator != null) generator.RetryImage(); });
+        MakeButton(pvRt, "PreviewCancelButton", "Annulla", 324, 420, 136, 36,
+                   () => { if (generator != null) generator.CancelRequest(); });
+        var proceed = MakeButton(pvRt, "ProceedButton", "Prosegui", 472, 420, 140, 36,
+                                 () => { if (generator != null) generator.ProceedToModel(); });
+        proceed.GetComponent<Image>().color = new Color(Ok.r, Ok.g, Ok.b, 0.55f);
 
         // ── Icona (pannello ridotto) ──
         var iconRt = Panel(root, "Icon", IconSize, IconSize, CardBg, out _icon, 1f);

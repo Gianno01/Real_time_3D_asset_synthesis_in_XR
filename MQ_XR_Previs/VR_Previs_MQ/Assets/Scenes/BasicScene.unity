@@ -1244,6 +1244,25 @@ MonoBehaviour:
   minScaleRatio: 0.25
   maxScaleRatio: 5
   fallbackMaterial: {fileID: 0}
+  previewBeforeModel: 1
+  requireCorrectionKeyword: 1
+  correctionWords:
+  - modifica
+  - aggiungi
+  - cambia
+  - togli
+  - rendi
+  - fallo
+  - falla
+  - mettici
+  - "pi\xF9"
+  - meno
+  voiceProceedEnabled: 0
+  proceedWords:
+  - prosegui
+  - procedi
+  - vai
+  - conferma
   successSound: {fileID: 8300000, guid: 16fba6d30ed741d4a9fdd6e79ee2f3ac, type: 3}
   errorSound: {fileID: 8300000, guid: 4d96357df24d0854ba12f7446fc13cab, type: 3}
   recordingStartSound: {fileID: 8300000, guid: 16fba6d30ed741d4a9fdd6e79ee2f3ac, type: 3}
@@ -2489,6 +2508,8 @@ MonoBehaviour:
   startMinimized: 0
   idleHint: Premi il <b>grilletto destro</b> e di' il nome di un oggetto
   handsFreeHint: Di' <b>"Genera..."</b> seguito dall'oggetto, ad esempio <i>"Genera una sedia di legno"</i>
+  previewHintHandsFree: "Di' <b>\"modifica...\"</b> o <b>\"aggiungi...\"</b> per correggerla \xB7 <b>\"genera...\"</b> per un altro oggetto"
+  previewHintButton: Premi <b>Correggi</b>  e di' cosa cambiare
   distance: 0.7
   heightOffset: -0.4
   deskTilt: 22

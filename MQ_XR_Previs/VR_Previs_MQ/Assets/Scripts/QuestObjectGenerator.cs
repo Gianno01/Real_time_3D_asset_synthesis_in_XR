@@ -9,6 +9,12 @@
 //      ("genera", "crea") avviano la generazione. Es. "Genera una sedia di legno".
 //   2) PULSANTE (recordButton): premi per registrare, la registrazione si chiude dopo una pausa.
 //
+// Anteprima (previewBeforeModel): prima del 3D viene mostrata l'immagine generata.
+//   Ripeti → nuova immagine · Correzione a voce → nuova immagine con la modifica · Prosegui → modello 3D.
+//   Correzioni: con il pulsante "Correggi" / lo stick, oppure a mani libere iniziando con "modifica", "aggiungi"...
+//   Proseguire a voce ("prosegui", "vai") è previsto ma disattivato (voiceProceedEnabled = false).
+//   n8n: un solo webhook con il campo "action" ("image" → anteprima, "model" → 3D dall'immagine approvata).
+//
 // Annullamento: CancelRequest() — dal pulsante "Annulla" dell'interfaccia (GenerationStatusUI).
 //
 // Espone uno stato pubblico (State, StateChanged, tempi, stima, MicLevel, IsListening, CanCancel)
@@ -16,6 +22,7 @@
 
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Text;
 using UnityEngine;
 using UnityEngine.Networking;
@@ -26,7 +33,7 @@ using UnityEngine.XR.Interaction.Toolkit.Interactables;
 using UnityEngine.XR.Interaction.Toolkit.Transformers;
 using GLTFast;
 
-public enum PipelineState { Idle, Recording, Transcribing, Generating, Downloading, Loading, Done, Error, Cancelled }
+public enum PipelineState { Idle, Recording, Transcribing, GeneratingImage, Preview, Generating, Downloading, Loading, Done, Error, Cancelled }
 
 public class QuestObjectGenerator : MonoBehaviour
 {
@@ -82,6 +89,17 @@ public class QuestObjectGenerator : MonoBehaviour
     [Tooltip("Materiale URP/Lit applicato ai modelli senza texture (Hunyuan). Vuoto per modelli texturizzati (Meshy)")]
     public Material fallbackMaterial;
 
+    [Header("Anteprima immagine")]
+    [Tooltip("Mostra l'immagine generata e aspetta Ripeti / Correggi / Prosegui prima del 3D")]
+    public bool previewBeforeModel = true;
+    [Tooltip("A mani libere, una frase durante l'anteprima vale come correzione solo se inizia con una di queste parole " +
+             "(evita che una conversazione nella stanza diventi una correzione)")]
+    public bool requireCorrectionKeyword = true;
+    public string[] correctionWords = { "modifica", "aggiungi", "cambia", "togli", "rendi", "fallo", "falla", "mettici", "più", "meno" };
+    [Tooltip("Proseguire al 3D dicendo una di queste parole. Disattivato per ora")]
+    public bool voiceProceedEnabled = false;
+    public string[] proceedWords = { "prosegui", "procedi", "vai", "conferma" };
+
     [Header("Feedback Sonoro")]
     public AudioClip successSound;
     public AudioClip errorSound;
@@ -97,17 +115,38 @@ public class QuestObjectGenerator : MonoBehaviour
     public string LastObjectName { get; private set; } = "";
     public float MicLevel { get; private set; }
     public bool IsListening { get; private set; }
+    /// <summary>Durata media della generazione 3D (0 se non ancora disponibile).</summary>
     public float EstimatedGenerationSeconds => PlayerPrefs.GetFloat(PREF_AVG_GEN, 0f);
+    /// <summary>Durata media della generazione dell'immagine di anteprima.</summary>
+    public float EstimatedImageSeconds => PlayerPrefs.GetFloat(PREF_AVG_IMG, 0f);
+
+    /// <summary>Immagine dell'anteprima corrente (stato Preview).</summary>
+    public Texture2D PreviewTexture { get; private set; }
+    /// <summary>Prompt (inglese) usato dall'LLM per l'immagine corrente.</summary>
+    public string PreviewPrompt { get; private set; } = "";
+    /// <summary>Ultima correzione applicata a voce.</summary>
+    public string LastCorrection { get; private set; } = "";
+    /// <summary>True mentre registra una correzione (pulsante "Correggi" o stick) durante l'anteprima.</summary>
+    public bool IsRecordingCorrection { get; private set; }
+    /// <summary>Quante immagini sono state generate per questa richiesta (1 = prima).</summary>
+    public int PreviewAttempt { get; private set; }
     public Transform Head => GetHead();
+
+    /// <summary>Percorso ComfyUI ("/view?...") del GLB dell'ultimo oggetto inserito.</summary>
+    public string LastGlbPath { get; private set; } = "";
+    /// <summary>Percorso ComfyUI dell'immagine generata prima del 3D (anteprima).</summary>
+    public string LastImagePath { get; private set; } = "";
 
     /// <summary>True quando c'è qualcosa da annullare (registrazione, trascrizione, generazione, download).</summary>
     public bool CanCancel =>
         State == PipelineState.Recording || State == PipelineState.Transcribing ||
+        State == PipelineState.GeneratingImage || State == PipelineState.Preview ||
         State == PipelineState.Generating || State == PipelineState.Downloading || State == PipelineState.Loading;
 
     // ── Stato interno ─────────────────────────────────────────────────
 
     private const string PREF_AVG_GEN = "qog_avg_generation_seconds";
+    private const string PREF_AVG_IMG = "qog_avg_image_seconds";
 
     private bool _isGenerating = false;
     private bool _isRecording = false;
@@ -118,7 +157,12 @@ public class QuestObjectGenerator : MonoBehaviour
     private bool _ownsRecordAction;
     private AudioSource _audioSource;
     private string _sessionId;
-    private float _sttSeconds, _genSeconds, _dlSeconds, _loadSeconds;
+    private float _sttSeconds, _imgSeconds, _genSeconds, _dlSeconds, _loadSeconds;
+
+    private enum PreviewDecision { None, Retry, Proceed }
+    private PreviewDecision _previewDecision = PreviewDecision.None;
+    private string _workingPrompt = "";   // richiesta + correzioni accumulate
+    private bool _correctionMode;         // la registrazione in corso è una correzione dell'anteprima
 
     // ── Audio ─────────────────────────────────────────────────────────
 
@@ -190,6 +234,8 @@ public class QuestObjectGenerator : MonoBehaviour
                 TriggerGeneration("un vaso di ceramica decorato");
             if (Keyboard.current.escapeKey.wasPressedThisFrame)
                 CancelRequest();
+            if (Keyboard.current.enterKey.wasPressedThisFrame) ProceedToModel();   // anteprima: Prosegui
+            if (Keyboard.current.rKey.wasPressedThisFrame) RetryImage();           // anteprima: Ripeti
         }
 #endif
     }
@@ -214,11 +260,11 @@ public class QuestObjectGenerator : MonoBehaviour
         if (handsFreeMode) StartListening();
     }
 
-    private void UpdateEstimate(float seconds)
+    private void UpdateEstimate(string key, float seconds)
     {
-        float avg = PlayerPrefs.GetFloat(PREF_AVG_GEN, 0f);
+        float avg = PlayerPrefs.GetFloat(key, 0f);
         avg = avg <= 0f ? seconds : avg * 0.7f + seconds * 0.3f;
-        PlayerPrefs.SetFloat(PREF_AVG_GEN, avg);
+        PlayerPrefs.SetFloat(key, avg);
         PlayerPrefs.Save();
     }
 
@@ -235,7 +281,7 @@ public class QuestObjectGenerator : MonoBehaviour
     {
         if (!CanCancel) return;
 
-        bool comfyMayBeWorking = State == PipelineState.Generating;
+        bool comfyMayBeWorking = State == PipelineState.Generating || State == PipelineState.GeneratingImage;
         string cancelledSession = _sessionId;
         _requestId++;   // invalida le coroutine della richiesta corrente
 
@@ -249,6 +295,8 @@ public class QuestObjectGenerator : MonoBehaviour
             Microphone.End(_micDevice);
             _isRecording = false;
         }
+        _correctionMode = false;
+        IsRecordingCorrection = false;
 
         _awaitingCommand = false;
         _isGenerating = false;
@@ -301,6 +349,12 @@ public class QuestObjectGenerator : MonoBehaviour
 
     private void OnRecordButtonPressed(InputAction.CallbackContext context)
     {
+        if (State == PipelineState.Preview)
+        {
+            if (!_isRecording) StartCorrectionRecording();
+            else StopRecordingAndSend();
+            return;
+        }
         if (_isGenerating || State == PipelineState.Transcribing) return;
 
         if (!_isRecording)
@@ -410,6 +464,7 @@ public class QuestObjectGenerator : MonoBehaviour
         if (IsHallucination(text)) yield break;
         Debug.Log($"[QuestObjectGenerator] Sentito: \"{text}\"");
 
+        if (State == PipelineState.Preview) { HandlePreviewSpeech(text, fromButton: false); yield break; }
         if (_isGenerating) yield break; // durante la generazione le frasi vengono ignorate
 
         if (_awaitingCommand)
@@ -503,7 +558,8 @@ public class QuestObjectGenerator : MonoBehaviour
         MicLevel = 0f;
 
         PlaySound(recordingStartSound);
-        SetState(PipelineState.Recording, "Parla ora: l'invio parte dopo 1,5 s di silenzio");
+        if (_correctionMode) IsRecordingCorrection = true;   // resta in anteprima, la UI mostra "ti ascolto"
+        else SetState(PipelineState.Recording, "Parla ora: l'invio parte dopo 1,5 s di silenzio");
 
         StartCoroutine(SilenceDetection());
     }
@@ -556,12 +612,19 @@ public class QuestObjectGenerator : MonoBehaviour
 
         if (sampleCount < SAMPLE_RATE / 2)
         {
+            if (_correctionMode) { EndCorrectionRecording(); return; }   // in anteprima: nessuna correzione, si resta lì
             Fail("Registrazione troppo corta: riprova");
             return;
         }
 
         float[] samples = new float[sampleCount];
         _recordingClip.GetData(samples, 0);
+
+        if (_correctionMode)
+        {
+            StartCoroutine(TranscribeCorrection(ConvertToWav(samples, SAMPLE_RATE)));
+            return;
+        }
 
         float seconds = sampleCount / (float)SAMPLE_RATE;
         SetState(PipelineState.Transcribing, $"{seconds:F1} s di audio inviati a Whisper");
@@ -671,28 +734,87 @@ public class QuestObjectGenerator : MonoBehaviour
     {
         int myId = ++_requestId;
         _isGenerating = true;
-        _sessionId = Guid.NewGuid().ToString("N").Substring(0, 8);
+        _sessionId = NewSessionId();
+        _workingPrompt = prompt;
         LastTranscript = prompt;
         LastObjectName = "";
-
-        PlaySound(recordingStartSound);
-        SetState(PipelineState.Generating, prompt);
+        LastCorrection = "";
+        LastGlbPath = LastImagePath = "";
+        PreviewAttempt = 0;
         StopListening(); // niente ascolto durante la generazione
+
+        // 1) Immagine + anteprima: si ripete finché l'utente non preme "Prosegui"
+        N8NResponse image = null;
+        while (true)
+        {
+            _sessionId = NewSessionId();   // ogni immagine ha la sua sessione (nome file + annullamento)
+            PreviewAttempt++;
+            LastTranscript = _workingPrompt;
+            PlaySound(recordingStartSound);
+            SetState(PipelineState.GeneratingImage, _workingPrompt);
+
+            float ti = Time.realtimeSinceStartup;
+            string imgError = null;
+            image = null;
+            yield return StartCoroutine(CallN8N(
+                new N8NRequest { action = "image", prompt = _workingPrompt, session_id = _sessionId },
+                "preview", r => image = r, e => imgError = e));
+            if (myId != _requestId) yield break; // annullata
+            if (image == null) { Fail(imgError ?? "Generazione dell'immagine fallita"); yield break; }
+
+            _imgSeconds = Time.realtimeSinceStartup - ti;
+            UpdateEstimate(PREF_AVG_IMG, _imgSeconds);
+            LastObjectName = string.IsNullOrEmpty(image.object_name) ? "oggetto" : image.object_name;
+            LastImagePath = image.image_path;
+            PreviewPrompt = image.flux_prompt ?? "";
+
+            Texture2D tex = null;
+            yield return StartCoroutine(LoadTexture(ComfyFullUrl(image.image_path), t => tex = t));
+            if (myId != _requestId) { if (tex != null) Destroy(tex); yield break; }
+            SetPreviewTexture(tex);
+
+            if (!previewBeforeModel) break;   // anteprima disattivata: si prosegue subito
+
+            _previewDecision = PreviewDecision.None;
+            SetState(PipelineState.Preview, PreviewPrompt);
+            if (handsFreeMode) StartListening();   // per correzioni ("modifica ...") o una nuova richiesta ("genera ...")
+
+            while (_previewDecision == PreviewDecision.None && myId == _requestId) yield return null;
+            if (myId != _requestId) yield break; // annullata dall'anteprima
+            StopListening();
+            if (_isRecording) { Microphone.End(_micDevice); _isRecording = false; }
+            _correctionMode = false;
+            IsRecordingCorrection = false;
+
+            if (_previewDecision == PreviewDecision.Proceed) break;
+            // Retry: nuova immagine (con le eventuali correzioni già aggiunte a _workingPrompt)
+        }
+
+        // 2) Modello 3D dall'immagine approvata
+        PlaySound(recordingStartSound);
+        SetState(PipelineState.Generating, _workingPrompt);
 
         float t0 = Time.realtimeSinceStartup;
         N8NResponse result = null;
         string error = null;
-        yield return StartCoroutine(CallN8N(prompt, (r, e) => { result = r; error = e; }));
+        yield return StartCoroutine(CallN8N(
+            new N8NRequest
+            {
+                action = "model", session_id = _sessionId, prompt = _workingPrompt,
+                image_path = image.image_path, object_name = image.object_name,
+                flux_prompt = image.flux_prompt, seed = image.seed
+            },
+            "ready", r => result = r, e => error = e));
         if (myId != _requestId) yield break; // annullata
         _genSeconds = Time.realtimeSinceStartup - t0;
 
         if (result == null)
         {
-            Fail(error ?? "Generazione fallita");
+            Fail(error ?? "Generazione 3D fallita");
             yield break;
         }
-        UpdateEstimate(_genSeconds);
-        LastObjectName = string.IsNullOrEmpty(result.object_name) ? "oggetto" : result.object_name;
+        UpdateEstimate(PREF_AVG_GEN, _genSeconds);
+        if (!string.IsNullOrEmpty(result.object_name)) LastObjectName = result.object_name;
 
         string glbUrl = RewriteToComfyHost(result.glb_url);
         GameObject loadedObject = null;
@@ -712,16 +834,155 @@ public class QuestObjectGenerator : MonoBehaviour
         PlaceInScene(loadedObject);
         PlaySound(successSound);
 
-        float total = _sttSeconds + _genSeconds + _dlSeconds + _loadSeconds;
-        string detail = $"Totale {FormatTime(total)}   ·   voce {_sttSeconds:F0} s   ·   generazione {FormatTime(_genSeconds)}   ·   download {_dlSeconds:F0} s";
-        if (!string.IsNullOrEmpty(result.flux_prompt))
-            detail += $"\n<i>{Truncate(result.flux_prompt, 160)}</i>";
+        LastGlbPath = PathOf(result.glb_url);
+
+        float total = _sttSeconds + _imgSeconds + _genSeconds + _dlSeconds + _loadSeconds;
+        string detail = $"Totale {FormatTime(total)}   ·   immagine {_imgSeconds:F0} s   ·   3D {FormatTime(_genSeconds)}   ·   download {_dlSeconds:F0} s";
+        if (!string.IsNullOrEmpty(PreviewPrompt))
+            detail += $"\n<i>{Truncate(PreviewPrompt, 160)}</i>";
 
         _sttSeconds = 0f;
         _isGenerating = false;
         SetState(PipelineState.Done, detail);
 
         if (handsFreeMode) StartListening();
+    }
+
+    private static string NewSessionId() => Guid.NewGuid().ToString("N").Substring(0, 8);
+
+    // ── Anteprima: Ripeti / Correggi / Prosegui ──────────────────────
+
+    /// <summary>Anteprima: genera una nuova immagine con la stessa richiesta.</summary>
+    public void RetryImage()
+    {
+        if (State != PipelineState.Preview) return;
+        _previewDecision = PreviewDecision.Retry;
+    }
+
+    /// <summary>Anteprima: l'immagine va bene, genera il modello 3D.</summary>
+    public void ProceedToModel()
+    {
+        if (State != PipelineState.Preview) return;
+        _previewDecision = PreviewDecision.Proceed;
+    }
+
+    /// <summary>Anteprima: aggiunge una correzione alla richiesta e rigenera l'immagine.</summary>
+    public void ApplyCorrection(string correction)
+    {
+        if (State != PipelineState.Preview || string.IsNullOrWhiteSpace(correction)) return;
+        LastCorrection = CleanCommand(correction);
+        _workingPrompt = $"{_workingPrompt}. Modifica richiesta: {LastCorrection}";
+        _previewDecision = PreviewDecision.Retry;
+    }
+
+    /// <summary>Anteprima: registra una correzione a voce (pulsante "Correggi" o stick).</summary>
+    public void StartCorrectionRecording()
+    {
+        if (State != PipelineState.Preview || _isRecording) return;
+        StopListening();
+        _correctionMode = true;
+        StartRecording();
+    }
+
+    private void EndCorrectionRecording()
+    {
+        _correctionMode = false;
+        IsRecordingCorrection = false;
+        if (State == PipelineState.Preview && handsFreeMode) StartListening();
+    }
+
+    private IEnumerator TranscribeCorrection(byte[] wav)
+    {
+        IsRecordingCorrection = false;
+        string text = null, error = null;
+        yield return StartCoroutine(Transcribe(wav, (t, e) => { text = t; error = e; }, trackForCancel: false));
+        _correctionMode = false;
+
+        if (State != PipelineState.Preview) yield break;   // nel frattempo annullata o già proseguita
+        if (text == null || IsHallucination(text))
+        {
+            Debug.LogWarning($"[QuestObjectGenerator] Correzione non capita ({error ?? text})");
+            if (handsFreeMode) StartListening();
+            yield break;
+        }
+        HandlePreviewSpeech(text, fromButton: true);
+        if (State == PipelineState.Preview && _previewDecision == PreviewDecision.None && handsFreeMode) StartListening();
+    }
+
+    // Cosa fare con una frase detta durante l'anteprima
+    private void HandlePreviewSpeech(string text, bool fromButton)
+    {
+        Debug.Log($"[QuestObjectGenerator] Anteprima, sentito: \"{text}\"");
+
+        // "Genera ..." → nuova richiesta al posto di quella corrente
+        if (TryExtractCommand(text, out string cmd) && !string.IsNullOrEmpty(cmd))
+        {
+            _workingPrompt = cmd;
+            LastCorrection = "";
+            _previewDecision = PreviewDecision.Retry;
+            return;
+        }
+
+        if (StartsWithAny(text, proceedWords))
+        {
+            if (voiceProceedEnabled) ProceedToModel();
+            else Debug.Log("[QuestObjectGenerator] Proseguire a voce è disattivato (voiceProceedEnabled)");
+            return;
+        }
+
+        // A mani libere serve una parola chiave, altrimenti è probabilmente una conversazione nella stanza
+        if (!fromButton && requireCorrectionKeyword && !StartsWithAny(text, correctionWords)) return;
+
+        ApplyCorrection(text);
+    }
+
+    private static bool StartsWithAny(string text, string[] targets)
+    {
+        if (string.IsNullOrWhiteSpace(text) || targets == null) return false;
+        var words = SplitWords(text);
+        for (int i = 0; i < Mathf.Min(words.Length, 2); i++)
+        {
+            string w = words[i].ToLowerInvariant();
+            foreach (var t in targets)
+                if (!string.IsNullOrEmpty(t) && w.StartsWith(t.ToLowerInvariant())) return true;
+        }
+        return false;
+    }
+
+    private void SetPreviewTexture(Texture2D tex)
+    {
+        if (PreviewTexture != null && PreviewTexture != tex) Destroy(PreviewTexture);
+        PreviewTexture = tex;
+    }
+
+    private IEnumerator LoadTexture(string url, Action<Texture2D> callback)
+    {
+        using var r = UnityWebRequestTexture.GetTexture(url);
+        r.timeout = 30;
+        _activeRequest = r;
+        yield return r.SendWebRequest();
+        if (_activeRequest == r) _activeRequest = null;
+
+        if (r.result != UnityWebRequest.Result.Success)
+        {
+            Debug.LogWarning($"[QuestObjectGenerator] Anteprima non scaricata: {r.error} ({url})");
+            callback(null);
+            yield break;
+        }
+        callback(DownloadHandlerTexture.GetContent(r));
+    }
+
+    /// <summary>URL completo di ComfyUI a partire da un percorso "/view?..." (o da un URL da riscrivere).</summary>
+    public string ComfyFullUrl(string pathOrUrl)
+    {
+        if (string.IsNullOrEmpty(pathOrUrl)) return pathOrUrl;
+        if (pathOrUrl.StartsWith("http", StringComparison.OrdinalIgnoreCase)) return RewriteToComfyHost(pathOrUrl);
+        return comfyUrl.TrimEnd('/') + (pathOrUrl.StartsWith("/") ? pathOrUrl : "/" + pathOrUrl);
+    }
+
+    private static string PathOf(string url)
+    {
+        try { return new Uri(url).PathAndQuery; } catch { return url; }
     }
 
     private static string Truncate(string s, int max) => s.Length <= max ? s : s.Substring(0, max) + "…";
@@ -745,9 +1006,10 @@ public class QuestObjectGenerator : MonoBehaviour
 
     // ── Chiamata n8n ──────────────────────────────────────────────────
 
-    private IEnumerator CallN8N(string prompt, Action<N8NResponse, string> callback)
+    // expectedStatus: "preview" (fase immagine) oppure "ready" (fase 3D)
+    private IEnumerator CallN8N(N8NRequest req, string expectedStatus, Action<N8NResponse> onOk, Action<string> onFail)
     {
-        var payload = JsonUtility.ToJson(new N8NRequest { prompt = prompt, session_id = _sessionId });
+        var payload = JsonUtility.ToJson(req);
         using var request = new UnityWebRequest(n8nWebhookUrl, "POST");
         request.uploadHandler = new UploadHandlerRaw(Encoding.UTF8.GetBytes(payload));
         request.downloadHandler = new DownloadHandlerBuffer();
@@ -762,20 +1024,20 @@ public class QuestObjectGenerator : MonoBehaviour
         string body = request.downloadHandler?.text ?? "";
         if (request.result != UnityWebRequest.Result.Success)
         {
-            callback(null, $"n8n: HTTP {request.responseCode} {Truncate(body, 200)}".Trim());
+            onFail($"n8n: HTTP {request.responseCode} {Truncate(body, 200)}".Trim());
             yield break;
         }
 
-        Debug.Log($"[QuestObjectGenerator] n8n risposta: {body}");
+        Debug.Log($"[QuestObjectGenerator] n8n risposta: {Truncate(body, 400)}");
 
         N8NResponse response = null;
         try { response = JsonUtility.FromJson<N8NResponse>(body); }
-        catch (Exception e) { callback(null, $"Risposta n8n non valida: {e.Message}"); yield break; }
+        catch (Exception e) { onFail($"Risposta n8n non valida: {e.Message}"); yield break; }
 
-        if (response != null && response.status == "ready" && !string.IsNullOrEmpty(response.glb_url))
-            callback(response, null);
-        else
-            callback(null, "Risposta n8n senza glb_url valido");
+        bool ok = response != null && response.status == expectedStatus &&
+                  (expectedStatus == "preview" ? !string.IsNullOrEmpty(response.image_path) : !string.IsNullOrEmpty(response.glb_url));
+        if (ok) onOk(response);
+        else onFail(expectedStatus == "preview" ? "Risposta n8n senza immagine di anteprima" : "Risposta n8n senza glb_url valido");
     }
 
     // ── Caricamento GLB con glTFast ───────────────────────────────────
@@ -926,6 +1188,23 @@ public class QuestObjectGenerator : MonoBehaviour
     // ── Strutture JSON ────────────────────────────────────────────────
 
     [Serializable] private class WhisperResponse { public string text; }
-    [Serializable] private class N8NRequest { public string prompt; public string session_id; }
-    [Serializable] private class N8NResponse { public string status; public string glb_url; public string object_name; public string flux_prompt; }
+    [Serializable] private class N8NRequest
+    {
+        public string action;        // "image" | "model"
+        public string prompt;
+        public string session_id;
+        public string image_path;    // solo "model": immagine approvata
+        public string object_name;
+        public string flux_prompt;
+        public string seed;
+    }
+    [Serializable] private class N8NResponse
+    {
+        public string status;        // "preview" | "ready"
+        public string glb_url;
+        public string image_path;
+        public string object_name;
+        public string flux_prompt;
+        public string seed;
+    }
 }
