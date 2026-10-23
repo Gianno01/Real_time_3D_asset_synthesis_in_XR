@@ -1221,18 +1221,20 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::QuestObjectGenerator
   recordButton: {fileID: 7904272356298805229, guid: c348712bda248c246b8c49b3db54643f, type: 3}
-  handsFreeMode: 1
+  recordBindingPath: <XRController>{RightHand}/{Primary2DAxisClick}
+  handsFreeMode: 0
   wakeWords:
   - genera
   - crea
   voiceThreshold: 0.04
   utteranceSilence: 1
   awaitCommandSeconds: 8
-  n8nWebhookUrl: http://127.0.0.1:5678/webhook/quest-generate
-  whisperUrl: http://127.0.0.1:9010
+  n8nWebhookUrl: http://192.168.50.133:5678/webhook/quest-generate
+  whisperUrl: http://192.168.50.133:9010
   whisperPrompt: ' Crea una lampada da tavolo.'
-  comfyUrl: http://127.0.0.1:8188
+  comfyUrl: http://192.168.50.133:8188
   interruptComfyOnCancel: 1
+  n8nCancelUrl: http://192.168.50.133:5678/webhook/quest-cancel
   timeoutSeconds: 700
   headTransform: {fileID: 0}
   targetObjectSize: 0.5
