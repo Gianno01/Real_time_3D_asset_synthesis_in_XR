@@ -1220,9 +1220,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 83bc80c432c93f348ac419b5c0b19437, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::QuestObjectGenerator
-  recordButton: {fileID: 7904272356298805229, guid: c348712bda248c246b8c49b3db54643f, type: 3}
+  recordButton: {fileID: 0}
   recordBindingPath: <XRController>{RightHand}/{Primary2DAxisClick}
-  handsFreeMode: 0
+  handsFreeMode: 1
   wakeWords:
   - genera
   - crea
@@ -1257,7 +1257,7 @@ MonoBehaviour:
   - mettici
   - "pi\xF9"
   - meno
-  voiceProceedEnabled: 0
+  voiceProceedEnabled: 1
   proceedWords:
   - prosegui
   - procedi
