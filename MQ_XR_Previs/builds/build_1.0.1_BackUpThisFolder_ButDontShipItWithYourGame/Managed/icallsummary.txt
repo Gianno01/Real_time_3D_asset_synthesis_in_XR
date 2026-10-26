@@ -845,6 +845,7 @@ UnityEngine.HDROutputSettings::SetAutomaticHDRTonemapping
 UnityEngine.HDROutputSettings::GetDisplayColorGamut
 UnityEngine.HDROutputSettings::GetGraphicsFormat
 UnityEngine.ImageConversion::LoadImage_Injected
+UnityEngine.ImageConversion::EncodeToJPG_Injected
 UnityEngine.ImageConversion::EncodeToR2DInternal_Injected
 UnityEngine.Input::GetKeyInt
 UnityEngine.Input::GetMouseButton
@@ -1812,6 +1813,7 @@ UnityEngine.SystemInfo::SupportedRenderTargetCount
 UnityEngine.SystemInfo::SupportsMultisampledTextures
 UnityEngine.SystemInfo::MaxGraphicsBufferSize
 UnityEngine.SystemInfo::GetDeviceModel_Injected
+UnityEngine.SystemInfo::GetDeviceName_Injected
 UnityEngine.SystemInfo::GetGraphicsDeviceName_Injected
 UnityEngine.SystemInfo::GetGraphicsDeviceVendor_Injected
 UnityEngine.SystemInfo::GetOperatingSystem_Injected

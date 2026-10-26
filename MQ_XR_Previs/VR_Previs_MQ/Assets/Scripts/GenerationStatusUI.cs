@@ -269,6 +269,13 @@ public class GenerationStatusUI : MonoBehaviour
                 Haptic(0.6f, 0.08f);
                 break;
 
+            case PipelineState.Suggesting:
+                if (_requestStart < 0f) _requestStart = now;
+                _activeStep = 1;
+                Show("Esiste già qualcosa di simile", "HAI CHIESTO", $"\"{detail}\"", Ok);
+                StartCoroutine(DoubleHaptic());
+                break;
+
             case PipelineState.GeneratingImage:
                 if (_requestStart < 0f) { _requestStart = now; Haptic(0.6f, 0.08f); }
                 _activeStep = 1;
@@ -298,7 +305,7 @@ public class GenerationStatusUI : MonoBehaviour
             case PipelineState.Done:
                 _finalElapsed = Elapsed(now);
                 _activeStep = 4;
-                Show($"Creato: {generator.LastObjectName}", "HAI CHIESTO", $"\"{generator.LastTranscript}\"", Ok);
+                Show($"{(generator.LastFromInventory ? "Inserito" : "Creato")}: {generator.LastObjectName}", "HAI CHIESTO", $"\"{generator.LastTranscript}\"", Ok);
                 _requestStart = -1f;
                 StartCoroutine(DoubleHaptic());
                 break;
@@ -375,6 +382,10 @@ public class GenerationStatusUI : MonoBehaviour
             case PipelineState.Transcribing:
                 _timer.text = F(Elapsed(now));
                 _subline.text = "trascrizione in corso";
+                break;
+            case PipelineState.Suggesting:
+                _timer.text = F(Elapsed(now));
+                _subline.text = "scegli nella Libreria: Usa o Genera nuovo";
                 break;
             case PipelineState.GeneratingImage:
             case PipelineState.Generating:

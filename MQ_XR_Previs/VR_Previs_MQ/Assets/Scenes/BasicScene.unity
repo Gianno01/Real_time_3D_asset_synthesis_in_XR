@@ -1243,6 +1243,11 @@ MonoBehaviour:
   faceUser: 1
   minScaleRatio: 0.25
   maxScaleRatio: 5
+  showPlacementAids: 1
+  snapOnRelease: 1
+  snapGridStep: 0.05
+  snapYawStep: 15
+  surfaceSnapDistance: 0.15
   fallbackMaterial: {fileID: 0}
   previewBeforeModel: 1
   requireCorrectionKeyword: 1
@@ -1263,6 +1268,8 @@ MonoBehaviour:
   - procedi
   - vai
   - conferma
+  library: {fileID: 0}
+  suggestFromLibrary: 1
   successSound: {fileID: 8300000, guid: 16fba6d30ed741d4a9fdd6e79ee2f3ac, type: 3}
   errorSound: {fileID: 8300000, guid: 4d96357df24d0854ba12f7446fc13cab, type: 3}
   recordingStartSound: {fileID: 8300000, guid: 16fba6d30ed741d4a9fdd6e79ee2f3ac, type: 3}
@@ -3487,6 +3494,94 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 7962545760240945814, guid: 88b12c0ca81d9a34eac32a1e1bd19b1c, type: 3}
   m_PrefabInstance: {fileID: 1464166027}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &1524779512
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1524779513}
+  - component: {fileID: 1524779515}
+  - component: {fileID: 1524779514}
+  m_Layer: 0
+  m_Name: Library
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1524779513
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1524779512}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0.68887, y: -0.35426, z: -2.43917}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1524779514
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1524779512}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5cd8a0c8fbd55ca48b419a9a2da0e79b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AssetLibrary
+  libraryUrl: http://192.168.50.133:5678/webhook/quest-library
+  storageUrl: http://192.168.50.133:8090
+  timeoutSeconds: 60
+  suggestMinScore: 0.65
+  suggestMinTextScore: 0.5
+  suggestCount: 3
+  suggestTimeoutSeconds: 6
+  generator: {fileID: 0}
+  sceneAnchor: {fileID: 0}
+  authorName: 
+--- !u!114 &1524779515
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1524779512}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7749fc40577a0a34f84fa43e051ede70, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LibraryUI
+  library: {fileID: 0}
+  generator: {fileID: 0}
+  statusUI: {fileID: 0}
+  categories:
+  - Personaggio
+  - Environment
+  - Decorazione
+  - Props
+  defaultStyles:
+  - Realistico
+  - Moderno
+  - Medievale
+  - Rinascimentale
+  - Futuristico
+  - Fantasy
+  - Cartoon
+  - Punk
+  panelOffset: {x: 0, y: 0.5, z: 0.1}
+  panelTilt: -30
+  dockOffset: {x: 0.4, y: 0, z: 0}
+  toolbarSeconds: 8
 --- !u!1 &1655702713
 GameObject:
   m_ObjectHideFlags: 0
@@ -3868,3 +3963,4 @@ SceneRoots:
   - {fileID: 330731359}
   - {fileID: 1655702716}
   - {fileID: 780294303}
+  - {fileID: 1524779513}

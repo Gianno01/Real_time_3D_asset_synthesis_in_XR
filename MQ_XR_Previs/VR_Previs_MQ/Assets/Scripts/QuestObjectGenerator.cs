@@ -17,6 +17,9 @@
 //
 // Annullamento: CancelRequest() — dal pulsante "Annulla" dell'interfaccia (GenerationStatusUI).
 //
+// Libreria (AssetLibrary): ogni oggetto inserito riceve un componente SceneObject con i dati per salvarlo
+// (percorsi su ComfyUI, prompt, miniatura). PrepareObject / InstantiateGlb / Dictate sono usati da AssetLibrary e LibraryUI.
+//
 // Espone uno stato pubblico (State, StateChanged, tempi, stima, MicLevel, IsListening, CanCancel)
 // letto da GenerationStatusUI.
 
@@ -31,9 +34,10 @@ using UnityEngine.InputSystem;
 using Unity.XR.CoreUtils;
 using UnityEngine.XR.Interaction.Toolkit.Interactables;
 using UnityEngine.XR.Interaction.Toolkit.Transformers;
+using UnityEngine.XR.Interaction.Toolkit.UI;
 using GLTFast;
 
-public enum PipelineState { Idle, Recording, Transcribing, GeneratingImage, Preview, Generating, Downloading, Loading, Done, Error, Cancelled }
+public enum PipelineState { Idle, Recording, Transcribing, Suggesting, GeneratingImage, Preview, Generating, Downloading, Loading, Done, Error, Cancelled }
 
 public class QuestObjectGenerator : MonoBehaviour
 {
@@ -85,6 +89,18 @@ public class QuestObjectGenerator : MonoBehaviour
     public float minScaleRatio = 0.25f;
     public float maxScaleRatio = 5f;
 
+    [Header("Allineamento (griglia, misure, aggancio)")]
+    [Tooltip("Griglia sotto l'oggetto e misure (base × profondità, altezza) mentre lo muovi")]
+    public bool showPlacementAids = true;
+    [Tooltip("Al rilascio: oggetto dritto, rotazione a scatti, posizione sulla griglia, appoggio sulle superfici")]
+    public bool snapOnRelease = true;
+    [Tooltip("Passo di allineamento orizzontale (m). 0 = solo appoggio, senza griglia")]
+    public float snapGridStep = 0.05f;
+    [Tooltip("Passo della rotazione (gradi). 0 = rotazione libera")]
+    public float snapYawStep = 15f;
+    [Tooltip("Distanza massima (m) per appoggiarsi a pavimento, piani o altri oggetti")]
+    public float surfaceSnapDistance = 0.15f;
+
     [Header("Materiali")]
     [Tooltip("Materiale URP/Lit applicato ai modelli senza texture (Hunyuan). Vuoto per modelli texturizzati (Meshy)")]
     public Material fallbackMaterial;
@@ -99,6 +115,12 @@ public class QuestObjectGenerator : MonoBehaviour
     [Tooltip("Proseguire al 3D dicendo una di queste parole. Disattivato per ora")]
     public bool voiceProceedEnabled = false;
     public string[] proceedWords = { "prosegui", "procedi", "vai", "conferma" };
+
+    [Header("Libreria")]
+    [Tooltip("Libreria condivisa (AssetLibrary). Se vuota viene cercata nella scena")]
+    public AssetLibrary library;
+    [Tooltip("Prima di generare cerca nell'inventario oggetti simili (ricerca semantica) e li propone")]
+    public bool suggestFromLibrary = true;
 
     [Header("Feedback Sonoro")]
     public AudioClip successSound;
@@ -130,8 +152,14 @@ public class QuestObjectGenerator : MonoBehaviour
     public bool IsRecordingCorrection { get; private set; }
     /// <summary>Quante immagini sono state generate per questa richiesta (1 = prima).</summary>
     public int PreviewAttempt { get; private set; }
+    /// <summary>True mentre registra un testo dettato (es. nome di un oggetto o di una scena).</summary>
+    public bool IsDictating { get; private set; }
     public Transform Head => GetHead();
 
+    /// <summary>Oggetti simili trovati nell'inventario (stato Suggesting).</summary>
+    public List<AssetRecord> Suggestions { get; private set; } = new List<AssetRecord>();
+    /// <summary>True se l'ultimo oggetto è stato preso dall'inventario (non va salvato di nuovo).</summary>
+    public bool LastFromInventory { get; private set; }
     /// <summary>Percorso ComfyUI ("/view?...") del GLB dell'ultimo oggetto inserito.</summary>
     public string LastGlbPath { get; private set; } = "";
     /// <summary>Percorso ComfyUI dell'immagine generata prima del 3D (anteprima).</summary>
@@ -139,7 +167,7 @@ public class QuestObjectGenerator : MonoBehaviour
 
     /// <summary>True quando c'è qualcosa da annullare (registrazione, trascrizione, generazione, download).</summary>
     public bool CanCancel =>
-        State == PipelineState.Recording || State == PipelineState.Transcribing ||
+        State == PipelineState.Recording || State == PipelineState.Transcribing || State == PipelineState.Suggesting ||
         State == PipelineState.GeneratingImage || State == PipelineState.Preview ||
         State == PipelineState.Generating || State == PipelineState.Downloading || State == PipelineState.Loading;
 
@@ -159,9 +187,14 @@ public class QuestObjectGenerator : MonoBehaviour
     private string _sessionId;
     private float _sttSeconds, _imgSeconds, _genSeconds, _dlSeconds, _loadSeconds;
 
+    private enum SuggestionDecision { None, Generate, Use }
+    private SuggestionDecision _decision = SuggestionDecision.None;
+    private AssetRecord _chosenItem;
+
     private enum PreviewDecision { None, Retry, Proceed }
     private PreviewDecision _previewDecision = PreviewDecision.None;
     private string _workingPrompt = "";   // richiesta + correzioni accumulate
+    private string _originalPrompt = "";  // prima richiesta (nome proposto dell'oggetto)
     private bool _correctionMode;         // la registrazione in corso è una correzione dell'anteprima
 
     // ── Audio ─────────────────────────────────────────────────────────
@@ -181,6 +214,7 @@ public class QuestObjectGenerator : MonoBehaviour
     void Awake()
     {
         _audioSource = gameObject.AddComponent<AudioSource>();
+        if (library == null) library = FindAnyObjectByType<AssetLibrary>();
         _sessionId = Guid.NewGuid().ToString("N").Substring(0, 8);
 
 #if UNITY_ANDROID && !UNITY_EDITOR
@@ -349,6 +383,9 @@ public class QuestObjectGenerator : MonoBehaviour
 
     private void OnRecordButtonPressed(InputAction.CallbackContext context)
     {
+        // Se stai puntando l'interfaccia (es. "Prosegui"), la pressione serve a cliccare, non a registrare
+        if (IsPointingAtUI() || IsDictating) return;
+
         if (State == PipelineState.Preview)
         {
             if (!_isRecording) StartCorrectionRecording();
@@ -364,6 +401,19 @@ public class QuestObjectGenerator : MonoBehaviour
             StartRecording();
         }
         else StopRecordingAndSend();
+    }
+
+    // Vero se un raggio di controller o mano sta puntando un elemento dell'interfaccia
+    private bool IsPointingAtUI()
+    {
+        foreach (var mb in FindObjectsByType<MonoBehaviour>(FindObjectsSortMode.None))
+        {
+            if (mb is not IUIInteractor ui || !mb.isActiveAndEnabled) continue;
+            if (ui.TryGetUIModel(out TrackedDeviceModel model) &&
+                model.currentRaycast.isValid && model.currentRaycast.gameObject != null)
+                return true;
+        }
+        return false;
     }
 
     // ── Ascolto continuo (mani libere) ────────────────────────────────
@@ -736,12 +786,40 @@ public class QuestObjectGenerator : MonoBehaviour
         _isGenerating = true;
         _sessionId = NewSessionId();
         _workingPrompt = prompt;
+        _originalPrompt = prompt;
         LastTranscript = prompt;
         LastObjectName = "";
         LastCorrection = "";
+        LastFromInventory = false;
         LastGlbPath = LastImagePath = "";
         PreviewAttempt = 0;
         StopListening(); // niente ascolto durante la generazione
+
+        // 0) Esiste già qualcosa di simile nell'inventario? (Qdrant; se non risponde si genera e basta)
+        if (suggestFromLibrary && library != null)
+        {
+            List<AssetRecord> matches = null;
+            yield return StartCoroutine(library.Suggest(prompt, r => matches = r));
+            if (myId != _requestId) yield break;
+
+            if (matches != null && matches.Count > 0)
+            {
+                Suggestions = matches;
+                _decision = SuggestionDecision.None;
+                _chosenItem = null;
+                SetState(PipelineState.Suggesting, prompt);
+
+                while (_decision == SuggestionDecision.None && myId == _requestId) yield return null;
+                if (myId != _requestId) yield break; // annullata
+
+                if (_decision == SuggestionDecision.Use && _chosenItem != null)
+                {
+                    yield return StartCoroutine(SpawnSuggestionRoutine(_chosenItem, myId));
+                    yield break;
+                }
+            }
+            Suggestions = new List<AssetRecord>();
+        }
 
         // 1) Immagine + anteprima: si ripete finché l'utente non preme "Prosegui"
         N8NResponse image = null;
@@ -836,6 +914,20 @@ public class QuestObjectGenerator : MonoBehaviour
 
         LastGlbPath = PathOf(result.glb_url);
 
+        // Dati per la libreria (salvataggio nell'inventario e nelle scene)
+        var so = loadedObject.AddComponent<SceneObject>();
+        so.sourceGlbPath = LastGlbPath;
+        so.sourceImagePath = LastImagePath;
+        so.displayName = NiceName(_originalPrompt);
+        so.objectName = LastObjectName;
+        so.promptIt = _workingPrompt;
+        so.promptEn = PreviewPrompt;
+        so.model = "pixal3d";
+        so.genImageSeconds = _imgSeconds;
+        so.genModelSeconds = _genSeconds;
+        so.placedBy = SystemInfo.deviceName;
+        so.thumbnail = MakeThumbnail(PreviewTexture, 256);
+
         float total = _sttSeconds + _imgSeconds + _genSeconds + _dlSeconds + _loadSeconds;
         string detail = $"Totale {FormatTime(total)}   ·   immagine {_imgSeconds:F0} s   ·   3D {FormatTime(_genSeconds)}   ·   download {_dlSeconds:F0} s";
         if (!string.IsNullOrEmpty(PreviewPrompt))
@@ -849,6 +941,113 @@ public class QuestObjectGenerator : MonoBehaviour
     }
 
     private static string NewSessionId() => Guid.NewGuid().ToString("N").Substring(0, 8);
+
+    // ── API per la libreria (AssetLibrary / LibraryUI) ───────────────
+
+    /// <summary>Prepara un oggetto caricato: davanti all'utente, collider, presa con una/due mani, griglia/misure/aggancio.</summary>
+    public void PrepareObject(GameObject obj) => PlaceInScene(obj);
+
+    /// <summary>Crea un oggetto da un GLB già scaricato (non cambia lo stato della pipeline).</summary>
+    public IEnumerator InstantiateGlb(byte[] data, string sourceUrl, string objectName, Action<GameObject, string> callback)
+    {
+        var gltf = new GltfImport();
+        var loadTask = gltf.Load(data, new Uri(sourceUrl));
+        while (!loadTask.IsCompleted) yield return null;
+        if (!loadTask.Result) { callback(null, "glTFast: parsing del GLB fallito"); yield break; }
+
+        var container = new GameObject(objectName);
+        var instantiateTask = gltf.InstantiateMainSceneAsync(container.transform);
+        while (!instantiateTask.IsCompleted) yield return null;
+        if (!instantiateTask.Result)
+        {
+            Destroy(container);
+            callback(null, "glTFast: istanziazione fallita");
+            yield break;
+        }
+        callback(container, null);
+    }
+
+    /// <summary>Registra una frase e la restituisce trascritta (null se non capita). Per nomi di oggetti e scene.</summary>
+    public IEnumerator Dictate(Action<string> callback, float maxSeconds = 8f)
+    {
+        if (_isRecording || IsDictating || State == PipelineState.Recording || State == PipelineState.Transcribing)
+        {
+            callback(null);
+            yield break;
+        }
+        IsDictating = true;
+        bool resumeListening = IsListening;
+        StopListening();
+
+        string dev = Microphone.devices.Length > 0 ? Microphone.devices[0] : null;
+        var clip = Microphone.Start(dev, false, Mathf.CeilToInt(maxSeconds), SAMPLE_RATE);
+        PlaySound(recordingStartSound);
+        yield return new WaitForSeconds(0.8f);
+
+        int window = SAMPLE_RATE / 10;
+        var buf = new float[window];
+        float silence = 0f;
+        var wait = new WaitForSeconds(0.1f);
+        while (Microphone.IsRecording(dev))
+        {
+            int pos = Microphone.GetPosition(dev);
+            if (pos > window)
+            {
+                clip.GetData(buf, pos - window);
+                float max = 0f;
+                foreach (float v in buf) max = Mathf.Max(max, Mathf.Abs(v));
+                MicLevel = max;
+                silence = max < SILENCE_THRESHOLD ? silence + 0.1f : 0f;
+                if (silence >= 1.2f) break;
+            }
+            yield return wait;
+        }
+
+        int count = Microphone.GetPosition(dev);
+        if (count <= 0) count = clip.samples;
+        Microphone.End(dev);
+        MicLevel = 0f;
+
+        string text = null;
+        if (count > SAMPLE_RATE / 3)
+        {
+            var samples = new float[count];
+            clip.GetData(samples, 0);
+            yield return StartCoroutine(Transcribe(ConvertToWav(samples, SAMPLE_RATE), (t, e) => text = t, trackForCancel: false));
+        }
+        IsDictating = false;
+        if (text != null && IsHallucination(text)) text = null;
+        if (resumeListening || (handsFreeMode && !_isGenerating)) StartListening();
+        callback(text == null ? null : CleanCommand(text));
+    }
+
+    // "una sedia di legno" → "Sedia di legno"
+    private static string NiceName(string request)
+    {
+        string t = CleanCommand(request ?? "");
+        string lower = t.ToLowerInvariant();
+        foreach (var art in new[] { "un ", "una ", "uno ", "un'", "il ", "lo ", "la ", "l'", "i ", "gli ", "le ", "dei ", "delle ", "degli " })
+            if (lower.StartsWith(art)) { t = t.Substring(art.Length).TrimStart(); break; }
+        if (t.Length == 0) return "Oggetto";
+        if (t.Length > 60) t = t.Substring(0, 60);
+        return char.ToUpper(t[0]) + t.Substring(1);
+    }
+
+    // Miniatura quadrata (per l'inventario) a partire dall'anteprima
+    private static Texture2D MakeThumbnail(Texture2D src, int size)
+    {
+        if (src == null) return null;
+        var rt = RenderTexture.GetTemporary(size, size, 0, RenderTextureFormat.ARGB32);
+        Graphics.Blit(src, rt);
+        var prev = RenderTexture.active;
+        RenderTexture.active = rt;
+        var thumb = new Texture2D(size, size, TextureFormat.RGB24, false);
+        thumb.ReadPixels(new Rect(0, 0, size, size), 0, 0);
+        thumb.Apply();
+        RenderTexture.active = prev;
+        RenderTexture.ReleaseTemporary(rt);
+        return thumb;
+    }
 
     // ── Anteprima: Ripeti / Correggi / Prosegui ──────────────────────
 
@@ -970,6 +1169,45 @@ public class QuestObjectGenerator : MonoBehaviour
             yield break;
         }
         callback(DownloadHandlerTexture.GetContent(r));
+    }
+
+    // ── Suggerimenti dalla libreria ───────────────────────────────────
+
+    /// <summary>Usa l'oggetto suggerito al posto di generarne uno nuovo.</summary>
+    public void ChooseSuggestion(AssetRecord item)
+    {
+        if (State != PipelineState.Suggesting || item == null) return;
+        _chosenItem = item;
+        _decision = SuggestionDecision.Use;
+    }
+
+    /// <summary>Ignora i suggerimenti e genera comunque un oggetto nuovo.</summary>
+    public void GenerateAnyway()
+    {
+        if (State != PipelineState.Suggesting) return;
+        _decision = SuggestionDecision.Generate;
+    }
+
+    private IEnumerator SpawnSuggestionRoutine(AssetRecord item, int myId)
+    {
+        LastObjectName = string.IsNullOrEmpty(item.name) ? "oggetto" : item.name;
+        LastFromInventory = true;
+        SetState(PipelineState.Downloading, LastObjectName);
+        float t0 = Time.realtimeSinceStartup;
+
+        SceneObject so = null; string error = null;
+        yield return StartCoroutine(library.SpawnFromInventory(item, (o, e) => { so = o; error = e; }));
+        if (myId != _requestId)
+        {
+            if (so != null) Destroy(so.gameObject);
+            yield break;
+        }
+        if (so == null) { Fail(error ?? "Caricamento dall'inventario non riuscito"); yield break; }
+
+        PlaySound(successSound);
+        _isGenerating = false;
+        SetState(PipelineState.Done, $"Dall'inventario   ·   {Time.realtimeSinceStartup - t0:F0} s");
+        if (handsFreeMode) StartListening();
     }
 
     /// <summary>URL completo di ComfyUI a partire da un percorso "/view?..." (o da un URL da riscrivere).</summary>
@@ -1150,6 +1388,21 @@ public class QuestObjectGenerator : MonoBehaviour
         transformer.allowTwoHandedScaling = true;
         transformer.minimumScaleRatio = minScaleRatio;
         transformer.maximumScaleRatio = maxScaleRatio;
+
+        // Griglia, misure e aggancio
+        if (showPlacementAids || snapOnRelease)
+        {
+            var aids = obj.AddComponent<ObjectPlacementAids>();
+            float scale = Mathf.Max(obj.transform.localScale.x, 0.0001f);
+            aids.Init(bounds.size / scale, cam);   // bounds misurati prima della rotazione → dimensioni reali
+            aids.showGrid = aids.showDimensions = showPlacementAids;
+            aids.snapOnRelease = snapOnRelease;
+            aids.gridStep = snapGridStep;
+            aids.yawStep = snapYawStep;
+            aids.surfaceSnapDistance = surfaceSnapDistance;
+            var origin = FindAnyObjectByType<XROrigin>();
+            aids.floorHeight = origin != null ? origin.transform.position.y : 0f;
+        }
 
         Debug.Log($"[QuestObjectGenerator] Oggetto '{obj.name}' inserito in {obj.transform.position}.");
     }
