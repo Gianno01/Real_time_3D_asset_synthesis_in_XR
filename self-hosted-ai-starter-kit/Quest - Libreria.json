@@ -1,0 +1,1300 @@
+{
+  "name": "Quest - Libreria",
+  "nodes": [
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "{{ $json.sql }}",
+        "options": {}
+      },
+      "id": "65dd5ea9-f547-4c31-8e10-1a96be5b030b",
+      "name": "Database1",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        -2528,
+        1184
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "RtZN5vT43vCpP5cI",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "quest-library",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "66e0d531-1aaf-4af5-8763-9b02c4652ebd",
+      "name": "Webhook libreria",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -6256,
+        2304
+      ],
+      "webhookId": "quest-library"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Legge la richiesta (Unity o pannello web) e prepara la query SQL.\n// action: save_asset | register_asset | list_assets | delete_asset | save_scene | list_scenes | load_scene\n//         | rename_scene | delete_scene | reindex\nconst b = $input.first().json.body ?? $input.first().json;\nconst action = String(b.action ?? '').toLowerCase();\nconst ACTIONS = ['save_asset', 'register_asset', 'list_assets', 'delete_asset', 'save_scene', 'list_scenes', 'load_scene',\n                 'rename_scene', 'delete_scene', 'reindex'];\nif (!ACTIONS.includes(action)) throw new Error(`Azione sconosciuta: \"${action}\"`);\n\nconst uuid = () => 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {\n  const r = Math.random() * 16 | 0;\n  return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);\n});\n\nconst payload = { ...b };\ndelete payload.thumb_base64;            // la miniatura va nello storage, non nel database\nlet route = action;\n\nif (action === 'save_asset') {\n  if (b.asset_id) {\n    route = 'update_asset';             // già sul server: aggiorna i dati / lo mette nell'inventario\n  } else {\n    if (!b.source_glb) throw new Error('save_asset: manca source_glb (percorso del GLB su ComfyUI)');\n    payload.id = uuid();\n    payload.glb_key   = `assets/${payload.id}/model.glb`;\n    payload.image_key = b.source_image ? `assets/${payload.id}/image.png` : '';\n    payload.thumb_key = b.thumb_base64 ? `assets/${payload.id}/thumb.jpg` : '';\n  }\n}\nif (action === 'register_asset') {\n  // il pannello web ha già caricato i file nello storage con questo id: si controlla che i percorsi siano quelli attesi\n  const id = String(b.id ?? '').toLowerCase();\n  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(id)) throw new Error('register_asset: id non valido');\n  const base = `assets/${id}/`;\n  if (b.glb_key !== base + 'model.glb') throw new Error('register_asset: glb_key non valido');\n  if (b.thumb_key && b.thumb_key !== base + 'thumb.jpg') throw new Error('register_asset: thumb_key non valido');\n  if (b.image_key && !['image.png', 'image.jpg'].map(f => base + f).includes(b.image_key)) throw new Error('register_asset: image_key non valido');\n  payload.id = id;\n  payload.in_inventory = true;\n}\nif (action === 'list_assets' && String(b.q ?? '').trim() !== '' && b.scope !== 'scene_only') route = 'search';   // ricerca semantica (Qdrant)\nif (action === 'save_scene' && !b.scene_id) payload.new_id = uuid();\nif (action === 'delete_asset' && !b.asset_id) throw new Error('delete_asset: manca asset_id');\nif (['load_scene', 'rename_scene', 'delete_scene'].includes(action) && !b.scene_id) throw new Error(`${action}: manca scene_id`);\n\nconst p = JSON.stringify(payload).split('$xrq$').join('');   // il JSON va dentro $xrq$...$xrq$ (nessun escape necessario)\nconst Q = {\n  \"update_asset\": \"WITH p AS (SELECT $xrq${P}$xrq$::jsonb AS j),\\nup AS (\\n  UPDATE xr.assets a SET\\n    name        = COALESCE(NULLIF(p.j->>'name',''), a.name),\\n    category    = COALESCE(NULLIF(p.j->>'category',''), a.category),\\n    style       = COALESCE(NULLIF(p.j->>'style',''), a.style),\\n    tags        = CASE WHEN jsonb_array_length(COALESCE(p.j->'tags','[]'::jsonb)) > 0\\n                       THEN ARRAY(SELECT jsonb_array_elements_text(p.j->'tags')) ELSE a.tags END,\\n    prompt_it   = COALESCE(NULLIF(p.j->>'prompt_it',''), a.prompt_it),\\n    width_cm    = COALESCE(NULLIF((p.j->>'width_cm')::real, 0), a.width_cm),\\n    height_cm   = COALESCE(NULLIF((p.j->>'height_cm')::real, 0), a.height_cm),\\n    depth_cm    = COALESCE(NULLIF((p.j->>'depth_cm')::real, 0), a.depth_cm),\\n    in_inventory = a.in_inventory OR COALESCE((p.j->>'in_inventory')::boolean, false),\\n    deleted_at  = NULL,\\n    updated_at  = now()\\n  FROM p\\n  WHERE a.id = (p.j->>'asset_id')::uuid\\n  RETURNING a.id, name, category, style, tags, prompt_it, prompt_en, object_name, model,\\n       glb_key, image_key, thumb_key, width_cm, height_cm, depth_cm, glb_bytes,\\n       author, in_inventory, use_count, to_char(created_at, 'YYYY-MM-DD\\\"T\\\"HH24:MI:SS') AS created_at\\n)\\nSELECT CASE WHEN EXISTS (SELECT 1 FROM up)\\n            THEN json_build_object('ok', true, 'asset', (SELECT row_to_json(up) FROM up))\\n            ELSE json_build_object('ok', false, 'error', 'Oggetto non trovato') END AS result;\",\n  \"list_assets\": \"WITH p AS (SELECT $xrq${P}$xrq$::jsonb AS j),\\nf AS (\\n  SELECT a.*,\\n         CASE WHEN COALESCE(p.j->>'q','') <> ''\\n              THEN GREATEST(similarity(a.name, p.j->>'q'),\\n                            word_similarity(p.j->>'q', a.name || ' ' || a.prompt_it || ' ' || a.object_name)) ELSE 0 END AS score\\n  FROM xr.assets a, p\\n  WHERE a.deleted_at IS NULL\\n    AND a.in_inventory = (COALESCE(p.j->>'scope','') <> 'scene_only')\\n    AND (COALESCE(p.j->>'category','') = '' OR a.category = p.j->>'category')\\n    AND (COALESCE(p.j->>'style','')    = '' OR a.style    = p.j->>'style')\\n),\\npage AS (\\n  SELECT id, name, category, style, tags, prompt_it, prompt_en, object_name, model,\\n       glb_key, image_key, thumb_key, width_cm, height_cm, depth_cm, glb_bytes,\\n       author, in_inventory, use_count, to_char(created_at, 'YYYY-MM-DD\\\"T\\\"HH24:MI:SS') AS created_at, round(score::numeric, 3)::real AS score\\n  FROM f, p\\n  WHERE COALESCE(p.j->>'q','') = '' OR score >= COALESCE(NULLIF((p.j->>'min_score')::real, 0), 0.3)\\n  ORDER BY score DESC, f.created_at DESC\\n  LIMIT  (SELECT LEAST(COALESCE(NULLIF((j->>'limit')::int, 0), 24), 100) FROM p)\\n  OFFSET (SELECT GREATEST(COALESCE((j->>'offset')::int, 0), 0) FROM p)\\n)\\nSELECT json_build_object(\\n  'ok', true,\\n  'mode',   CASE WHEN COALESCE((SELECT j->>'q' FROM p),'') = '' THEN 'list' ELSE 'text' END,\\n  'items',  COALESCE((SELECT json_agg(page) FROM page), '[]'::json),\\n  'total',  (SELECT count(*) FROM f, p WHERE COALESCE(p.j->>'q','') = '' OR f.score >= COALESCE(NULLIF((p.j->>'min_score')::real, 0), 0.3)),\\n  'styles', COALESCE((SELECT json_agg(DISTINCT style ORDER BY style) FROM xr.assets\\n                      WHERE in_inventory AND deleted_at IS NULL AND style <> ''), '[]'::json)\\n) AS result;\",\n  \"delete_asset\": \"WITH p AS (SELECT $xrq${P}$xrq$::jsonb AS j),\\nup AS (\\n  UPDATE xr.assets a SET\\n    in_inventory = false,\\n    updated_at   = now(),\\n    deleted_at   = CASE WHEN EXISTS (SELECT 1 FROM xr.scene_objects so JOIN xr.scenes s ON s.id = so.scene_id\\n                                     WHERE so.asset_id = a.id AND s.deleted_at IS NULL)\\n                        THEN NULL ELSE now() END\\n  FROM p\\n  WHERE a.id = (p.j->>'asset_id')::uuid\\n  RETURNING a.id\\n)\\nSELECT json_build_object('ok', EXISTS (SELECT 1 FROM up)) AS result;\",\n  \"save_scene\": \"WITH p AS (SELECT $xrq${P}$xrq$::jsonb AS j),\\nup AS (\\n  INSERT INTO xr.scenes (id, name, author, object_count)\\n  SELECT COALESCE(NULLIF(j->>'scene_id','')::uuid, (j->>'new_id')::uuid),\\n         COALESCE(NULLIF(j->>'name',''), 'Scena'), COALESCE(j->>'author',''),\\n         jsonb_array_length(COALESCE(j->'objects','[]'::jsonb))\\n  FROM p\\n  ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, object_count = EXCLUDED.object_count,\\n                                 updated_at = now(), deleted_at = NULL\\n  RETURNING id, name\\n),\\ndel AS (DELETE FROM xr.scene_objects WHERE scene_id = (SELECT id FROM up)),\\nins AS (\\n  INSERT INTO xr.scene_objects (scene_id, asset_id, px, py, pz, rx, ry, rz, rw, scale, placed_by)\\n  SELECT (SELECT id FROM up), o.asset_id, o.px, o.py, o.pz, o.rx, o.ry, o.rz, o.rw, COALESCE(o.scale, 1), COALESCE(o.placed_by, '')\\n  FROM p, jsonb_to_recordset(COALESCE(p.j->'objects','[]'::jsonb))\\n       AS o(asset_id uuid, px real, py real, pz real, rx real, ry real, rz real, rw real, scale real, placed_by text)\\n  RETURNING asset_id\\n),\\nused AS (\\n  UPDATE xr.assets SET use_count = use_count + 1 WHERE id IN (SELECT DISTINCT asset_id FROM ins) RETURNING id\\n)\\nSELECT json_build_object('ok', true, 'scene_id', (SELECT id FROM up), 'name', (SELECT name FROM up),\\n                         'saved', (SELECT count(*) FROM ins)) AS result;\",\n  \"list_scenes\": \"WITH p AS (SELECT $xrq${P}$xrq$::jsonb AS j)\\nSELECT json_build_object('ok', true, 'scenes', COALESCE((\\n  SELECT json_agg(s ORDER BY s.updated_at DESC) FROM (\\n    SELECT id, name, author, object_count,\\n           to_char(updated_at, 'YYYY-MM-DD\\\"T\\\"HH24:MI:SS') AS updated_at\\n    FROM xr.scenes WHERE deleted_at IS NULL\\n    ORDER BY updated_at DESC\\n    LIMIT LEAST(COALESCE(NULLIF((SELECT (j->>'limit')::int FROM p), 0), 50), 200)\\n  ) s), '[]'::json)) AS result;\",\n  \"load_scene\": \"WITH p AS (SELECT $xrq${P}$xrq$::jsonb AS j),\\ns AS (SELECT id, name, author FROM xr.scenes, p WHERE id = (p.j->>'scene_id')::uuid AND deleted_at IS NULL)\\nSELECT CASE WHEN NOT EXISTS (SELECT 1 FROM s)\\n       THEN json_build_object('ok', false, 'error', 'Scena non trovata')\\n       ELSE json_build_object('ok', true, 'scene', (SELECT row_to_json(s) FROM s), 'objects', COALESCE((\\n         SELECT json_agg(o ORDER BY o.oid) FROM (\\n           SELECT so.id AS oid, a.id AS asset_id, a.name, a.object_name, a.prompt_it, a.prompt_en, a.category, a.style,\\n                  a.glb_key, a.image_key, a.thumb_key, a.in_inventory, a.width_cm, a.height_cm, a.depth_cm,\\n                  so.px, so.py, so.pz, so.rx, so.ry, so.rz, so.rw, so.scale, so.placed_by\\n           FROM xr.scene_objects so JOIN xr.assets a ON a.id = so.asset_id\\n           WHERE so.scene_id = (SELECT id FROM s)\\n         ) o), '[]'::json)) END AS result;\",\n  \"delete_scene\": \"WITH p AS (SELECT $xrq${P}$xrq$::jsonb AS j),\\nup AS (UPDATE xr.scenes SET deleted_at = now() FROM p WHERE id = (p.j->>'scene_id')::uuid AND deleted_at IS NULL RETURNING id)\\nSELECT json_build_object('ok', EXISTS (SELECT 1 FROM up)) AS result;\",\n  \"reindex\": \"WITH p AS (SELECT $xrq${P}$xrq$::jsonb AS j)\\nSELECT json_build_object('ok', true, 'assets', COALESCE((\\n  SELECT json_agg(x) FROM (\\n    SELECT id, name, category, style, tags, prompt_it, prompt_en, object_name, in_inventory,\\n           to_char(created_at, 'YYYY-MM-DD\\\"T\\\"HH24:MI:SS') AS created_at\\n    FROM xr.assets WHERE in_inventory AND deleted_at IS NULL\\n    ORDER BY created_at\\n  ) x), '[]'::json)) AS result;\",\n  \"rename_scene\": \"WITH p AS (SELECT $xrq${P}$xrq$::jsonb AS j),\\nup AS (UPDATE xr.scenes SET name = COALESCE(NULLIF(trim(p.j->>'name'),''), name), updated_at = now()\\n       FROM p WHERE id = (p.j->>'scene_id')::uuid AND deleted_at IS NULL RETURNING id, name)\\nSELECT CASE WHEN EXISTS (SELECT 1 FROM up)\\n            THEN json_build_object('ok', true, 'scene_id', (SELECT id FROM up), 'name', (SELECT name FROM up))\\n            ELSE json_build_object('ok', false, 'error', 'Scena non trovata') END AS result;\",\n  \"register_asset\": \"WITH p AS (SELECT $xrq${P}$xrq$::jsonb AS j),\\nins AS (\\n  INSERT INTO xr.assets (id, name, category, style, tags, prompt_it, prompt_en, object_name, model,\\n                         glb_key, image_key, thumb_key, width_cm, height_cm, depth_cm, glb_bytes,\\n                         gen_image_s, gen_model_s, author, in_inventory)\\n  SELECT (j->>'id')::uuid, COALESCE(NULLIF(j->>'name',''), 'Oggetto'), COALESCE(j->>'category',''), COALESCE(j->>'style',''),\\n         COALESCE(ARRAY(SELECT jsonb_array_elements_text(COALESCE(j->'tags','[]'::jsonb))), '{}'),\\n         COALESCE(j->>'prompt_it',''), COALESCE(j->>'prompt_en',''), COALESCE(j->>'object_name',''), COALESCE(j->>'model',''),\\n         j->>'glb_key', COALESCE(j->>'image_key',''), COALESCE(j->>'thumb_key',''),\\n         COALESCE((j->>'width_cm')::real,0), COALESCE((j->>'height_cm')::real,0), COALESCE((j->>'depth_cm')::real,0),\\n         COALESCE((j->>'glb_bytes')::bigint,0), COALESCE((j->>'gen_image_s')::real,0), COALESCE((j->>'gen_model_s')::real,0),\\n         COALESCE(j->>'author',''), COALESCE((j->>'in_inventory')::boolean, false)\\n  FROM p\\n  RETURNING id, name, category, style, tags, prompt_it, prompt_en, object_name, model,\\n       glb_key, image_key, thumb_key, width_cm, height_cm, depth_cm, glb_bytes,\\n       author, in_inventory, use_count, to_char(created_at, 'YYYY-MM-DD\\\"T\\\"HH24:MI:SS') AS created_at\\n)\\nSELECT json_build_object('ok', true, 'asset', row_to_json(ins)) AS result FROM ins;\"\n};\nconst sql = (route === 'save_asset' || route === 'search') ? '' : Q[route].split('{P}').join(p);\n\nreturn [{ json: { action, route, payload, sql, thumb_base64: b.thumb_base64 ?? '' } }];"
+      },
+      "id": "7526f1d5-96b0-4b1e-a2e0-998edbb358fe",
+      "name": "Leggi richiesta",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -6048,
+        2304
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "a03fb993-12a3-487b-aa18-65b7d2856354",
+              "leftValue": "={{ $json.route }}",
+              "rightValue": "save_asset",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "cae16723-4811-42d0-9987-56f66db73fdd",
+      "name": "Nuovo oggetto?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -5824,
+        2304
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "fe17baea-1dd9-4749-b285-b9abcf7da259",
+              "leftValue": "={{ $json.route }}",
+              "rightValue": "search",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "f4ed3f99-8a6c-4948-b2a1-7251c3bf2767",
+      "name": "Ricerca semantica?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -5600,
+        2432
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=http://host.docker.internal:8188{{ $json.payload.source_glb }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          },
+          "timeout": 60000
+        }
+      },
+      "id": "6c5cded4-4d16-4c85-b463-c4474ef9d152",
+      "name": "Scarica GLB da ComfyUI",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -5600,
+        2032
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Dimensione del GLB (byte), il file passa invariato al nodo successivo\nconst item = $input.first();\nconst buf = await this.helpers.getBinaryDataBuffer(0, 'data');\nreturn [{ json: { bytes: buf.length }, binary: item.binary }];"
+      },
+      "id": "e8c8223d-a23b-4e34-8f14-e05623242a7c",
+      "name": "Misura GLB",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -5376,
+        2032
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=http://seaweedfs:8888/{{ $('Leggi richiesta').first().json.payload.glb_key }}",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "file",
+              "inputDataFieldName": "data"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "id": "94cf2740-c9ff-45af-b86f-f59d657f95d8",
+      "name": "Carica GLB nello storage",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -5168,
+        2032
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "79682920-6b58-4bd2-b4ac-ec79360f00cc",
+              "leftValue": "={{ $('Leggi richiesta').first().json.payload.image_key }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "4eb2823b-e68c-4fc4-aa38-99e371f5daec",
+      "name": "Ha immagine?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -4944,
+        2032
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=http://host.docker.internal:8188{{ $('Leggi richiesta').first().json.payload.source_image }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          },
+          "timeout": 60000
+        }
+      },
+      "id": "e57ab8c4-ac48-4373-8e07-7bb9d6e5ed7e",
+      "name": "Scarica immagine da ComfyUI",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -4720,
+        1920
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=http://seaweedfs:8888/{{ $('Leggi richiesta').first().json.payload.image_key }}",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "file",
+              "inputDataFieldName": "data"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "id": "3ea04ec5-919c-4ace-9d00-a531cfc306c2",
+      "name": "Carica immagine nello storage",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -4496,
+        1920
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "6168c00e-7c10-44fe-b452-b6e9d17c0c53",
+              "leftValue": "={{ $('Leggi richiesta').first().json.payload.thumb_key }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "03c93d0b-8d89-4440-af11-a05ffc1da732",
+      "name": "Ha miniatura?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -4288,
+        2032
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Miniatura JPG inviata da Unity in Base64 → file binario da caricare\nconst b64 = $('Leggi richiesta').first().json.thumb_base64;\nconst data = await this.helpers.prepareBinaryData(Buffer.from(b64, 'base64'), 'thumb.jpg', 'image/jpeg');\nreturn [{ json: {}, binary: { data } }];"
+      },
+      "id": "5a93aae0-0a71-426b-b98a-9b2603383208",
+      "name": "Miniatura da Base64",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -4064,
+        1920
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=http://seaweedfs:8888/{{ $('Leggi richiesta').first().json.payload.thumb_key }}",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "file",
+              "inputDataFieldName": "data"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "id": "ccd940a3-293a-4f42-9750-215c01d977bb",
+      "name": "Carica miniatura nello storage",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -3840,
+        1920
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// File copiati nello storage: inserisce l'oggetto nel database\nconst payload = { ...$('Leggi richiesta').first().json.payload, glb_bytes: $('Misura GLB').first().json.bytes };\nconst p = JSON.stringify(payload).split('$xrq$').join('');\nconst sql = \"WITH p AS (SELECT $xrq${P}$xrq$::jsonb AS j),\\nins AS (\\n  INSERT INTO xr.assets (id, name, category, style, tags, prompt_it, prompt_en, object_name, model,\\n                         glb_key, image_key, thumb_key, width_cm, height_cm, depth_cm, glb_bytes,\\n                         gen_image_s, gen_model_s, author, in_inventory)\\n  SELECT (j->>'id')::uuid, COALESCE(NULLIF(j->>'name',''), 'Oggetto'), COALESCE(j->>'category',''), COALESCE(j->>'style',''),\\n         COALESCE(ARRAY(SELECT jsonb_array_elements_text(COALESCE(j->'tags','[]'::jsonb))), '{}'),\\n         COALESCE(j->>'prompt_it',''), COALESCE(j->>'prompt_en',''), COALESCE(j->>'object_name',''), COALESCE(j->>'model',''),\\n         j->>'glb_key', COALESCE(j->>'image_key',''), COALESCE(j->>'thumb_key',''),\\n         COALESCE((j->>'width_cm')::real,0), COALESCE((j->>'height_cm')::real,0), COALESCE((j->>'depth_cm')::real,0),\\n         COALESCE((j->>'glb_bytes')::bigint,0), COALESCE((j->>'gen_image_s')::real,0), COALESCE((j->>'gen_model_s')::real,0),\\n         COALESCE(j->>'author',''), COALESCE((j->>'in_inventory')::boolean, false)\\n  FROM p\\n  RETURNING id, name, category, style, tags, prompt_it, prompt_en, object_name, model,\\n       glb_key, image_key, thumb_key, width_cm, height_cm, depth_cm, glb_bytes,\\n       author, in_inventory, use_count, to_char(created_at, 'YYYY-MM-DD\\\"T\\\"HH24:MI:SS') AS created_at\\n)\\nSELECT json_build_object('ok', true, 'asset', row_to_json(ins)) AS result FROM ins;\".split('{P}').join(p);\nreturn [{ json: { sql } }];"
+      },
+      "id": "5fcda3ea-2e91-4bac-a89c-25b3fc383801",
+      "name": "SQL inserimento",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -3616,
+        2032
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://ollama:11434/api/embed",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: 'bge-m3', input: $('Leggi richiesta').first().json.payload.q, options: { num_gpu: 0 }, keep_alive: '30m' }) }}",
+        "options": {
+          "timeout": 20000
+        }
+      },
+      "id": "fb9bb8bf-e925-4141-b41b-80e8ed6e0a7e",
+      "name": "Embedding ricerca",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -5376,
+        2432
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Corpo della ricerca su Qdrant: vettore della frase + filtri (solo inventario, categoria/stile se scelti)\nconst req = $('Leggi richiesta').first().json.payload;\nconst emb = $input.first().json.embeddings?.[0];\nif (!emb) return [{ json: { skip: true, error: $input.first().json.error ?? 'embedding mancante' } }];\nconst must = [{ key: 'in_inventory', match: { value: true } }];\nif (req.category) must.push({ key: 'category', match: { value: req.category } });\nif (req.style) must.push({ key: 'style', match: { value: req.style } });\nconst limit = Math.min(Number(req.limit) || 24, 100);\nconst threshold = Number(req.min_score) > 0 ? Number(req.min_score) : 0.45;\nreturn [{ json: { skip: false, body: { vector: emb, limit, score_threshold: threshold, filter: { must }, with_payload: false } } }];"
+      },
+      "id": "0e09c7c2-f843-4e43-a76d-93bedb3a06be",
+      "name": "Corpo ricerca",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -5168,
+        2432
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://qdrant:6333/collections/xr_assets/points/search",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.body) }}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "33809a54-0365-4673-8e4d-d057b115d74f",
+      "name": "Cerca in Qdrant",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -4944,
+        2432
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Ricerca: risultati di Qdrant (id + punteggio) → dettagli da Postgres.\n// Se embedding o Qdrant non rispondono, ripiega sulla ricerca testuale (parole simili) di Postgres.\nconst req = $('Leggi richiesta').first().json;\nconst res = $input.first().json;\nconst P = s => JSON.stringify(s).split('$xrq$').join('');\nlet sql;\nif (Array.isArray(res.result)) {\n  const hits = res.result.map(h => ({ id: String(h.id), score: h.score }));\n  sql = \"WITH p AS (SELECT $xrq${P}$xrq$::jsonb AS j),\\nhits AS (\\n  SELECT (h->>'id')::uuid AS hid, (h->>'score')::real AS hscore, ord\\n  FROM p, jsonb_array_elements(COALESCE(p.j->'hits','[]'::jsonb)) WITH ORDINALITY AS t(h, ord)\\n),\\npage AS (\\n  SELECT a.id, a.name, a.category, a.style, a.tags, a.prompt_it, a.prompt_en, a.object_name, a.model,\\n         a.glb_key, a.image_key, a.thumb_key, a.width_cm, a.height_cm, a.depth_cm, a.glb_bytes,\\n         a.author, a.in_inventory, a.use_count, to_char(a.created_at, 'YYYY-MM-DD\\\"T\\\"HH24:MI:SS') AS created_at,\\n         round(hits.hscore::numeric, 3)::real AS score, hits.ord\\n  FROM hits JOIN xr.assets a ON a.id = hits.hid\\n  WHERE a.in_inventory AND a.deleted_at IS NULL\\n)\\nSELECT json_build_object(\\n  'ok', true,\\n  'mode', 'semantic',\\n  'items',  COALESCE((SELECT json_agg(page ORDER BY page.ord) FROM page), '[]'::json),\\n  'total',  (SELECT count(*) FROM page),\\n  'styles', COALESCE((SELECT json_agg(DISTINCT style ORDER BY style) FROM xr.assets\\n                      WHERE in_inventory AND deleted_at IS NULL AND style <> ''), '[]'::json)\\n) AS result;\".split('{P}').join(P({ hits }));\n} else {\n  console.log('Qdrant/embedding non disponibili, ricerca testuale:', JSON.stringify(res).substring(0, 300));\n  sql = \"WITH p AS (SELECT $xrq${P}$xrq$::jsonb AS j),\\nf AS (\\n  SELECT a.*,\\n         CASE WHEN COALESCE(p.j->>'q','') <> ''\\n              THEN GREATEST(similarity(a.name, p.j->>'q'),\\n                            word_similarity(p.j->>'q', a.name || ' ' || a.prompt_it || ' ' || a.object_name)) ELSE 0 END AS score\\n  FROM xr.assets a, p\\n  WHERE a.deleted_at IS NULL\\n    AND a.in_inventory = (COALESCE(p.j->>'scope','') <> 'scene_only')\\n    AND (COALESCE(p.j->>'category','') = '' OR a.category = p.j->>'category')\\n    AND (COALESCE(p.j->>'style','')    = '' OR a.style    = p.j->>'style')\\n),\\npage AS (\\n  SELECT id, name, category, style, tags, prompt_it, prompt_en, object_name, model,\\n       glb_key, image_key, thumb_key, width_cm, height_cm, depth_cm, glb_bytes,\\n       author, in_inventory, use_count, to_char(created_at, 'YYYY-MM-DD\\\"T\\\"HH24:MI:SS') AS created_at, round(score::numeric, 3)::real AS score\\n  FROM f, p\\n  WHERE COALESCE(p.j->>'q','') = '' OR score >= COALESCE(NULLIF((p.j->>'min_score')::real, 0), 0.3)\\n  ORDER BY score DESC, f.created_at DESC\\n  LIMIT  (SELECT LEAST(COALESCE(NULLIF((j->>'limit')::int, 0), 24), 100) FROM p)\\n  OFFSET (SELECT GREATEST(COALESCE((j->>'offset')::int, 0), 0) FROM p)\\n)\\nSELECT json_build_object(\\n  'ok', true,\\n  'mode',   CASE WHEN COALESCE((SELECT j->>'q' FROM p),'') = '' THEN 'list' ELSE 'text' END,\\n  'items',  COALESCE((SELECT json_agg(page) FROM page), '[]'::json),\\n  'total',  (SELECT count(*) FROM f, p WHERE COALESCE(p.j->>'q','') = '' OR f.score >= COALESCE(NULLIF((p.j->>'min_score')::real, 0), 0.3)),\\n  'styles', COALESCE((SELECT json_agg(DISTINCT style ORDER BY style) FROM xr.assets\\n                      WHERE in_inventory AND deleted_at IS NULL AND style <> ''), '[]'::json)\\n) AS result;\".split('{P}').join(P({ ...req.payload, min_score: 0 }));\n}\nreturn [{ json: { sql } }];"
+      },
+      "id": "08f2eff2-9792-4852-90fd-948083a10a33",
+      "name": "SQL ricerca",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -4720,
+        2432
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "{{ $json.sql }}",
+        "options": {}
+      },
+      "id": "249f434d-f823-49ac-8192-c07aabdf718b",
+      "name": "Database",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        -3408,
+        2304
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "RtZN5vT43vCpP5cI",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "b097e62d-2ace-42d3-bfd2-75f1dd57d8e1",
+              "leftValue": "={{ ['save_asset', 'update_asset', 'register_asset'].includes($('Leggi richiesta').first().json.route) }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "febd6d1b-ec4e-45d4-bd2b-0b8402946766",
+      "name": "Indicizza oggetto?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -3184,
+        2304
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Testo e dati dell'oggetto per l'indice semantico (Qdrant)\nconst r = $('Database').first().json.result;\nconst a = r?.asset;\nif (!r?.ok || !a) return [{ json: { skip: true } }];\nconst text = [a.name, a.category, a.style, a.prompt_it, a.object_name, a.prompt_en, (a.tags || []).join(' ')]\n  .filter(Boolean).join('. ');\nreturn [{ json: { skip: false, id: a.id, text, in_inventory: !!a.in_inventory,\n  payload: { name: a.name, category: a.category, style: a.style, in_inventory: !!a.in_inventory, created_at: a.created_at } } }];"
+      },
+      "id": "11694576-b561-4eaf-9d4d-909e121774ac",
+      "name": "Testo per indice",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2960,
+        2160
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://ollama:11434/api/embed",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: 'bge-m3', input: $json.text, options: { num_gpu: 0 }, keep_alive: '30m' }) }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "b4a05cfd-5f6c-4d90-a57e-674f45ad40a3",
+      "name": "Embedding oggetto",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -2736,
+        2160
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Punto da inserire/aggiornare in Qdrant (stesso id dell'oggetto su Postgres)\nconst src = $('Testo per indice').first().json;\nconst emb = $input.first().json.embeddings?.[0];\nif (!emb) return [{ json: { skip: true } }];\nreturn [{ json: { skip: false, body: { points: [{ id: src.id, vector: emb, payload: src.payload }] } } }];"
+      },
+      "id": "cb562419-f109-48d2-9b4b-757c23356af9",
+      "name": "Punto per Qdrant",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2528,
+        2160
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "http://qdrant:6333/collections/xr_assets/points?wait=true",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.body) }}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "78d9d806-99fc-4755-a729-498a066baf79",
+      "name": "Salva in Qdrant",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -2304,
+        2160
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "36ce7181-b223-4467-a0da-2ac1c6dcdce6",
+              "leftValue": "={{ $('Leggi richiesta').first().json.route }}",
+              "rightValue": "delete_asset",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "328b684c-5812-48a9-bd95-01c6355d2f44",
+      "name": "Togli dall'indice?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -2960,
+        2432
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://qdrant:6333/collections/xr_assets/points/delete?wait=true",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ points: [$('Leggi richiesta').first().json.payload.asset_id] }) }}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "ef7fed9b-7587-442f-8c5f-63698728943a",
+      "name": "Elimina da Qdrant",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -2736,
+        2352
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "6b12f50c-a779-4ad7-8b3b-8387194d1de6",
+              "leftValue": "={{ $('Leggi richiesta').first().json.route }}",
+              "rightValue": "reindex",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "eb87ef61-00b8-436d-8fe4-fa21c0d12794",
+      "name": "Reindicizza?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -2736,
+        2544
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "http://qdrant:6333/collections/xr_assets",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ vectors: { size: 1024, distance: 'Cosine' } }) }}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "7d9b4b0b-eff4-466f-bb3a-7bf09a2d2c59",
+      "name": "Crea collezione",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -2528,
+        2464
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "http://qdrant:6333/collections/xr_assets/index?wait=true",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ field_name: 'in_inventory', field_schema: 'bool' }) }}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "23aa950f-86ce-4c6c-a800-cef4f01f8813",
+      "name": "Indice in_inventory",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -2304,
+        2464
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "http://qdrant:6333/collections/xr_assets/index?wait=true",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ field_name: 'category', field_schema: 'keyword' }) }}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "10447168-5271-454b-a61e-67892ad9e59c",
+      "name": "Indice categoria",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -2080,
+        2464
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "http://qdrant:6333/collections/xr_assets/index?wait=true",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ field_name: 'style', field_schema: 'keyword' }) }}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "61e1c713-3527-4abc-91f3-dafef368e462",
+      "name": "Indice stile",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -1856,
+        2464
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Reindicizzazione: tutti gli oggetti dell'inventario → testi da trasformare in vettori (in un'unica chiamata)\nconst assets = $('Database').first().json.result?.assets ?? [];\nconst texts = assets.map(a => [a.name, a.category, a.style, a.prompt_it, a.object_name, a.prompt_en, (a.tags || []).join(' ')]\n  .filter(Boolean).join('. ') || a.name || 'oggetto');\nreturn [{ json: { count: assets.length, texts: texts.length ? texts : ['(vuoto)'], assets } }];"
+      },
+      "id": "cf4172a3-8705-4d38-a7ba-f5f3ee178ca8",
+      "name": "Elenco oggetti",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1648,
+        2464
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://ollama:11434/api/embed",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: 'bge-m3', input: $json.texts, options: { num_gpu: 0 }, keep_alive: '30m' }) }}",
+        "options": {
+          "timeout": 600000
+        }
+      },
+      "id": "d44880ce-868c-43cd-a3f0-777a60396999",
+      "name": "Embedding inventario",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -1424,
+        2464
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Vettori + dati → punti per Qdrant\nconst src = $('Elenco oggetti').first().json;\nconst embs = $input.first().json.embeddings ?? [];\nconst points = src.assets.map((a, i) => embs[i] ? {\n  id: a.id, vector: embs[i],\n  payload: { name: a.name, category: a.category, style: a.style, in_inventory: !!a.in_inventory, created_at: a.created_at }\n} : null).filter(Boolean);\nreturn [{ json: { points, count: points.length, total: src.count, embedError: $input.first().json.error ?? null } }];"
+      },
+      "id": "0e158954-3111-432d-8d66-4471eb4a9da6",
+      "name": "Punti da indicizzare",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1200,
+        2464
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "http://qdrant:6333/collections/xr_assets/points?wait=true",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ points: $json.points }) }}",
+        "options": {
+          "timeout": 120000
+        }
+      },
+      "id": "76bc6513-31e2-4622-bd37-a3270ce2e7c2",
+      "name": "Salva tutti in Qdrant",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -976,
+        2464
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Esito della reindicizzazione\nconst p = $('Punti da indicizzare').first().json;\nconst up = $input.first().json;\nconst ok = p.count === p.total && (p.total === 0 || !up.error);   // inventario vuoto: niente da salvare\nreturn [{ json: { result: { ok, indexed: p.count, total: p.total,\n  error: ok ? null : (p.embedError || up.error?.message || up.error || 'Indicizzazione incompleta') } } }];"
+      },
+      "id": "2c09c5c0-5b69-4ea9-b729-4d78d8d8ee2e",
+      "name": "Esito reindicizzazione",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -768,
+        2464
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Risposta a Unity = risultato del database (l'indice semantico è un passaggio accessorio)\nreturn [{ json: { result: $('Database').first().json.result } }];"
+      },
+      "id": "3542eba4-8e95-4746-aaca-b471065022fb",
+      "name": "Risultato",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1856,
+        2208
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json.result) }}",
+        "options": {}
+      },
+      "id": "f0773d67-8d3b-458c-988f-ae6c457011c7",
+      "name": "Rispondi",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        -544,
+        2304
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook libreria": {
+      "main": [
+        [
+          {
+            "node": "Leggi richiesta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leggi richiesta": {
+      "main": [
+        [
+          {
+            "node": "Nuovo oggetto?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Nuovo oggetto?": {
+      "main": [
+        [
+          {
+            "node": "Scarica GLB da ComfyUI",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Ricerca semantica?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ricerca semantica?": {
+      "main": [
+        [
+          {
+            "node": "Embedding ricerca",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Database",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Scarica GLB da ComfyUI": {
+      "main": [
+        [
+          {
+            "node": "Misura GLB",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Misura GLB": {
+      "main": [
+        [
+          {
+            "node": "Carica GLB nello storage",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Carica GLB nello storage": {
+      "main": [
+        [
+          {
+            "node": "Ha immagine?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ha immagine?": {
+      "main": [
+        [
+          {
+            "node": "Scarica immagine da ComfyUI",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Ha miniatura?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Scarica immagine da ComfyUI": {
+      "main": [
+        [
+          {
+            "node": "Carica immagine nello storage",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Carica immagine nello storage": {
+      "main": [
+        [
+          {
+            "node": "Ha miniatura?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ha miniatura?": {
+      "main": [
+        [
+          {
+            "node": "Miniatura da Base64",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "SQL inserimento",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Miniatura da Base64": {
+      "main": [
+        [
+          {
+            "node": "Carica miniatura nello storage",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Carica miniatura nello storage": {
+      "main": [
+        [
+          {
+            "node": "SQL inserimento",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SQL inserimento": {
+      "main": [
+        [
+          {
+            "node": "Database",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embedding ricerca": {
+      "main": [
+        [
+          {
+            "node": "Corpo ricerca",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Corpo ricerca": {
+      "main": [
+        [
+          {
+            "node": "Cerca in Qdrant",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cerca in Qdrant": {
+      "main": [
+        [
+          {
+            "node": "SQL ricerca",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SQL ricerca": {
+      "main": [
+        [
+          {
+            "node": "Database",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Database": {
+      "main": [
+        [
+          {
+            "node": "Indicizza oggetto?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Indicizza oggetto?": {
+      "main": [
+        [
+          {
+            "node": "Testo per indice",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Togli dall'indice?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Testo per indice": {
+      "main": [
+        [
+          {
+            "node": "Embedding oggetto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embedding oggetto": {
+      "main": [
+        [
+          {
+            "node": "Punto per Qdrant",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Punto per Qdrant": {
+      "main": [
+        [
+          {
+            "node": "Salva in Qdrant",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Salva in Qdrant": {
+      "main": [
+        [
+          {
+            "node": "Risultato",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Togli dall'indice?": {
+      "main": [
+        [
+          {
+            "node": "Elimina da Qdrant",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Reindicizza?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Elimina da Qdrant": {
+      "main": [
+        [
+          {
+            "node": "Risultato",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reindicizza?": {
+      "main": [
+        [
+          {
+            "node": "Crea collezione",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Risultato",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Crea collezione": {
+      "main": [
+        [
+          {
+            "node": "Indice in_inventory",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Indice in_inventory": {
+      "main": [
+        [
+          {
+            "node": "Indice categoria",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Indice categoria": {
+      "main": [
+        [
+          {
+            "node": "Indice stile",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Indice stile": {
+      "main": [
+        [
+          {
+            "node": "Elenco oggetti",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Elenco oggetti": {
+      "main": [
+        [
+          {
+            "node": "Embedding inventario",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embedding inventario": {
+      "main": [
+        [
+          {
+            "node": "Punti da indicizzare",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Punti da indicizzare": {
+      "main": [
+        [
+          {
+            "node": "Salva tutti in Qdrant",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Salva tutti in Qdrant": {
+      "main": [
+        [
+          {
+            "node": "Esito reindicizzazione",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Esito reindicizzazione": {
+      "main": [
+        [
+          {
+            "node": "Rispondi",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Risultato": {
+      "main": [
+        [
+          {
+            "node": "Rispondi",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "62e0b48b-afe8-47e5-a289-e786a6ac9023",
+  "meta": {
+    "instanceId": "fe9646e0aa4cd870b6bb0a4db1bba1e72fbbdd9f780e5450977e1e63c74badac"
+  },
+  "nodeGroups": [],
+  "id": "lzIx6FWrWGX3O4gX",
+  "tags": []
+}

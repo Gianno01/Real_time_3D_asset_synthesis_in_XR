@@ -1,7 +1,7 @@
 // LibraryUI.cs
 // Interfaccia della libreria condivisa (AssetLibrary), generata via codice.
 //
-//  • Pulsante "Libreria" accanto al pannello di controllo → pannello "monitor" sopra di esso con due schede:
+//  • Cerchietto con il libro sopra il pannello di controllo → pannello "monitor" sopra di esso con due schede:
 //      Inventario  filtri per categoria, ricerca a voce, griglia di miniature, Inserisci / Elimina
 //      Scene       Salva / Salva come nuova / Nome a voce / Svuota, elenco delle scene con Carica / Elimina
 //  • Barra sopra l'oggetto appena rilasciato: Salva (nell'inventario) · Duplica · Elimina (dalla scena)
@@ -131,7 +131,7 @@ public class LibraryUI : MonoBehaviour
         _styles.AddRange(defaultStyles);
 
         BuildPanel();
-        BuildDock();
+        if (statusUI == null) BuildDock();   // con il pannello di controllo si apre dal cerchietto col libro
         BuildToolbar();
         ShowView(View.None);
 
@@ -157,8 +157,12 @@ public class LibraryUI : MonoBehaviour
 
     // ── Viste ─────────────────────────────────────────────────────────
 
+    public bool IsOpen => _view != View.None;
+    public void Hide() { if (_view != View.None) ShowView(View.None); }
+
     void ShowView(View v)
     {
+        if (v != View.None && _view == View.None) FindAnyObjectByType<SettingsUI>()?.Hide();   // stesso spazio del pannello Impostazioni
         _view = v;
         _panelRoot.gameObject.SetActive(v != View.None);
         _inventoryView.SetActive(v == View.Inventory);
@@ -171,6 +175,8 @@ public class LibraryUI : MonoBehaviour
         if (v == View.Inventory) RefreshInventory();
         if (v == View.Scenes) RefreshScenes();
     }
+
+    public void Toggle() => TogglePanel();
 
     void TogglePanel()
     {
@@ -769,10 +775,10 @@ public class LibraryUI : MonoBehaviour
             _tiles.Add(t);
         }
 
-        MakeButton(v, "Prev", "◀", 24, 484, 52, 40, () => Page(-1), out _);
+        MakeButton(v, "Prev", "<", 24, 484, 52, 40, () => Page(-1), out _);
         _pageLabel = Txt(v, "Page", 18, FontStyles.Normal, TextDim, TextAlignmentOptions.Center);
         Place(_pageLabel.rectTransform, 80, 484, 100, 40);
-        MakeButton(v, "Next", "▶", 184, 484, 52, 40, () => Page(1), out _);
+        MakeButton(v, "Next", ">", 184, 484, 52, 40, () => Page(1), out _);
 
         _insertBtn = MakeButton(v, "Insert", "Inserisci", 420, 484, 136, 40, InsertSelected, out _).gameObject;
         _insertBtn.GetComponent<Image>().color = new Color(Ok.r, Ok.g, Ok.b, 0.5f);
@@ -813,10 +819,10 @@ public class LibraryUI : MonoBehaviour
             _rows.Add(row);
         }
 
-        MakeButton(v, "Prev", "◀", 24, 484, 52, 40, () => ScenesPage(-1), out _);
+        MakeButton(v, "Prev", "<", 24, 484, 52, 40, () => ScenesPage(-1), out _);
         _scenesPageLabel = Txt(v, "Page", 18, FontStyles.Normal, TextDim, TextAlignmentOptions.Center);
         Place(_scenesPageLabel.rectTransform, 80, 484, 100, 40);
-        MakeButton(v, "Next", "▶", 184, 484, 52, 40, () => ScenesPage(1), out _);
+        MakeButton(v, "Next", ">", 184, 484, 52, 40, () => ScenesPage(1), out _);
     }
 
     void BuildSaveView(RectTransform root)

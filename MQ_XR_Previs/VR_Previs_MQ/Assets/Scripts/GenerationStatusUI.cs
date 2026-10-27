@@ -81,6 +81,15 @@ public class GenerationStatusUI : MonoBehaviour
     static readonly string[] StepNames = { "Voce", "Immagine", "Modello 3D", "Caricamento" };
 
     const float CardW = 640f, CardH = 304f, PillW = 620f, PillH = 72f, IconSize = 76f, PreviewW = 640f, PreviewH = 470f;
+    const float ToolBtn = 48f, ToolGap = 10f;
+    static readonly Color ActiveBtn = new Color(0.40f, 0.64f, 1.00f, 0.55f);
+
+    RectTransform _toolbarRt;
+    CanvasGroup _toolbarGroup;
+    Image _tbMinimize, _tbSettings, _tbLibrary;
+    LibraryUI _libraryUI;
+    SettingsUI _settingsUI;
+    float _nextPanelCheck;
 
     // ── Riferimenti UI ────────────────────────────────────────────────
 
@@ -201,6 +210,7 @@ public class GenerationStatusUI : MonoBehaviour
         UpdatePlacement(!_placed, dt);
         _placed = true;
         UpdateHandle(dt);
+        UpdateToolbar(dt);
 
         bool cancellable = generator.CanCancel;
         if (_cancelButton.activeSelf != cancellable) _cancelButton.SetActive(cancellable);
@@ -235,6 +245,13 @@ public class GenerationStatusUI : MonoBehaviour
     public void SetMinimized(bool value)
     {
         _minimized = value;
+        if (value)
+        {
+            // riducendo a icona si chiudono anche Libreria e Impostazioni
+            FindPanels();
+            if (_libraryUI != null) _libraryUI.Hide();
+            if (_settingsUI != null) _settingsUI.Hide();
+        }
         Haptic(0.2f, 0.04f);
     }
 
@@ -475,6 +492,12 @@ public class GenerationStatusUI : MonoBehaviour
         var tex = generator.PreviewTexture;
         _previewImage.texture = tex;
         _previewImage.color = tex != null ? Color.white : new Color(1f, 1f, 1f, 0f);
+        // immagini verticali (personaggi) o orizzontali (animali, veicoli): adatta senza deformare
+        var irt = _previewImage.rectTransform;
+        irt.anchorMin = irt.anchorMax = new Vector2(0.5f, 0.5f);
+        irt.anchoredPosition = Vector2.zero;
+        float inner = 292f, aspect = tex != null && tex.height > 0 ? tex.width / (float)tex.height : 1f;
+        irt.sizeDelta = aspect >= 1f ? new Vector2(inner, inner / aspect) : new Vector2(inner * aspect, inner);
         _pvNoImage.gameObject.SetActive(tex == null);
 
         _pvTitle.text = generator.PreviewAttempt > 1 ? $"Ti piace? <size=70%><color=#9AA3B5>· immagine {generator.PreviewAttempt}</color></size>" : "Ti piace?";
@@ -643,9 +666,8 @@ public class GenerationStatusUI : MonoBehaviour
         _micDot.rectTransform.pivot = new Vector2(0.5f, 0.5f);
         _micDot.rectTransform.anchoredPosition = new Vector2(35, -36);
         _hint = Txt(pillRt, "Hint", 24, FontStyles.Normal, TextMain, TextAlignmentOptions.MidlineLeft);
-        Place(_hint.rectTransform, 56, 0, PillW - 56 - 66, PillH);
+        Place(_hint.rectTransform, 56, 0, PillW - 56 - 24, PillH);
         _hint.text = idleHint;
-        MakeRoundButton(pillRt, "MinimizePill", "–", PillW - 54, 18, 36, ToggleMinimized);
 
         // ── Card (richiesta in corso) ──
         var cardRt = Panel(root, "Card", CardW, CardH, CardBg, out _card, 1f);
@@ -659,7 +681,6 @@ public class GenerationStatusUI : MonoBehaviour
         _timer = Txt(cardRt, "Timer", 36, FontStyles.Bold, TextMain, TextAlignmentOptions.MidlineRight);
         Place(_timer.rectTransform, 396, 12, 172, 46);
 
-        MakeRoundButton(cardRt, "MinimizeCard", "–", 584, 17, 36, ToggleMinimized);
 
         _subline = Txt(cardRt, "Subline", 18, FontStyles.Normal, TextDim, TextAlignmentOptions.TopRight);
         Place(_subline.rectTransform, 248, 58, 320, 26);
@@ -721,7 +742,6 @@ public class GenerationStatusUI : MonoBehaviour
         Place(_pvTitle.rectTransform, 52, 16, 340, 42);
         _pvTimer = Txt(pvRt, "Timer", 36, FontStyles.Bold, TextMain, TextAlignmentOptions.MidlineRight);
         Place(_pvTimer.rectTransform, 396, 12, 172, 46);
-        MakeRoundButton(pvRt, "MinimizePreview", "–", 584, 17, 36, ToggleMinimized);
         _pvSub = Txt(pvRt, "Subline", 18, FontStyles.Normal, TextDim, TextAlignmentOptions.TopRight);
         Place(_pvSub.rectTransform, 248, 58, 320, 26);
 
@@ -787,6 +807,61 @@ public class GenerationStatusUI : MonoBehaviour
         _handleRt.sizeDelta = new Vector2(110, 10);
         _handleRt.anchoredPosition = new Vector2(0, -(PillH / 2f + 22f));
         _handle.gameObject.SetActive(movable);
+
+        // ── Barra in alto: riduci · impostazioni · libreria ──
+        var tbGo = new GameObject("Toolbar", typeof(RectTransform), typeof(CanvasGroup));
+        tbGo.transform.SetParent(root, false);
+        _toolbarRt = (RectTransform)tbGo.transform;
+        _toolbarRt.sizeDelta = new Vector2(3 * ToolBtn + 2 * ToolGap, ToolBtn);
+        _toolbarRt.anchoredPosition = new Vector2(PillW / 2f - _toolbarRt.sizeDelta.x / 2f, PillH / 2f + ToolBtn / 2f + 10f);
+        _toolbarGroup = tbGo.GetComponent<CanvasGroup>();
+        _tbMinimize = MakeIconButton(_toolbarRt, "Minimize", UiIcons.Minimize, 0, ToggleMinimized);
+        _tbSettings = MakeIconButton(_toolbarRt, "Settings", UiIcons.Gear, ToolBtn + ToolGap, () => { FindPanels(); if (_settingsUI != null) _settingsUI.Toggle(); });
+        _tbLibrary  = MakeIconButton(_toolbarRt, "Library", UiIcons.Book, 2 * (ToolBtn + ToolGap), () => { FindPanels(); if (_libraryUI != null) _libraryUI.Toggle(); });
+    }
+
+    Image MakeIconButton(RectTransform parent, string name, Texture2D icon, float x, System.Action onClick)
+    {
+        var img = Img(parent, name, _circle, CardBg, false);
+        img.raycastTarget = true;
+        Place(img.rectTransform, x, 0, ToolBtn, ToolBtn);
+        AddButton(img, onClick);
+        var ig = new GameObject("Icon", typeof(RectTransform), typeof(RawImage));
+        ig.transform.SetParent(img.rectTransform, false);
+        var raw = ig.GetComponent<RawImage>();
+        raw.texture = icon;
+        raw.color = TextMain;
+        raw.raycastTarget = false;
+        var rt = raw.rectTransform;
+        rt.anchorMin = rt.anchorMax = new Vector2(0.5f, 0.5f);
+        rt.sizeDelta = new Vector2(ToolBtn * 0.56f, ToolBtn * 0.56f);
+        rt.anchoredPosition = Vector2.zero;
+        return img;
+    }
+
+    void FindPanels()
+    {
+        if (_libraryUI == null) _libraryUI = FindAnyObjectByType<LibraryUI>();
+        if (_settingsUI == null) _settingsUI = FindAnyObjectByType<SettingsUI>();
+    }
+
+    void UpdateToolbar(float dt)
+    {
+        if (_toolbarRt == null) return;
+        _toolbarGroup.alpha = Mathf.MoveTowards(_toolbarGroup.alpha, _minimized ? 0f : 1f, dt * 6f);
+        bool interactive = _toolbarGroup.alpha > 0.5f;
+        _toolbarGroup.interactable = _toolbarGroup.blocksRaycasts = interactive;
+
+        // sempre sopra l'angolo in alto a destra del pannello visibile
+        float panelW = !_showCard ? PillW : _state == PipelineState.Preview ? PreviewW : CardW;
+        float panelH = !_showCard ? PillH : _state == PipelineState.Preview ? PreviewH : CardH;
+        var target = new Vector2(panelW / 2f - _toolbarRt.sizeDelta.x / 2f, panelH / 2f + ToolBtn / 2f + 10f);
+        _toolbarRt.anchoredPosition = Vector2.Lerp(_toolbarRt.anchoredPosition, target, dt * 10f);
+
+        // il cerchietto del pannello aperto resta evidenziato
+        if (Time.unscaledTime >= _nextPanelCheck) { _nextPanelCheck = Time.unscaledTime + 1f; FindPanels(); }
+        _tbLibrary.color = _libraryUI != null && _libraryUI.IsOpen ? ActiveBtn : CardBg;
+        _tbSettings.color = _settingsUI != null && _settingsUI.IsOpen ? ActiveBtn : CardBg;
     }
 
     GameObject MakeButton(RectTransform parent, string name, string label, float x, float y, float w, float h, System.Action onClick)

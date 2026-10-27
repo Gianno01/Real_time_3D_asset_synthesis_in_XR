@@ -98,6 +98,17 @@ public class QuestObjectGenerator : MonoBehaviour
     public float snapGridStep = 0.05f;
     [Tooltip("Passo della rotazione (gradi). 0 = rotazione libera")]
     public float snapYawStep = 15f;
+    [Tooltip("Raddrizza i modelli generati storti: base orizzontale e lati paralleli agli assi (griglia e misure più precise)")]
+    public bool autoAlignModels = true;
+    [Tooltip("Corregge anche l'inclinazione (solo se il modello ha una base o dei piedi su cui poggiare)")]
+    public bool alignTilt = true;
+    [Tooltip("Inclinazione massima corretta (gradi): oltre, l'inclinazione è considerata voluta")]
+    public float maxTiltCorrection = 12f;
+
+    [Header("Ombra")]
+    [Tooltip("Ombra morbida sotto gli oggetti, sul pavimento o sulla superficie sottostante")]
+    public bool contactShadows = true;
+    [Range(0f, 1f)] public float shadowOpacity = 0.55f;
     [Tooltip("Distanza massima (m) per appoggiarsi a pavimento, piani o altri oggetti")]
     public float surfaceSnapDistance = 0.15f;
 
@@ -1343,6 +1354,7 @@ public class QuestObjectGenerator : MonoBehaviour
 
     private void PlaceInScene(GameObject obj)
     {
+        if (autoAlignModels) ModelAlignment.Align(obj, alignTilt, maxTiltCorrection);   // prima di misurare: griglia e misure sui lati veri
         AdjustScale(obj);
         Bounds bounds = GetWorldBounds(obj);
 
@@ -1390,21 +1402,55 @@ public class QuestObjectGenerator : MonoBehaviour
         transformer.maximumScaleRatio = maxScaleRatio;
 
         // Griglia, misure e aggancio
-        if (showPlacementAids || snapOnRelease)
+        // Griglia, misure, aggancio e ombra: componenti sempre presenti, attivati secondo le impostazioni
+        // (così si possono accendere e spegnere anche dopo, dal pannello Impostazioni)
+        var origin = FindAnyObjectByType<XROrigin>();
+        float floorY = origin != null ? origin.transform.position.y : 0f;
+        float unit = Mathf.Max(obj.transform.localScale.x, 0.0001f);
+        var aids = obj.GetComponent<ObjectPlacementAids>();
+        if (aids == null) aids = obj.AddComponent<ObjectPlacementAids>();
+        aids.Init(bounds.size / unit, cam);   // bounds misurati prima della rotazione → dimensioni reali
+        aids.floorHeight = floorY;
+        var shadow = obj.GetComponent<ContactShadow>();
+        if (shadow == null) shadow = obj.AddComponent<ContactShadow>();
+        shadow.Init(bounds.size / unit, floorY);
+        ApplySettingsTo(obj);
+
+        Debug.Log($"[QuestObjectGenerator] Oggetto '{obj.name}' inserito in {obj.transform.position}.");
+    }
+
+    /// <summary>Applica le impostazioni correnti (griglia, aggancio, ombra) a un oggetto in scena.</summary>
+    public void ApplySettingsTo(GameObject obj)
+    {
+        var aids = obj.GetComponent<ObjectPlacementAids>();
+        if (aids != null)
         {
-            var aids = obj.AddComponent<ObjectPlacementAids>();
-            float scale = Mathf.Max(obj.transform.localScale.x, 0.0001f);
-            aids.Init(bounds.size / scale, cam);   // bounds misurati prima della rotazione → dimensioni reali
             aids.showGrid = aids.showDimensions = showPlacementAids;
             aids.snapOnRelease = snapOnRelease;
             aids.gridStep = snapGridStep;
             aids.yawStep = snapYawStep;
             aids.surfaceSnapDistance = surfaceSnapDistance;
-            var origin = FindAnyObjectByType<XROrigin>();
-            aids.floorHeight = origin != null ? origin.transform.position.y : 0f;
         }
+        var shadow = obj.GetComponent<ContactShadow>();
+        if (shadow != null)
+        {
+            shadow.opacity = shadowOpacity;
+            shadow.enabled = contactShadows;
+        }
+    }
 
-        Debug.Log($"[QuestObjectGenerator] Oggetto '{obj.name}' inserito in {obj.transform.position}.");
+    /// <summary>Applica le impostazioni correnti a tutti gli oggetti già in scena.</summary>
+    public void ApplySettingsToScene()
+    {
+        foreach (var a in FindObjectsByType<ObjectPlacementAids>(FindObjectsSortMode.None)) ApplySettingsTo(a.gameObject);
+    }
+
+    /// <summary>Attiva o disattiva l'ascolto continuo con parola di attivazione.</summary>
+    public void SetHandsFree(bool on)
+    {
+        handsFreeMode = on;
+        if (!on) StopListening();
+        else if (!_isRecording && !IsDictating && (!_isGenerating || State == PipelineState.Preview)) StartListening();
     }
 
     private Bounds GetWorldBounds(GameObject obj)
