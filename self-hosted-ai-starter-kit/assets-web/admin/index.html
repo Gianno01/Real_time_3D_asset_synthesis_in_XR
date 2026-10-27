@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Libreria XR</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23121520'/%3E%3Cpath d='M16 6l9 5v10l-9 5-9-5V11z' fill='none' stroke='%2366A3FF' stroke-width='2.4' stroke-linejoin='round'/%3E%3Cpath d='M7 11l9 5 9-5M16 16v10' fill='none' stroke='%2366A3FF' stroke-width='2.4' stroke-linejoin='round'/%3E%3C/svg%3E">
+</head>
+<body>
+  <header class="top">
+    <div class="brand">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 5l10 5.5v11L16 27 6 21.5v-11z"/><path d="M6 10.5l10 5.5 10-5.5M16 16v11"/></svg>
+      <span>Libreria XR</span>
+    </div>
+    <nav class="tabs" role="tablist">
+      <button role="tab" data-tab="inventory" aria-selected="true">Inventario</button>
+      <button role="tab" data-tab="upload">Carica</button>
+      <button role="tab" data-tab="scenes">Scene</button>
+      <button role="tab" data-tab="tools">Strumenti</button>
+    </nav>
+    <div class="health" id="health" title="Stato del server"><i></i><span>Controllo…</span></div>
+  </header>
+
+  <main>
+    <!-- ── Inventario ─────────────────────────────────────────── -->
+    <section id="tab-inventory" class="tab">
+      <div class="toolbar">
+        <form class="search" id="searchForm">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+          <input id="q" type="search" placeholder="Cerca per significato… (es. qualcosa per sedersi)" autocomplete="off">
+        </form>
+        <div class="seg" id="scope">
+          <button data-scope="" aria-pressed="true">Inventario</button>
+          <button data-scope="scene_only" aria-pressed="false" title="Oggetti salvati solo dentro una scena, non nell'inventario">Solo nelle scene</button>
+        </div>
+        <select id="fCategory" aria-label="Categoria"></select>
+        <select id="fStyle" aria-label="Stile"><option value="">Tutti gli stili</option></select>
+      </div>
+      <div class="resultbar"><span id="invCount"></span><span id="invMode" class="badge" hidden></span></div>
+      <div class="grid" id="grid"></div>
+      <div class="empty" id="invEmpty" hidden></div>
+      <div class="more"><button class="btn" id="more" hidden>Mostra altri</button></div>
+    </section>
+
+    <!-- ── Carica ─────────────────────────────────────────────── -->
+    <section id="tab-upload" class="tab" hidden>
+      <div class="upload">
+        <aside class="queue">
+          <label class="drop" id="drop">
+            <input type="file" id="files" accept=".glb,model/gltf-binary" multiple hidden>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a1 1 0 001 1h14a1 1 0 001-1v-3"/></svg>
+            <b>Trascina qui i file .glb</b>
+            <span>oppure clicca per sceglierli</span>
+          </label>
+          <ul id="queue"></ul>
+          <div class="queue-actions" id="queueActions" hidden>
+            <button class="btn primary" id="saveAll">Salva tutti</button>
+            <button class="btn ghost" id="clearDone">Togli i salvati</button>
+          </div>
+        </aside>
+        <div class="editor" id="editor">
+          <div class="placeholder" id="editorEmpty">
+            <p>Aggiungi uno o più modelli <b>.glb</b>: vedrai l'anteprima 3D, le misure e la miniatura che comparirà nel visore.</p>
+            <p class="dim">Il nome, la categoria e la descrizione servono alla ricerca a voce dal visore.</p>
+          </div>
+          <div class="editor-body" id="editorBody" hidden>
+            <div class="viewer"><canvas id="upCanvas"></canvas><div class="viewer-note" id="upNote"></div><div class="viewer-hint">trascina per ruotare · rotellina per lo zoom · doppio clic per ricentrare</div></div>
+            <div class="form">
+              <label>Nome<input id="upName" maxlength="80"></label>
+              <div class="field"><span>Categoria</span><div class="chips" id="upCats"></div></div>
+              <label>Stile<input id="upStyle" list="styleList" maxlength="40" placeholder="es. Medievale, Moderno…"></label>
+              <label>Descrizione<textarea id="upDesc" rows="3" maxlength="600" placeholder="Descrivi l'oggetto come lo chiederesti a voce: aiuta la ricerca semantica"></textarea></label>
+              <label>Tag<input id="upTags" maxlength="200" placeholder="parole chiave separate da virgole"></label>
+              <div class="dims">
+                <label>Altezza reale (cm)<input id="upHeight" type="number" min="1" max="5000" step="1"></label>
+                <div class="dims-out" id="upDims"></div>
+              </div>
+              <p class="dim small" id="upFileInfo"></p>
+              <div class="actions">
+                <button class="btn ghost" id="upRemove">Togli dalla coda</button>
+                <button class="btn primary" id="upSave">Salva nell'inventario</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Scene ──────────────────────────────────────────────── -->
+    <section id="tab-scenes" class="tab" hidden>
+      <div class="scenes">
+        <div class="scene-list">
+          <div class="resultbar"><span id="scCount"></span><button class="btn small ghost" id="scRefresh">Aggiorna</button></div>
+          <table>
+            <thead><tr><th>Scena</th><th>Oggetti</th><th>Autore</th><th>Aggiornata</th><th></th></tr></thead>
+            <tbody id="scRows"></tbody>
+          </table>
+          <div class="empty" id="scEmpty" hidden>Nessuna scena salvata. Le scene si salvano dal visore: Libreria → Scene → Salva.</div>
+        </div>
+        <div class="scene-detail" id="scDetail" hidden>
+          <h2 id="scTitle"></h2>
+          <p class="dim small" id="scInfo"></p>
+          <canvas id="scMap" width="520" height="360" aria-label="Pianta della scena vista dall'alto"></canvas>
+          <p class="dim small">Vista dall'alto · posizioni rispetto all'origine del pavimento · griglia 1 m</p>
+          <ul class="scene-objects" id="scObjects"></ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Strumenti ──────────────────────────────────────────── -->
+    <section id="tab-tools" class="tab" hidden>
+      <div class="tools">
+        <div class="card">
+          <h2>Stato dei servizi</h2>
+          <ul class="status" id="status"></ul>
+          <button class="btn" id="checkAll">Controlla di nuovo</button>
+        </div>
+        <div class="card">
+          <h2>Indice della ricerca semantica</h2>
+          <p class="dim">Ricostruisce l'indice di Qdrant da Postgres: serve la prima volta, dopo aver ricreato i volumi docker
+             o se la ricerca risponde "per parole" invece che "semantica". Con molti oggetti può richiedere qualche minuto.</p>
+          <button class="btn primary" id="reindex">Reindicizza</button>
+          <p class="small" id="reindexOut"></p>
+        </div>
+        <div class="card">
+          <h2>Autore</h2>
+          <p class="dim">Nome registrato sugli oggetti caricati da questo PC.</p>
+          <input id="author" maxlength="40">
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Dettaglio oggetto -->
+  <div class="drawer-bg" id="drawerBg" hidden></div>
+  <aside class="drawer" id="drawer" hidden aria-label="Dettaglio oggetto">
+    <header>
+      <h2 id="dTitle"></h2>
+      <button class="icon" id="dClose" aria-label="Chiudi">×</button>
+    </header>
+    <div class="viewer"><canvas id="dCanvas"></canvas><div class="viewer-note" id="dNote"></div></div>
+    <div class="form">
+      <label>Nome<input id="dName" maxlength="80"></label>
+      <div class="field"><span>Categoria</span><div class="chips" id="dCats"></div></div>
+      <label>Stile<input id="dStyle" list="styleList" maxlength="40"></label>
+      <label>Descrizione<textarea id="dDesc" rows="3" maxlength="600"></textarea></label>
+      <label>Tag<input id="dTags" maxlength="200" placeholder="parole chiave separate da virgole"></label>
+      <div class="dims">
+        <label>Altezza reale (cm)<input id="dHeight" type="number" min="1" max="5000" step="1"></label>
+        <div class="dims-out" id="dDims"></div>
+      </div>
+      <dl class="meta" id="dMeta"></dl>
+      <div class="actions">
+        <button class="btn danger" id="dDelete">Elimina</button>
+        <a class="btn ghost" id="dDownload" download>Scarica GLB</a>
+        <button class="btn primary" id="dSave">Salva modifiche</button>
+      </div>
+    </div>
+  </aside>
+
+  <datalist id="styleList"></datalist>
+  <div class="toasts" id="toasts" aria-live="polite"></div>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>

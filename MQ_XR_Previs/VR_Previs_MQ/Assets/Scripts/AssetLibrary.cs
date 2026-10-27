@@ -250,6 +250,7 @@ public class AssetLibrary : MonoBehaviour
         if (go == null) { done(null, error); yield break; }
 
         generator.PrepareObject(go);   // davanti all'utente, afferrabile, griglia/misure/aggancio
+        ApplyStoredSize(go, a);        // PrepareObject porta tutto a ~30 cm: si torna alla misura salvata
         var so = go.GetComponent<SceneObject>();
         if (so == null) so = go.AddComponent<SceneObject>();
         ApplyRecord(so, a);
@@ -457,6 +458,32 @@ public class AssetLibrary : MonoBehaviour
         var tex = DownloadHandlerTexture.GetContent(r);
         _thumbCache[key] = tex;
         done(tex);
+    }
+
+    /// <summary>Riporta l'oggetto all'altezza registrata nell'inventario (salvata dal visore o impostata dal pannello web).</summary>
+    static void ApplyStoredSize(GameObject go, AssetRecord a)
+    {
+        if (a.height_cm <= 0.5f) return;
+        Bounds before = WorldBounds(go);
+        if (before.size.y < 0.0001f) return;
+        float k = (a.height_cm / 100f) / before.size.y;   // l'altezza non cambia ruotando l'oggetto attorno a Y
+        if (Mathf.Abs(k - 1f) < 0.01f) return;
+        go.transform.localScale *= k;
+        Bounds after = WorldBounds(go);
+        go.transform.position += before.center - after.center;   // resta centrato dove era stato messo
+    }
+
+    static Bounds WorldBounds(GameObject go)
+    {
+        var rs = go.GetComponentsInChildren<Renderer>();
+        bool has = false;
+        var b = new Bounds(go.transform.position, Vector3.zero);
+        foreach (var r in rs)
+        {
+            if (r.bounds.size.sqrMagnitude <= 0f) continue;
+            if (!has) { b = r.bounds; has = true; } else b.Encapsulate(r.bounds);
+        }
+        return b;
     }
 
     public string StorageUrl(string key) => storageUrl.TrimEnd('/') + "/" + key.TrimStart('/');
