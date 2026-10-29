@@ -27737,7 +27737,7 @@ IL_0033:
 		return;
 	}
 }
-// Method Definition Index: 74453
+// Method Definition Index: 74489
 IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void HashSetExtensions_ExceptWithNonAlloc_TisIl2CppFullySharedGenericAny_m2A3F89451453B9454D2E656A86FD6F237297D760_fshared (HashSet_1_t2E820DA94CC6D5A61CA29EBD9BE297C43D691C87* ___0_self, HashSet_1_t2E820DA94CC6D5A61CA29EBD9BE297C43D691C87* ___1_other, const RuntimeMethod* method) 
 {
 	il2cpp_rgctx_method_init(method);
@@ -27816,7 +27816,7 @@ IL_0032:
 		return;
 	}
 }
-// Method Definition Index: 74454
+// Method Definition Index: 74490
 IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void HashSetExtensions_First_TisIl2CppFullySharedGenericAny_m4047A228B54DCD819DBFC510D480D8460AAA933F_fshared (HashSet_1_t2E820DA94CC6D5A61CA29EBD9BE297C43D691C87* ___0_set, Il2CppFullySharedGenericAny* il2cppRetVal, const RuntimeMethod* method) 
 {
 	il2cpp_rgctx_method_init(method);
@@ -27936,7 +27936,7 @@ IL_001d:
 		return (bool)0;
 	}
 }
-// Method Definition Index: 79114
+// Method Definition Index: 79150
 IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR HierarchySearchFilterU5BU5D_tDF99D7B60295BAF05613F6B1B7B861BE2AB089F7* HierarchySearchQueryDescriptor_Where_TisHierarchySearchFilter_tF29BB2EAA1077E1A1F070C6144227AF48123AF65_m5D8D884B77367543993C898ADB642A10763E07A3 (RuntimeObject* ___0_src, Func_2_t9B89706B140B2C8C11C5924E6D37B90B350B3821* ___1_pred, const RuntimeMethod* method) 
 {
 	if (!il2cpp_rgctx_is_initialized(method))
@@ -28141,7 +28141,7 @@ IL_007a:
 		return L_29;
 	}
 }
-// Method Definition Index: 79114
+// Method Definition Index: 79150
 IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR __Il2CppFullySharedGenericTypeU5BU5D_tCAB6D060972DD49223A834B7EEFEB9FE2D003BEC* HierarchySearchQueryDescriptor_Where_TisIl2CppFullySharedGenericAny_m980970D8CC76AC4890F26FDC8DAB1ED0781146EB_fshared (RuntimeObject* ___0_src, Func_2_t19E50C11C3E1F20B5A8FDB85D7DD353B6DFF868B* ___1_pred, const RuntimeMethod* method) 
 {
 	if (!il2cpp_rgctx_is_initialized(method))
@@ -28351,7 +28351,7 @@ IL_007a:
 		return L_29;
 	}
 }
-// Method Definition Index: 71790
+// Method Definition Index: 71826
 IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void HlbvhBuilder_ExecuteKernels_TisIl2CppFullySharedGenericAny_mBD3DB51E74D0A385D4EE8B0065AC9444819367BC_fshared (HlbvhBuilder_t145CAA3D4C821B44D90F1A396A2CF73AFE7AC5FB* __this, Il2CppFullySharedGenericAny ___0_binder, CommandBuffer_tB56007DC84EF56296C325EC32DD12AC1E3DC91F7* ___1_cmd, GraphicsBuffer_t91FACD3CD78588C25C361C453D1A2FE055EC4AF1* ___2_scratchBuffer, ScratchBufferLayout_t5F4D475A704282C6DF5AA4EF058CEA5CEEA0AA00 ___3_scratchLayout, uint32_t ___4_primCount, const RuntimeMethod* method) 
 {
 	il2cpp_rgctx_method_init(method);
@@ -28433,7 +28433,7 @@ IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void HlbvhBuilder_ExecuteKernels_TisIl2CppFul
 		return;
 	}
 }
-// Method Definition Index: 71790
+// Method Definition Index: 71826
 IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void HlbvhBuilder_ExecuteKernels_TisAabbsBvhResourcesBinder_t1B69FC98EA8A7E8629868397B3D9C735F51ABBF1_m5B41FADD3C48F2B309AF1F122009FF780EF1AA28 (HlbvhBuilder_t145CAA3D4C821B44D90F1A396A2CF73AFE7AC5FB* __this, AabbsBvhResourcesBinder_t1B69FC98EA8A7E8629868397B3D9C735F51ABBF1 ___0_binder, CommandBuffer_tB56007DC84EF56296C325EC32DD12AC1E3DC91F7* ___1_cmd, GraphicsBuffer_t91FACD3CD78588C25C361C453D1A2FE055EC4AF1* ___2_scratchBuffer, ScratchBufferLayout_t5F4D475A704282C6DF5AA4EF058CEA5CEEA0AA00 ___3_scratchLayout, uint32_t ___4_primCount, const RuntimeMethod* method) 
 {
 	//<source_info:<no-source>:1>
@@ -28498,7 +28498,7 @@ IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void HlbvhBuilder_ExecuteKernels_TisAabbsBvhR
 		return;
 	}
 }
-// Method Definition Index: 71790
+// Method Definition Index: 71826
 IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void HlbvhBuilder_ExecuteKernels_TisTrianglesBvhResourcesBinder_tA323B97AD3CE16B0337EB326A8FFAB91149B4C02_m35C75B670397FF13FCC03759EB3D484C3426DAF4 (HlbvhBuilder_t145CAA3D4C821B44D90F1A396A2CF73AFE7AC5FB* __this, TrianglesBvhResourcesBinder_tA323B97AD3CE16B0337EB326A8FFAB91149B4C02 ___0_binder, CommandBuffer_tB56007DC84EF56296C325EC32DD12AC1E3DC91F7* ___1_cmd, GraphicsBuffer_t91FACD3CD78588C25C361C453D1A2FE055EC4AF1* ___2_scratchBuffer, ScratchBufferLayout_t5F4D475A704282C6DF5AA4EF058CEA5CEEA0AA00 ___3_scratchLayout, uint32_t ___4_primCount, const RuntimeMethod* method) 
 {
 	//<source_info:<no-source>:1>

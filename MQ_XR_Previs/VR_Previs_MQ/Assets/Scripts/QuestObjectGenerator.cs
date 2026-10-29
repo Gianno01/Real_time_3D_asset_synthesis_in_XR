@@ -108,7 +108,7 @@ public class QuestObjectGenerator : MonoBehaviour
     [Header("Ombra")]
     [Tooltip("Ombra morbida sotto gli oggetti, sul pavimento o sulla superficie sottostante")]
     public bool contactShadows = true;
-    [Range(0f, 1f)] public float shadowOpacity = 0.55f;
+    [Range(0f, 1f)] public float shadowOpacity = 0.99f;
     [Tooltip("Distanza massima (m) per appoggiarsi a pavimento, piani o altri oggetti")]
     public float surfaceSnapDistance = 0.15f;
 

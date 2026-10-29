@@ -85,6 +85,8 @@ public class AssetLibrary : MonoBehaviour
     public QuestObjectGenerator generator;
     [Tooltip("Le posizioni delle scene sono salvate rispetto a questo transform. Vuoto = XR Origin (pavimento)")]
     public Transform sceneAnchor;
+    [Tooltip("Calibrazione a due punti: origine uguale a ogni avvio. Vuoto = viene creata da sola")]
+    public RoomCalibration roomCalibration;
 
     [Header("Autore")]
     [Tooltip("Nome di chi salva. Vuoto = nome del visore")]
@@ -136,10 +138,18 @@ public class AssetLibrary : MonoBehaviour
     void Awake()
     {
         if (generator == null) generator = FindAnyObjectByType<QuestObjectGenerator>();
+        bool customAnchor = sceneAnchor != null;   // ancora scelta a mano nell'Inspector (es. colocation): niente origine automatica
         if (sceneAnchor == null)
         {
             var origin = FindAnyObjectByType<XROrigin>();
             sceneAnchor = origin != null ? origin.transform : null;
+        }
+        if (roomCalibration == null) roomCalibration = FindAnyObjectByType<RoomCalibration>();
+        if (roomCalibration == null)
+        {
+            roomCalibration = gameObject.AddComponent<RoomCalibration>();
+            roomCalibration.library = this;
+            if (customAnchor) roomCalibration.required = false;   // ancora scelta a mano: niente calibrazione
         }
         try { Directory.CreateDirectory(CacheDir); } catch (Exception e) { Debug.LogWarning($"[Library] Cache non disponibile: {e.Message}"); }
     }
@@ -290,6 +300,16 @@ public class AssetLibrary : MonoBehaviour
         CurrentSceneName = "";
     }
 
+    /// <summary>Salvare/caricare scene richiede la stanza calibrata (altrimenti le posizioni sarebbero sbagliate): se manca, parte la procedura.</summary>
+    bool OriginReady(out string why)
+    {
+        why = null;
+        if (roomCalibration == null || !roomCalibration.required || roomCalibration.IsCalibrated) return true;
+        roomCalibration.Begin();
+        why = "Prima calibra la stanza: segui le istruzioni davanti a te (tocca due punti fissi con il controller destro), poi riprova.";
+        return false;
+    }
+
     /// <summary>Salva la scena: prima gli oggetti non ancora sul server (solo per la scena), poi le posizioni.</summary>
     public IEnumerator SaveScene(string name, bool asNew, Action<bool, string> done, Action<string> progress = null)
     {
@@ -297,6 +317,8 @@ public class AssetLibrary : MonoBehaviour
         Busy = true;
         try
         {
+            if (!OriginReady(out string originErr)) { done(false, originErr); yield break; }
+
             var objects = new List<SceneObject>(SceneObject.All);
 
             // 1) oggetti mai salvati → sul server (non compaiono nell'inventario)
@@ -360,6 +382,8 @@ public class AssetLibrary : MonoBehaviour
         Busy = true;
         try
         {
+            if (!OriginReady(out string originErr)) { done(false, originErr); yield break; }
+
             string body = null, error = null;
             yield return StartCoroutine(Post(new Req { action = "load_scene", scene_id = sceneId }, (b, e) => { body = b; error = e; }));
             var r = Parse<LoadSceneResp>(body);

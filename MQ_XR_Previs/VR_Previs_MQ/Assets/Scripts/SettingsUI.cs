@@ -7,6 +7,8 @@
 //  • Le scelte restano salvate SU QUESTO VISORE (PlayerPrefs) e vengono riapplicate all'avvio.
 //    "Ripristina" torna ai valori impostati nell'Inspector.
 //  • Griglia, aggancio e ombra cambiano subito anche sugli oggetti già in scena.
+//  • Sezione STANZA: calibrazione a due punti (RoomCalibration). Le voci sull'occlusione (SceneOcclusion) compaiono solo se nel progetto
+//    c'è SceneOcclusion.cs E in Project Settings > Player > Scripting Define Symbols aggiungi SCENE_OCCLUSION.
 //
 // SETUP: aggiungi questo componente allo stesso GameObject di LibraryUI (es. "Library").
 
@@ -23,15 +25,30 @@ public class SettingsUI : MonoBehaviour
     public QuestObjectGenerator generator;
     public GenerationStatusUI statusUI;
     public AssetLibrary library;
+#if SCENE_OCCLUSION
+    [Tooltip("Occlusione della stanza (se vuoto viene creato da solo)")]
+    public SceneOcclusion occlusion;
+#endif
+    [Tooltip("Calibrazione della stanza (se vuoto viene cercata nella scena)")]
+    public RoomCalibration roomCalibration;
 
     [Header("Posizione")]
     [Tooltip("Pulsante \"Impostazioni\" usato solo se nella scena non c'è il pannello di controllo (GenerationStatusUI)")]
     public Vector3 dockOffset = new Vector3(0.40f, -0.065f, 0f);
-    public Vector3 panelOffset = new Vector3(0f, 0.50f, 0.10f);
+#if SCENE_OCCLUSION
+    public Vector3 panelOffset = new Vector3(0f, 0.61f, 0.10f);
+#else
+    public Vector3 panelOffset = new Vector3(0f, 0.545f, 0.10f);
+#endif
     public float panelTilt = -30f;
 
     const string Prefix = "xr.settings.";
-    const float PanelW = 720f, PanelH = 560f, ColW = 324f, RowH = 44f;
+#if SCENE_OCCLUSION
+    const float PanelH = 780f;
+#else
+    const float PanelH = 650f;
+#endif
+    const float PanelW = 720f, ColW = 324f, RowH = 44f;
 
     static readonly Color CardBg   = new Color(0.07f, 0.08f, 0.11f, 0.94f);
     static readonly Color TextMain = new Color(0.95f, 0.96f, 0.98f);
@@ -39,6 +56,7 @@ public class SettingsUI : MonoBehaviour
     static readonly Color Accent   = new Color(0.40f, 0.64f, 1.00f);
     static readonly Color On       = new Color(0.33f, 0.86f, 0.56f, 0.45f);
     static readonly Color BtnBg    = new Color(1f, 1f, 1f, 0.10f);
+    static readonly Color Warn     = new Color(1.00f, 0.55f, 0.20f, 0.55f);
 
     // ── Definizione delle impostazioni ────────────────────────────────
 
@@ -61,6 +79,16 @@ public class SettingsUI : MonoBehaviour
         public override string Text() => get() ? "Attivo" : "Spento";
     }
 
+    // Pulsante che esegue un'azione (non è un valore: non si salva e "Ripristina" non lo tocca)
+    class ActionSetting : Setting
+    {
+        public Action run; public string buttonText; public bool confirm; public Func<string> status;
+        public float armedUntil; public TextMeshProUGUI rowLabel;
+        public override float Get() => 0f;
+        public override void Set(float v) { }
+        public override string Text() => buttonText;
+    }
+
     class StepSetting : Setting
     {
         public float[] options; public Func<float> get; public Action<float> set; public Func<float, string> format;
@@ -78,6 +106,7 @@ public class SettingsUI : MonoBehaviour
     readonly List<(string section, List<Setting> items)> _left = new List<(string, List<Setting>)>();
     readonly List<(string section, List<Setting> items)> _right = new List<(string, List<Setting>)>();
     readonly List<Setting> _all = new List<Setting>();
+    readonly List<ActionSetting> _actions = new List<ActionSetting>();
 
     Sprite _rounded, _circle;
     Transform _panel;
@@ -90,6 +119,10 @@ public class SettingsUI : MonoBehaviour
         if (generator == null) generator = FindAnyObjectByType<QuestObjectGenerator>();
         if (statusUI == null) statusUI = FindAnyObjectByType<GenerationStatusUI>();
         if (library == null) library = FindAnyObjectByType<AssetLibrary>();
+#if SCENE_OCCLUSION
+        if (occlusion == null) occlusion = SceneOcclusion.EnsureExists(gameObject);
+#endif
+        if (roomCalibration == null) roomCalibration = FindAnyObjectByType<RoomCalibration>();
         if (generator == null) { Debug.LogError("[SettingsUI] Serve QuestObjectGenerator nella scena."); enabled = false; return; }
 
         Define();
@@ -143,6 +176,24 @@ public class SettingsUI : MonoBehaviour
             Step("shadow_opacity", "Intensità dell'ombra", new[] { 0.2f, 0.3f, 0.4f, 0.5f, 0.55f, 0.6f, 0.7f, 0.8f, 0.9f },
                  () => g.shadowOpacity, v => { g.shadowOpacity = v; g.ApplySettingsToScene(); }, v => $"{Mathf.RoundToInt(v * 100f)}%"));
 
+        var room = new List<Setting>();
+        if (roomCalibration != null)
+            room.Add(new ActionSetting
+            {
+                key = "calib", label = "Calibrazione", buttonText = "Calibra", confirm = false,
+                status = () => roomCalibration.StatusLabel,
+                run = () => { Hide(); roomCalibration.Begin(); },
+            });
+#if SCENE_OCCLUSION
+        if (occlusion != null)
+        {
+            room.Add(Bool("occlusion", "Occlusione stanza", () => occlusion.occlusionEnabled, v => { occlusion.occlusionEnabled = v; occlusion.Apply(); }));
+            room.Add(Bool("furniture", "Appoggia sui mobili", () => occlusion.furnitureColliders, v => { occlusion.furnitureColliders = v; occlusion.Apply(); }));
+            room.Add(Bool("occl_debug", "Mostra occlusori (prova)", () => occlusion.showDebug, v => { occlusion.showDebug = v; occlusion.Apply(); }));
+        }
+#endif
+        if (room.Count > 0) Add(_right, "STANZA", room.ToArray());
+
         if (statusUI != null)
             Add(_right, "INTERFACCIA",
                 Bool("haptics", "Vibrazione dei controller", () => statusUI.haptics, v => statusUI.haptics = v));
@@ -151,7 +202,11 @@ public class SettingsUI : MonoBehaviour
     void Add(List<(string, List<Setting>)> column, string section, params Setting[] items)
     {
         column.Add((section, new List<Setting>(items)));
-        _all.AddRange(items);
+        foreach (var it in items)
+        {
+            if (it is ActionSetting a) _actions.Add(a);
+            else _all.Add(it);
+        }
     }
 
     static BoolSetting Bool(string key, string label, Func<bool> get, Action<bool> set) =>
@@ -209,8 +264,51 @@ public class SettingsUI : MonoBehaviour
         Refresh();
     }
 
+    void RunAction(ActionSetting a)
+    {
+        if (a.confirm && Time.unscaledTime > a.armedUntil)
+        {
+            // primo tocco: chiede conferma
+            a.armedUntil = Time.unscaledTime + 4f;
+            if (a.valueLabel != null) a.valueLabel.text = "Conferma?";
+            if (a.toggleBg != null) a.toggleBg.color = Warn;
+            StartCoroutine(Disarm(a));
+            return;
+        }
+        a.armedUntil = 0f;
+        if (a.valueLabel != null) a.valueLabel.text = a.buttonText;
+        if (a.toggleBg != null) a.toggleBg.color = BtnBg;
+        a.run?.Invoke();
+    }
+
+    System.Collections.IEnumerator Disarm(ActionSetting a)
+    {
+        yield return new WaitForSecondsRealtime(4.1f);
+        if (Time.unscaledTime >= a.armedUntil)
+        {
+            if (a.valueLabel != null) a.valueLabel.text = a.buttonText;
+            if (a.toggleBg != null) a.toggleBg.color = BtnBg;
+        }
+    }
+
+    float _nextActionRefresh;
+
+    void Update()
+    {
+        if (!_open || Time.unscaledTime < _nextActionRefresh) return;
+        _nextActionRefresh = Time.unscaledTime + 0.5f;
+        RefreshActions();
+    }
+
+    void RefreshActions()
+    {
+        foreach (var a in _actions)
+            if (a.rowLabel != null && a.status != null) a.rowLabel.text = a.status();
+    }
+
     void Refresh()
     {
+        RefreshActions();
         foreach (var s in _all)
         {
             if (s.valueLabel != null) s.valueLabel.text = s.Text();
@@ -289,7 +387,16 @@ public class SettingsUI : MonoBehaviour
                 Place(label.rectTransform, x, y, ColW - (s is StepSetting ? 152 : 128), RowH - 4);
                 label.text = s.label;
 
-                if (s is StepSetting st)
+                if (s is ActionSetting act)
+                {
+                    act.rowLabel = label;
+                    label.text = act.status != null ? act.status() : act.label;
+                    Place(label.rectTransform, x, y, ColW - 126, RowH - 4);
+                    act.toggleBg = MakeButton(root, s.key + "A", act.buttonText, x + ColW - 120, y + 2, 120, 34, () => RunAction(act), out var at);
+                    at.fontSize = 15;
+                    act.valueLabel = at;
+                }
+                else if (s is StepSetting st)
                 {
                     MakeButton(root, s.key + "-", "-", x + ColW - 146, y + 2, 34, 34, () => StepBy(st, -1), out _);
                     var v = Txt(root, s.key + "V", 16, FontStyles.Bold, TextMain, TextAlignmentOptions.Center);
