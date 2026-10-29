@@ -112,6 +112,10 @@ public class QuestObjectGenerator : MonoBehaviour
     [Tooltip("Inclinazione massima corretta (gradi): oltre, l'inclinazione è considerata voluta")]
     public float maxTiltCorrection = 12f;
 
+    [Header("Collisioni")]
+    [Tooltip("Gli oggetti non si attraversano: un bicchiere appoggiato su un tavolo si ferma sul piano senza doverli allineare")]
+    public bool objectCollisions = true;
+
     [Header("Ombra")]
     [Tooltip("Ombra morbida sotto gli oggetti, sul pavimento o sulla superficie sottostante")]
     public bool contactShadows = true;
@@ -1418,6 +1422,7 @@ public class QuestObjectGenerator : MonoBehaviour
         if (aids == null) aids = obj.AddComponent<ObjectPlacementAids>();
         aids.Init(bounds.size / unit, cam);   // bounds misurati prima della rotazione → dimensioni reali
         aids.floorHeight = floorY;
+        if (obj.GetComponent<ObjectCollision>() == null) obj.AddComponent<ObjectCollision>();
         var shadow = obj.GetComponent<ContactShadow>();
         if (shadow == null) shadow = obj.AddComponent<ContactShadow>();
         shadow.Init(bounds.size / unit, floorY);
@@ -1428,7 +1433,7 @@ public class QuestObjectGenerator : MonoBehaviour
         Debug.Log($"[QuestObjectGenerator] Oggetto '{obj.name}' inserito in {obj.transform.position}.");
     }
 
-    /// <summary>Applica le impostazioni correnti (griglia, aggancio, ombra) a un oggetto in scena.</summary>
+    /// <summary>Applica le impostazioni correnti (griglia, aggancio, collisioni, ombra) a un oggetto in scena.</summary>
     public void ApplySettingsTo(GameObject obj)
     {
         var aids = obj.GetComponent<ObjectPlacementAids>();
@@ -1440,6 +1445,8 @@ public class QuestObjectGenerator : MonoBehaviour
             aids.yawStep = snapYawStep;
             aids.surfaceSnapDistance = surfaceSnapDistance;
         }
+        var collision = obj.GetComponent<ObjectCollision>();
+        if (collision != null) collision.enabled = objectCollisions;
         var shadow = obj.GetComponent<ContactShadow>();
         if (shadow != null)
         {

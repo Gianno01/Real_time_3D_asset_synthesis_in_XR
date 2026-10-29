@@ -50,7 +50,21 @@ public class SceneObject : MonoBehaviour
         }
     }
 
+    /// <summary>Bloccato: l'oggetto non si sposta, non ruota e non cambia scala se lo afferri per sbaglio.</summary>
+    public bool locked { get; private set; }
+
     XRGrabInteractable _grab;
+
+    /// <summary>Blocca o sblocca l'oggetto (la presa resta attiva, così si può ancora selezionare e sbloccare).</summary>
+    public void SetLocked(bool value)
+    {
+        locked = value;
+        if (_grab == null) _grab = GetComponent<XRGrabInteractable>();
+        if (_grab == null) return;
+        _grab.trackPosition = !value;
+        _grab.trackRotation = !value;
+        _grab.trackScale = !value;
+    }
 
     void OnEnable() { if (!All.Contains(this)) All.Add(this); }
     void OnDisable() { All.Remove(this); }

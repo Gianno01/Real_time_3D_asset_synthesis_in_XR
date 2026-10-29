@@ -25,8 +25,8 @@ public class ObjectPlacementAids : MonoBehaviour
     public bool showDimensions = true;
     [Tooltip("Per quanti secondi griglia e misure restano visibili dopo il rilascio")]
     public float lingerSeconds = 1.5f;
-    [Tooltip("Lato di una cella della griglia (m)")]
-    public float gridCell = 0.10f;
+    [Tooltip("Quante celle della griglia ci sono sul lato più lungo dell'oggetto: la griglia è proporzionale all'oggetto (si rimpicciolisce con lui)")]
+    public float gridDivisions = 5f;
 
     [Header("Aggancio al rilascio")]
     public bool snapOnRelease = true;
@@ -82,14 +82,19 @@ public class ObjectPlacementAids : MonoBehaviour
         if (_labelRt != null) Destroy(_labelRt.gameObject);
     }
 
+    bool Locked { get { if (_so == null) _so = GetComponent<SceneObject>(); return _so != null && _so.locked; } }
+    SceneObject _so;
+
     void OnGrab()
     {
+        if (Locked) return;   // oggetto bloccato: niente griglia, misure né aggancio
         _grabbed = true;
         if (_snapRoutine != null) { StopCoroutine(_snapRoutine); _snapRoutine = null; }
     }
 
     void OnRelease()
     {
+        if (Locked) return;
         _grabbed = false;
         _visibleUntil = Time.time + lingerSeconds;
         if (snapOnRelease) _snapRoutine = StartCoroutine(SnapRoutine());
@@ -111,7 +116,9 @@ public class ObjectPlacementAids : MonoBehaviour
         // Griglia: sotto l'oggetto, piatta, allineata agli assi del mondo
         if (_gridRt != null)
         {
-            float side = Mathf.Max(size.x, size.z) * 1.6f + 0.2f;
+            float maxDim = Mathf.Max(Mathf.Max(size.x, size.z), 0.02f);
+            float side = maxDim * 1.8f;                                   // tutto proporzionale all'oggetto
+            float gridCell = side / (gridDivisions * 1.8f);               // = maxDim / gridDivisions
             Vector3 c = new Vector3(b.center.x, b.min.y + 0.002f, b.center.z);
             _gridRt.position = c;
             _gridRt.rotation = Quaternion.Euler(90f, 0f, 0f);
@@ -175,8 +182,11 @@ public class ObjectPlacementAids : MonoBehaviour
         // 2) posizione orizzontale sulla griglia (si allinea il centro dei bounds)
         if (gridStep > 0f)
         {
-            float nx = Mathf.Round(b.center.x / gridStep) * gridStep;
-            float nz = Mathf.Round(b.center.z / gridStep) * gridStep;
+            // il passo non supera mai la cella della griglia visibile: su un oggetto piccolo l'aggancio è più fine
+            Vector3 sz = CurrentSize();
+            float step = Mathf.Min(gridStep, Mathf.Max(Mathf.Max(sz.x, sz.z), 0.02f) / gridDivisions);
+            float nx = Mathf.Round(b.center.x / step) * step;
+            float nz = Mathf.Round(b.center.z / step) * step;
             targetPos += new Vector3(nx - b.center.x, 0f, nz - b.center.z);
             b.center += new Vector3(nx - b.center.x, 0f, nz - b.center.z);
         }
@@ -194,6 +204,8 @@ public class ObjectPlacementAids : MonoBehaviour
             yield return null;
         }
         transform.SetPositionAndRotation(targetPos, targetRot);
+        var col = GetComponent<ObjectCollision>();
+        if (col != null) col.ResolveNow();   // l'aggancio non deve far entrare l'oggetto in un altro
         _snapRoutine = null;
     }
 

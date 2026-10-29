@@ -580,7 +580,7 @@ public class LibraryUI : MonoBehaviour
     {
         _tbTarget = o;
         _tbUntil = Time.time + toolbarSeconds;
-        _tbSaveLabel.text = o.inInventory ? "Modifica" : "Salva";
+        _tbSaveLabel.text = !o.inInventory ? "Salva" : (o.locked ? "Sblocca" : "Blocca");
         _tbDeleteLabel.text = "Elimina";
         _armed.Remove("obj");
     }
@@ -612,6 +612,14 @@ public class LibraryUI : MonoBehaviour
     void ToolbarSave()
     {
         if (_tbTarget == null) return;
+        if (_tbTarget.inInventory)
+        {
+            // oggetto già salvato: il pulsante blocca/sblocca la posizione
+            _tbTarget.SetLocked(!_tbTarget.locked);
+            _tbSaveLabel.text = _tbTarget.locked ? "Sblocca" : "Blocca";
+            _tbUntil = Time.time + toolbarSeconds;
+            return;
+        }
         OpenSaveDialog(_tbTarget);
         _tbUntil = 0f;
     }
@@ -898,7 +906,7 @@ public class LibraryUI : MonoBehaviour
         _toolbarGroup.alpha = 0f;
         var bg = Img(root, "Bg", _rounded, CardBg, true, 1.5f);
         Stretch(bg.rectTransform);
-        MakeButton(root, "Save", "Salva", 8, 8, 94, 40, ToolbarSave, out _tbSaveLabel);
+        MakeButton(root, "Save", "Salva", 8, 8, 94, 40, ToolbarSave, out _tbSaveLabel);   // "Salva" se nuovo, "Blocca/Sblocca" se già nell'inventario
         MakeButton(root, "Duplicate", "Duplica", 109, 8, 94, 40, ToolbarDuplicate, out _);
         var del = MakeButton(root, "Delete", "Elimina", 210, 8, 94, 40, ToolbarDelete, out _tbDeleteLabel);
         del.color = new Color(Bad.r, Bad.g, Bad.b, 0.35f);

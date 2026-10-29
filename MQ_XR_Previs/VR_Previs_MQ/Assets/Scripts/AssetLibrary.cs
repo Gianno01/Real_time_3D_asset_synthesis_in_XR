@@ -288,6 +288,7 @@ public class AssetLibrary : MonoBehaviour
         copy.name = o.gameObject.name + "_copia";
         var so = copy.GetComponent<SceneObject>();
         so.CopyFrom(o);
+        so.SetLocked(false);   // la copia non nasce bloccata (Instantiate copierebbe le impostazioni della presa)
         so.placedBy = Author;
         return so;
     }
