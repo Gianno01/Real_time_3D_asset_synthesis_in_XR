@@ -486,7 +486,7 @@ IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void Attribute__ctor_m79ED1BF1EE36D1E417BA89A
 #pragma clang diagnostic ignored "-Winvalid-offsetof"
 #pragma clang diagnostic ignored "-Wunused-variable"
 #endif
-// Method Definition Index: 58950
+// Method Definition Index: 58954
 IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void AnimationModuleProcessorFactory__ctor_m533A2F0DA40A610934EAAD8CC9DE4F7973FA29D8 (AnimationModuleProcessorFactory_tDFEC4FCD991560A234164D39AED4B7A0D4978444* __this, bool ___0_legacy, const RuntimeMethod* method) 
 {
 	//<source_info:<no-source>:1>
@@ -497,7 +497,7 @@ IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void AnimationModuleProcessorFactory__ctor_m5
 		return;
 	}
 }
-// Method Definition Index: 58951
+// Method Definition Index: 58955
 IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR RuntimeObject* AnimationModuleProcessorFactory_CreateAnimationProcessor_m9FF748D86BE34E97E33BEE25A2C3753E34FBA838 (AnimationModuleProcessorFactory_tDFEC4FCD991560A234164D39AED4B7A0D4978444* __this, int32_t ___0_clipCount, const RuntimeMethod* method) 
 {
 	static bool s_Il2CppMethodInitialized;
@@ -523,7 +523,7 @@ IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR RuntimeObject* AnimationModuleProcessorFactor
 #pragma clang diagnostic ignored "-Winvalid-offsetof"
 #pragma clang diagnostic ignored "-Wunused-variable"
 #endif
-// Method Definition Index: 58957
+// Method Definition Index: 58961
 IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR RuntimeObject* IAnimationProcessor_Complete_mF0BE0D992DF4ED5B025E3C23C6357165ECB90645 (RuntimeObject* __this, const RuntimeMethod* method) 
 {
 	//<source_info:<no-source>:1>
@@ -579,7 +579,7 @@ IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR RuntimeObject* IAnimationProcessor_Complete_m
 #pragma clang diagnostic ignored "-Winvalid-offsetof"
 #pragma clang diagnostic ignored "-Wunused-variable"
 #endif
-// Method Definition Index: 58959
+// Method Definition Index: 58963
 IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void __JobReflectionRegistrationOutput__1854482118041315048_CreateJobReflectionData_m37AEBC86B6866C5AAE319D8FE0FBDE5BA47AB44D (const RuntimeMethod* method) 
 {
 	static bool s_Il2CppMethodInitialized;
@@ -750,7 +750,7 @@ IL_015b:
 		return;
 	}
 }
-// Method Definition Index: 58960
+// Method Definition Index: 58964
 IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void __JobReflectionRegistrationOutput__1854482118041315048_EarlyInit_m734BE5FF3D76D69AD50540F419240352316B5280 (const RuntimeMethod* method) 
 {
 	//<source_info:<no-source>:1>
@@ -767,7 +767,7 @@ IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void __JobReflectionRegistrationOutput__18544
 #pragma clang diagnostic ignored "-Winvalid-offsetof"
 #pragma clang diagnostic ignored "-Wunused-variable"
 #endif
-// Method Definition Index: 58961
+// Method Definition Index: 58965
 IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void IgnoresAccessChecksToAttribute__ctor_m858EA1F691A0B1B2F6A031CF837E6274FE105AED (IgnoresAccessChecksToAttribute_t00B3E3167A90E2ACE6ADDE6E453FAA6861096C80* __this, String_t* ___0_p, const RuntimeMethod* method) 
 {
 	//<source_info:<no-source>:1>
@@ -779,7 +779,7 @@ IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void IgnoresAccessChecksToAttribute__ctor_m85
 		return;
 	}
 }
-// Method Definition Index: 58962
+// Method Definition Index: 58966
 IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR String_t* IgnoresAccessChecksToAttribute_get_AssemblyName_mC31390172ACFD5E30FB7A7D843DC3414267DA3DC (IgnoresAccessChecksToAttribute_t00B3E3167A90E2ACE6ADDE6E453FAA6861096C80* __this, const RuntimeMethod* method) 
 {
 	//<source_info:<no-source>:1>
@@ -796,7 +796,7 @@ IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR String_t* IgnoresAccessChecksToAttribute_get_
 #pragma clang diagnostic ignored "-Winvalid-offsetof"
 #pragma clang diagnostic ignored "-Wunused-variable"
 #endif
-// Method Definition Index: 58963
+// Method Definition Index: 58967
 IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void U24BurstDirectCallInitializer_Initialize_m46A9017ED99ABA9918C69B8D048ED96643012E9C (const RuntimeMethod* method) 
 {
 	static bool s_Il2CppMethodInitialized;

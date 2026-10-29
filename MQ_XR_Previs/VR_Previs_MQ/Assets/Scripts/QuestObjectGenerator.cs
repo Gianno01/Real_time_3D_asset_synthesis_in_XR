@@ -84,6 +84,13 @@ public class QuestObjectGenerator : MonoBehaviour
     public float spawnDistance = 0.8f;
     public float spawnHeightOffset = -0.2f;
     public bool faceUser = true;
+    [Tooltip("Rotazione extra (gradi, asse verticale) dell'oggetto appena creato. 180 = lo si vede di fronte invece che di spalle")]
+    public float modelYawOffset = 180f;
+
+    [Header("Effetto di creazione")]
+    [Tooltip("Banda luminosa + guscio ologramma quando un oggetto compare (serve Resources/MaterializeShell.shader)")]
+    public bool materializeEffect = true;
+    public float materializeDuration = 1.6f;
 
     [Header("Manipolazione")]
     public float minScaleRatio = 0.25f;
@@ -108,7 +115,7 @@ public class QuestObjectGenerator : MonoBehaviour
     [Header("Ombra")]
     [Tooltip("Ombra morbida sotto gli oggetti, sul pavimento o sulla superficie sottostante")]
     public bool contactShadows = true;
-    [Range(0f, 1f)] public float shadowOpacity = 0.99f;
+    [Range(0f, 1f)] public float shadowOpacity = 0.85f;
     [Tooltip("Distanza massima (m) per appoggiarsi a pavimento, piani o altri oggetti")]
     public float surfaceSnapDistance = 0.15f;
 
@@ -956,7 +963,7 @@ public class QuestObjectGenerator : MonoBehaviour
     // ── API per la libreria (AssetLibrary / LibraryUI) ───────────────
 
     /// <summary>Prepara un oggetto caricato: davanti all'utente, collider, presa con una/due mani, griglia/misure/aggancio.</summary>
-    public void PrepareObject(GameObject obj) => PlaceInScene(obj);
+    public void PrepareObject(GameObject obj, bool animate = true) => PlaceInScene(obj, animate);
 
     /// <summary>Crea un oggetto da un GLB già scaricato (non cambia lo stato della pipeline).</summary>
     public IEnumerator InstantiateGlb(byte[] data, string sourceUrl, string objectName, Action<GameObject, string> callback)
@@ -1352,7 +1359,7 @@ public class QuestObjectGenerator : MonoBehaviour
         return headTransform;
     }
 
-    private void PlaceInScene(GameObject obj)
+    private void PlaceInScene(GameObject obj, bool animate = true)
     {
         if (autoAlignModels) ModelAlignment.Align(obj, alignTilt, maxTiltCorrection);   // prima di misurare: griglia e misure sui lati veri
         AdjustScale(obj);
@@ -1374,7 +1381,7 @@ public class QuestObjectGenerator : MonoBehaviour
         flatForward.Normalize();
 
         Vector3 spawnPos = cam.position + flatForward * spawnDistance + Vector3.up * spawnHeightOffset;
-        Quaternion rot = faceUser ? Quaternion.LookRotation(flatForward, Vector3.up) : Quaternion.identity;
+        Quaternion rot = faceUser ? Quaternion.LookRotation(flatForward, Vector3.up) * Quaternion.Euler(0f, modelYawOffset, 0f) : Quaternion.identity;
         obj.transform.rotation = rot;
 
         Vector3 centerOffset = bounds.center - obj.transform.position;
@@ -1415,6 +1422,8 @@ public class QuestObjectGenerator : MonoBehaviour
         if (shadow == null) shadow = obj.AddComponent<ContactShadow>();
         shadow.Init(bounds.size / unit, floorY);
         ApplySettingsTo(obj);
+
+        if (animate && materializeEffect) MaterializeEffect.Begin(obj, materializeDuration);   // per ultimo: legge scala e posizione finali
 
         Debug.Log($"[QuestObjectGenerator] Oggetto '{obj.name}' inserito in {obj.transform.position}.");
     }

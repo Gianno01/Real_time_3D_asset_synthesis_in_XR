@@ -399,7 +399,7 @@ public class AssetLibrary : MonoBehaviour
                 yield return StartCoroutine(LoadAssetObject(rec.glb_key, rec.name, g => go = g, e => Debug.LogWarning($"[Library] {rec.name}: {e}")));
                 if (go == null) { failed++; continue; }
 
-                generator.PrepareObject(go);   // collider, presa, griglia/misure/aggancio (poi la posa salvata)
+                generator.PrepareObject(go, false);   // collider, presa, griglia/misure/aggancio (poi la posa salvata; niente effetto: gli oggetti salvati ricompaiono subito)
                 var q = new Quaternion(rec.rx, rec.ry, rec.rz, rec.rw);
                 if (q.x == 0f && q.y == 0f && q.z == 0f && q.w == 0f) q = Quaternion.identity;
                 go.transform.localScale = Vector3.one * (rec.scale > 0f ? rec.scale : 1f);

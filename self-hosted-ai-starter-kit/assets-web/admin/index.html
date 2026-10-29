@@ -117,6 +117,15 @@
           <button class="btn" id="checkAll">Controlla di nuovo</button>
         </div>
         <div class="card">
+          <h2>Migliora la ricerca</h2>
+          <p class="dim">Fa generare a un modello locale (Ollama) le parole chiave di ogni oggetto: sinonimi, traduzioni, categorie generali
+             ("animale", "veicolo", "cibo") e usi ("si può guidare"). Così cercando "animale" trovi il cavallo. Vale per gli oggetti
+             senza parole chiave (quelli scritti a mano non si toccano); poi ricostruisce l'indice. Gli oggetti nuovi lo fanno da soli al salvataggio.
+             Servono qualche secondo per oggetto.</p>
+          <button class="btn primary" id="enrich">Genera parole chiave e reindicizza</button>
+          <p class="small" id="enrichOut"></p>
+        </div>
+        <div class="card">
           <h2>Indice della ricerca semantica</h2>
           <p class="dim">Ricostruisce l'indice di Qdrant da Postgres: serve la prima volta, dopo aver ricreato i volumi docker
              o se la ricerca risponde "per parole" invece che "semantica". Con molti oggetti può richiedere qualche minuto.</p>

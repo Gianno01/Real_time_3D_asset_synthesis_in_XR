@@ -727,79 +727,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 35653481}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &126280892
-GameObject:
-  m_ObjectHideFlags: 49
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 126280895}
-  - component: {fileID: 126280894}
-  - component: {fileID: 126280893}
-  m_Layer: 0
-  m_Name: Default Scene Layer
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &126280893
-MonoBehaviour:
-  m_ObjectHideFlags: 49
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 126280892}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c239b33ee5aee77488aadc51463c91de, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Unity.XR.CompositionLayers::Unity.XR.CompositionLayers.CompositionOutline
---- !u!114 &126280894
-MonoBehaviour:
-  m_ObjectHideFlags: 49
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 126280892}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 3adf0bb75a444c61bde2e7841591bf41, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Unity.XR.CompositionLayers::Unity.XR.CompositionLayers.CompositionLayer
-  m_UICanvas: {fileID: 0}
-  m_UIMirrorComponent: {fileID: 0}
-  m_LayerOutline: {fileID: 126280893}
-  m_Order: 0
-  m_LayerData:
-    rid: 549894995101089915
-  m_PlatformLayerDataKeys: []
-  m_PlatformLayerDataTexts: []
-  m_PlatformLayerDataBinary: 
-  references:
-    version: 2
-    RefIds:
-    - rid: 549894995101089915
-      type: {class: DefaultLayerData, ns: Unity.XR.CompositionLayers.Layers, asm: Unity.XR.CompositionLayers}
-      data:
-        m_BlendType: 0
---- !u!4 &126280895
-Transform:
-  m_ObjectHideFlags: 49
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 126280892}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &191976620
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -1314,6 +1241,9 @@ MonoBehaviour:
   spawnDistance: 1
   spawnHeightOffset: -0.2
   faceUser: 1
+  modelYawOffset: 180
+  materializeEffect: 1
+  materializeDuration: 1.6
   minScaleRatio: 0.25
   maxScaleRatio: 5
   showPlacementAids: 1
@@ -2787,6 +2717,79 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 5745700813747042508, guid: 3df3e1220f2164f448701a6de8084f92, type: 3}
   m_PrefabInstance: {fileID: 786609119}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &970062261
+GameObject:
+  m_ObjectHideFlags: 49
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 970062264}
+  - component: {fileID: 970062263}
+  - component: {fileID: 970062262}
+  m_Layer: 0
+  m_Name: Default Scene Layer
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &970062262
+MonoBehaviour:
+  m_ObjectHideFlags: 49
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 970062261}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c239b33ee5aee77488aadc51463c91de, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.XR.CompositionLayers::Unity.XR.CompositionLayers.CompositionOutline
+--- !u!114 &970062263
+MonoBehaviour:
+  m_ObjectHideFlags: 49
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 970062261}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3adf0bb75a444c61bde2e7841591bf41, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.XR.CompositionLayers::Unity.XR.CompositionLayers.CompositionLayer
+  m_UICanvas: {fileID: 0}
+  m_UIMirrorComponent: {fileID: 0}
+  m_LayerOutline: {fileID: 970062262}
+  m_Order: 0
+  m_LayerData:
+    rid: 549895016990638201
+  m_PlatformLayerDataKeys: []
+  m_PlatformLayerDataTexts: []
+  m_PlatformLayerDataBinary: 
+  references:
+    version: 2
+    RefIds:
+    - rid: 549895016990638201
+      type: {class: DefaultLayerData, ns: Unity.XR.CompositionLayers.Layers, asm: Unity.XR.CompositionLayers}
+      data:
+        m_BlendType: 0
+--- !u!4 &970062264
+Transform:
+  m_ObjectHideFlags: 49
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 970062261}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1044192200
 GameObject:
   m_ObjectHideFlags: 0
@@ -3647,6 +3650,7 @@ MonoBehaviour:
   suggestTimeoutSeconds: 6
   generator: {fileID: 0}
   sceneAnchor: {fileID: 0}
+  roomCalibration: {fileID: 0}
   authorName: 
 --- !u!114 &1524779515
 MonoBehaviour:
@@ -3668,6 +3672,10 @@ MonoBehaviour:
   - Environment
   - Decorazione
   - Props
+  - Veicoli
+  - Animali/Creature
+  - Attrezzatura
+  - Altro
   defaultStyles:
   - Realistico
   - Moderno
@@ -3677,6 +3685,7 @@ MonoBehaviour:
   - Fantasy
   - Cartoon
   - Punk
+  - Altro
   panelOffset: {x: 0, y: 0.5, z: 0.1}
   panelTilt: -30
   dockOffset: {x: 0.4, y: 0, z: 0}
@@ -3696,6 +3705,7 @@ MonoBehaviour:
   generator: {fileID: 0}
   statusUI: {fileID: 0}
   library: {fileID: 0}
+  roomCalibration: {fileID: 0}
   dockOffset: {x: 0.4, y: -0.065, z: 0}
   panelOffset: {x: 0, y: 0.5, z: 0.1}
   panelTilt: -30
@@ -4155,4 +4165,4 @@ SceneRoots:
   - {fileID: 780294303}
   - {fileID: 1524779513}
   - {fileID: 1851330951}
-  - {fileID: 126280895}
+  - {fileID: 970062264}

@@ -702,6 +702,28 @@ function setHealth(kind, text) {
   h.lastElementChild.textContent = text;
 }
 
+$('enrich').addEventListener('click', async e => {
+  const btn = e.currentTarget, out = $('enrichOut');
+  btn.disabled = true;
+  let done = 0, remaining = null, failed = [];
+  try {
+    for (let i = 0; i < 300; i++) {
+      out.textContent = remaining === null ? 'Genero le parole chiave…' : `Parole chiave generate: ${done}, ne mancano ${remaining}…`;
+      const r = await api('enrich_assets', { limit: 3 });
+      done += r.processed; remaining = r.remaining; failed = r.failed || [];
+      if (r.remaining === 0) break;
+      if (r.processed === 0) { out.textContent = `Non riesco a generare le parole chiave per: ${failed.join(', ') || 'alcuni oggetti'}. Ricostruisco comunque l'indice…`; break; }
+    }
+    if (remaining === 0 || done > 0) {
+      out.textContent += ' Ricostruisco l\'indice…';
+      const x = await api('reindex');
+      out.textContent = `Fatto: ${done} oggetti arricchiti${remaining ? `, ne restano ${remaining}` : ''}; ${x.indexed} su ${x.total} indicizzati.`;
+      toast('Ricerca migliorata', 'ok');
+    }
+  } catch (err) { out.textContent = 'Non riuscita: ' + err.message; }
+  finally { btn.disabled = false; }
+});
+
 $('reindex').addEventListener('click', async e => {
   const btn = e.currentTarget, out = $('reindexOut');
   btn.disabled = true;
