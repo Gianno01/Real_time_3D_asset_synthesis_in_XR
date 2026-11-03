@@ -36,6 +36,7 @@ public class ContactShadow : MonoBehaviour
     Material _mat;
     readonly RaycastHit[] _hits = new RaycastHit[16];
     bool _reported, _lastVisible;
+    ModelBounds _mb;
 
     public void Init(Vector3 sizeAtScaleOne, float floorY)
     {
@@ -96,11 +97,19 @@ public class ContactShadow : MonoBehaviour
 
         float k = Mathf.Clamp01(Mathf.Max(0f, h) / fadeHeight);   // 0 = appoggiato, 1 = al limite
         Vector3 size = Vector3.Scale(unscaledSize, transform.lossyScale);
+        float heading = transform.eulerAngles.y;
+        Vector2 centerXZ = new Vector2(b.center.x, b.center.z);
+        if (_mb != null && _mb.HasData)
+        {
+            // impronta vera, anche per un oggetto sdraiato (una penna in orizzontale ha un'ombra lunga e stretta)
+            _mb.Footprint(out Vector2 fp, out centerXZ, out heading);
+            size = new Vector3(fp.x, 0f, fp.y);
+        }
         float grow = sizeMultiplier * (1f + 0.6f * k);
         float sx = Mathf.Max(size.x, 0.02f) * grow, sz = Mathf.Max(size.z, 0.02f) * grow;
 
-        _quad.SetPositionAndRotation(new Vector3(b.center.x, supportY + 0.0015f, b.center.z),
-                                     Quaternion.Euler(0f, transform.eulerAngles.y, 0f) * Quaternion.Euler(90f, 0f, 0f));
+        _quad.SetPositionAndRotation(new Vector3(centerXZ.x, supportY + 0.0015f, centerXZ.y),
+                                     Quaternion.Euler(0f, heading, 0f) * Quaternion.Euler(90f, 0f, 0f));
         _quad.localScale = new Vector3(sx, sz, 1f);
 
         // appoggiato: piena; sollevato: più chiara e più larga (a 2,5 m resta il 35%)
@@ -143,6 +152,9 @@ public class ContactShadow : MonoBehaviour
 
     Bounds WorldBounds()
     {
+        if (_mb == null) _mb = GetComponent<ModelBounds>();
+        if (_mb != null && _mb.HasData) return _mb.WorldBounds();
+
         var rs = GetComponentsInChildren<Renderer>();
         bool has = false;
         var b = new Bounds(transform.position, Vector3.zero);

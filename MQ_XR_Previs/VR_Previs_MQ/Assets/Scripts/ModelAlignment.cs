@@ -9,6 +9,9 @@
 //     (sfere, vasi tondi…) vengono lasciati come sono.
 //  2) Rotazione: si cerca l'angolo (entro ±45°, così il fronte resta davanti) per cui l'impronta a terra
 //     occupa il rettangolo più piccolo: i lati dell'oggetto diventano paralleli agli assi.
+//  3) Ricerca diretta: si prova anche, insieme, ogni combinazione di inclinazione (fino a 30°) e rotazione cercando quella
+//     che rende più piccolo il riquadro che contiene l'oggetto. Tra i due metodi vince quello con il riquadro minore
+//     (serve un guadagno netto, altrimenti l'oggetto resta com'è). Il log dice quale metodo ha vinto.
 //
 // La correzione va su un figlio "Allineamento" che contiene il modello: la radice (presa, collider, SceneObject) resta pulita.
 // È deterministica: lo stesso GLB viene raddrizzato sempre allo stesso modo (scene salvate e ricaricate coincidono).
@@ -30,38 +33,118 @@ public static class ModelAlignment
             return Quaternion.identity;
         }
 
-        var pts = CollectPoints(root);
-        if (pts.Count < 50)
+        var orig = CollectPoints(root);
+        if (orig.Count < 50)
         {
-            Debug.LogWarning($"[ModelAlignment] {root.name}: vertici non leggibili ({pts.Count}), allineamento saltato");
+            Debug.LogWarning($"[ModelAlignment] {root.name}: vertici non leggibili ({orig.Count}), allineamento saltato");
             return Quaternion.identity;
         }
 
-        Quaternion corr = Quaternion.identity;
-
-        // 1) inclinazione
+        // Candidato 1: metodo "a piani" (piano dei punti più bassi + rettangolo d'impronta minimo)
+        var pts = new List<Vector3>(orig);
+        Quaternion legacy = Quaternion.identity;
         if (fixTilt)
         {
             Quaternion tilt = EstimateTilt(pts, maxTiltDegrees);
             if (tilt != Quaternion.identity)
             {
-                corr = tilt;
+                legacy = tilt;
                 for (int i = 0; i < pts.Count; i++) pts[i] = tilt * pts[i];
             }
         }
-
-        // 2) rotazione attorno a Y
         float yaw = fixYaw ? BestYaw(pts) : 0f;
-        if (Mathf.Abs(yaw) > 0.05f) corr = Quaternion.Euler(0f, yaw, 0f) * corr;
+        if (Mathf.Abs(yaw) > 0.05f) legacy = Quaternion.Euler(0f, yaw, 0f) * legacy;
+
+        // Candidato 2: ricerca diretta dell'assetto che rende il riquadro dell'oggetto più piccolo (inclinazione e rotazione insieme).
+        // Funziona anche quando il modello è molto storto o non ha una base piana da cui stimare il piano.
+        float searchTilt = fixTilt ? Mathf.Max(maxTiltDegrees, SearchTiltDegrees) : 0f;
+        Quaternion corr = ChooseBest(orig, legacy, searchTilt, fixYaw, out string info);
 
         if (corr == Quaternion.identity)
         {
-            Debug.Log($"[ModelAlignment] {root.name}: già dritto, nessuna correzione");
+            Debug.Log($"[ModelAlignment] {root.name}: già dritto, nessuna correzione ({info})");
             return corr;
         }
-        ApplyCorrection(root, pts, corr);
-        Debug.Log($"[ModelAlignment] {root.name}: corretto di {Quaternion.Angle(Quaternion.identity, corr):F1}° (rotazione {yaw:F1}°)");
+
+        var corrected = new List<Vector3>(orig.Count);
+        for (int i = 0; i < orig.Count; i++) corrected.Add(corr * orig[i]);
+        ApplyCorrection(root, corrected, corr);
+        Debug.Log($"[ModelAlignment] {root.name}: corretto di {Quaternion.Angle(Quaternion.identity, corr):F1}° ({info})");
         return corr;
+    }
+
+    // ── Ricerca dell'assetto con il riquadro più piccolo ─────────────
+
+    const float SearchTiltDegrees = 30f;   // inclinazione massima cercata (almeno questa, anche se l'impostazione è più bassa)
+
+    static Quaternion ChooseBest(List<Vector3> orig, Quaternion legacy, float maxTilt, bool fixYaw, out string info)
+    {
+        // pochi punti "estremi" bastano a conoscere il riquadro in qualsiasi rotazione
+        Vector3 mn = Vector3.positiveInfinity, mx = Vector3.negativeInfinity;
+        foreach (var p in orig) { mn = Vector3.Min(mn, p); mx = Vector3.Max(mx, p); }
+        var ext = ModelBounds.ExtremePoints(orig, mn, mx).ToArray();
+
+        float Vol(Quaternion q)
+        {
+            Matrix4x4 m = Matrix4x4.Rotate(q);
+            float x0 = float.MaxValue, y0 = x0, z0 = x0, x1 = float.MinValue, y1 = x1, z1 = x1;
+            for (int i = 0; i < ext.Length; i++)
+            {
+                Vector3 p = m.MultiplyVector(ext[i]);
+                if (p.x < x0) x0 = p.x; if (p.x > x1) x1 = p.x;
+                if (p.y < y0) y0 = p.y; if (p.y > y1) y1 = p.y;
+                if (p.z < z0) z0 = p.z; if (p.z > z1) z1 = p.z;
+            }
+            return (x1 - x0) * (y1 - y0) * (z1 - z0);
+        }
+        Quaternion Rot(float yaw, float pitch, float roll) => Quaternion.Euler(0f, yaw, 0f) * Quaternion.Euler(pitch, 0f, 0f) * Quaternion.Euler(0f, 0f, roll);
+        // piccola preferenza per le correzioni più lievi, a parità di riquadro
+        float Score(float yaw, float pitch, float roll) => Vol(Rot(yaw, pitch, roll)) * (1f + 0.001f * (Mathf.Abs(pitch) + Mathf.Abs(roll)));
+
+        float v0 = Vol(Quaternion.identity);
+        float yawMax = fixYaw ? 45f : 0f;
+
+        // ricerca grossolana (inclinazione a passi di 4°, rotazione a passi di 3°), poi raffinamento
+        float bestS = float.MaxValue, bYaw = 0f, bPitch = 0f, bRoll = 0f;
+        for (float pitch = -maxTilt; pitch <= maxTilt + 0.01f; pitch += 4f)
+        for (float roll = -maxTilt; roll <= maxTilt + 0.01f; roll += 4f)
+        {
+            if (maxTilt <= 0f && (pitch != 0f || roll != 0f)) continue;
+            for (float yaw = -yawMax; yaw < yawMax || (yawMax == 0f && yaw == 0f); yaw += 3f)
+            {
+                float sc = Score(yaw, pitch, roll);
+                if (sc < bestS) { bestS = sc; bYaw = yaw; bPitch = pitch; bRoll = roll; }
+                if (yawMax == 0f) break;
+            }
+            if (maxTilt <= 0f) break;
+        }
+        foreach (float stepSize in new[] { 2f, 1f, 0.5f, 0.25f })
+        {
+            bool improved = true; int guard = 0;
+            while (improved && guard++ < 40)
+            {
+                improved = false;
+                for (int axis = 0; axis < 3; axis++)
+                for (int sign = -1; sign <= 1; sign += 2)
+                {
+                    float y = bYaw, p = bPitch, r = bRoll;
+                    if (axis == 0) { if (yawMax == 0f) continue; y = Mathf.Clamp(y + sign * stepSize, -yawMax, yawMax); }
+                    else if (axis == 1) { if (maxTilt <= 0f) continue; p = Mathf.Clamp(p + sign * stepSize, -maxTilt, maxTilt); }
+                    else { if (maxTilt <= 0f) continue; r = Mathf.Clamp(r + sign * stepSize, -maxTilt, maxTilt); }
+                    float sc = Score(y, p, r);
+                    if (sc < bestS - 1e-9f) { bestS = sc; bYaw = y; bPitch = p; bRoll = r; improved = true; }
+                }
+            }
+        }
+        Quaternion fit = Rot(bYaw, bPitch, bRoll);
+
+        // si sceglie il candidato con il riquadro più piccolo; serve un guadagno netto (>3%) rispetto a non toccare niente
+        float vLegacy = legacy == Quaternion.identity ? v0 : Vol(legacy), vFit = Vol(fit);
+        Quaternion best = Quaternion.identity; float bestVol = v0; string who = "nessuna";
+        if (vLegacy < bestVol * 0.97f) { best = legacy; bestVol = vLegacy; who = "piani"; }
+        if (vFit < bestVol * 0.99f && vFit < v0 * 0.97f) { best = fit; bestVol = vFit; who = "ricerca"; }
+        info = $"metodo {who}, riquadro {bestVol / Mathf.Max(v0, 1e-12f) * 100f:F0}% dell'originale; ricerca: rotazione {bYaw:F1}°, inclinazione {bPitch:F1}°/{bRoll:F1}°";
+        return best;
     }
 
     // ── Punti del modello nello spazio della radice ──────────────────

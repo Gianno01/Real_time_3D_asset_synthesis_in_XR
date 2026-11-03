@@ -162,7 +162,9 @@ public class SettingsUI : MonoBehaviour
         Add(_left, "GENERAZIONE", gen.ToArray());
 
         Add(_left, "OGGETTI",
-            Bool("collide", "Collisione tra oggetti", () => g.objectCollisions, v => { g.objectCollisions = v; g.ApplySettingsToScene(); }));
+            Bool("axis_snap", "Allinea all'asse più vicino", () => g.snapToNearestAxis, v => { g.snapToNearestAxis = v; g.ApplySettingsToScene(); }),
+            Bool("collide", "Collisione tra oggetti", () => g.objectCollisions, v => { g.objectCollisions = v; g.ApplySettingsToScene(); }),
+            Bool("gravity", "Gravità", () => g.objectGravity, v => { g.objectGravity = v; g.ApplySettingsToScene(); }));
 
         Add(_right, "POSIZIONAMENTO",
             Bool("aids", "Griglia e misure", () => g.showPlacementAids, v => { g.showPlacementAids = v; g.ApplySettingsToScene(); }),

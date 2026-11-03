@@ -105,16 +105,22 @@ public class QuestObjectGenerator : MonoBehaviour
     public float snapGridStep = 0.05f;
     [Tooltip("Passo della rotazione (gradi). 0 = rotazione libera")]
     public float snapYawStep = 15f;
+    [Tooltip("Al rilascio l'oggetto si allinea all'asse più vicino: quasi dritto → dritto (su una punta), quasi orizzontale → resta sdraiato")]
+    public bool snapToNearestAxis = true;
     [Tooltip("Raddrizza i modelli generati storti: base orizzontale e lati paralleli agli assi (griglia e misure più precise)")]
     public bool autoAlignModels = true;
     [Tooltip("Corregge anche l'inclinazione (solo se il modello ha una base o dei piedi su cui poggiare)")]
     public bool alignTilt = true;
-    [Tooltip("Inclinazione massima corretta (gradi): oltre, l'inclinazione è considerata voluta")]
+    [Tooltip("Inclinazione massima corretta dal metodo \"a piani\" (gradi). La ricerca diretta cerca comunque fino a 30°")]
     public float maxTiltCorrection = 12f;
 
     [Header("Collisioni")]
     [Tooltip("Gli oggetti non si attraversano: un bicchiere appoggiato su un tavolo si ferma sul piano senza doverli allineare")]
     public bool objectCollisions = true;
+
+    [Header("Gravità")]
+    [Tooltip("Quando lasci un oggetto cade fino a posarsi su un altro oggetto, su un mobile reale o sul pavimento")]
+    public bool objectGravity = false;
 
     [Header("Ombra")]
     [Tooltip("Ombra morbida sotto gli oggetti, sul pavimento o sulla superficie sottostante")]
@@ -1366,10 +1372,12 @@ public class QuestObjectGenerator : MonoBehaviour
     private void PlaceInScene(GameObject obj, bool animate = true)
     {
         if (autoAlignModels) ModelAlignment.Align(obj, alignTilt, maxTiltCorrection);   // prima di misurare: griglia e misure sui lati veri
+        var modelBounds = ModelBounds.Build(obj);   // ingombro e guscio dai vertici veri (dopo l'allineamento)
         AdjustScale(obj);
         Bounds bounds = GetWorldBounds(obj);
 
-        if (obj.GetComponent<Collider>() == null && bounds.size.sqrMagnitude > 0f)
+        if (modelBounds != null) modelBounds.AddCollider();   // guscio convesso che segue la forma del modello
+        else if (obj.GetComponent<Collider>() == null && bounds.size.sqrMagnitude > 0f)
         {
             float s = Mathf.Max(obj.transform.localScale.x, 0.0001f);
             BoxCollider col = obj.AddComponent<BoxCollider>();
@@ -1423,6 +1431,7 @@ public class QuestObjectGenerator : MonoBehaviour
         aids.Init(bounds.size / unit, cam);   // bounds misurati prima della rotazione → dimensioni reali
         aids.floorHeight = floorY;
         if (obj.GetComponent<ObjectCollision>() == null) obj.AddComponent<ObjectCollision>();
+        if (obj.GetComponent<ObjectGravity>() == null) obj.AddComponent<ObjectGravity>();
         var shadow = obj.GetComponent<ContactShadow>();
         if (shadow == null) shadow = obj.AddComponent<ContactShadow>();
         shadow.Init(bounds.size / unit, floorY);
@@ -1443,10 +1452,13 @@ public class QuestObjectGenerator : MonoBehaviour
             aids.snapOnRelease = snapOnRelease;
             aids.gridStep = snapGridStep;
             aids.yawStep = snapYawStep;
+            aids.snapToNearestAxis = snapToNearestAxis;
             aids.surfaceSnapDistance = surfaceSnapDistance;
         }
         var collision = obj.GetComponent<ObjectCollision>();
         if (collision != null) collision.enabled = objectCollisions;
+        var gravity = obj.GetComponent<ObjectGravity>();
+        if (gravity != null) gravity.enabled = objectGravity;
         var shadow = obj.GetComponent<ContactShadow>();
         if (shadow != null)
         {
@@ -1471,6 +1483,9 @@ public class QuestObjectGenerator : MonoBehaviour
 
     private Bounds GetWorldBounds(GameObject obj)
     {
+        var mb = obj.GetComponent<ModelBounds>();
+        if (mb != null && mb.HasData) return mb.WorldBounds();   // ingombro vero, non quello (più largo) dei renderer
+
         var renderers = obj.GetComponentsInChildren<Renderer>();
         bool hasBounds = false;
         Bounds bounds = new Bounds(obj.transform.position, Vector3.zero);

@@ -32,6 +32,8 @@ public class ObjectPlacementAids : MonoBehaviour
     public bool snapOnRelease = true;
     [Tooltip("Passo di allineamento orizzontale (m). 0 = disattivato")]
     public float gridStep = 0.05f;
+    [Tooltip("Al rilascio l'oggetto si allinea all'asse più vicino: una penna tenuta quasi dritta si appoggia sulla punta, una tenuta quasi orizzontale resta sdraiata. Spento: l'oggetto torna sempre dritto")]
+    public bool snapToNearestAxis = true;
     [Tooltip("Passo della rotazione (gradi). 0 = mantiene la rotazione libera")]
     public float yawStep = 15f;
     [Tooltip("Distanza massima (m) per appoggiarsi a una superficie sottostante")]
@@ -84,6 +86,7 @@ public class ObjectPlacementAids : MonoBehaviour
 
     bool Locked { get { if (_so == null) _so = GetComponent<SceneObject>(); return _so != null && _so.locked; } }
     SceneObject _so;
+    ModelBounds _mb;
 
     void OnGrab()
     {
@@ -112,6 +115,13 @@ public class ObjectPlacementAids : MonoBehaviour
 
         Bounds b = WorldBounds();
         Vector3 size = CurrentSize();
+        if (_mb == null) _mb = GetComponent<ModelBounds>();
+        if (_mb != null && _mb.HasData)
+        {
+            // misure vere con l'orientamento attuale (anche sdraiato): base = impronta, altezza = ingombro verticale
+            _mb.Footprint(out Vector2 fp, out _, out _);
+            size = new Vector3(fp.x, b.size.y, fp.y);
+        }
 
         // Griglia: sotto l'oggetto, piatta, allineata agli assi del mondo
         if (_gridRt != null)
@@ -147,6 +157,9 @@ public class ObjectPlacementAids : MonoBehaviour
 
     Bounds WorldBounds()
     {
+        if (_mb == null) _mb = GetComponent<ModelBounds>();
+        if (_mb != null && _mb.HasData) return _mb.WorldBounds();   // dai vertici del modello: preciso con qualsiasi rotazione
+
         var rs = GetComponentsInChildren<Renderer>();
         bool has = false;
         var b = new Bounds(transform.position, Vector3.zero);
@@ -167,23 +180,30 @@ public class ObjectPlacementAids : MonoBehaviour
 
         // 1) dritto + rotazione a scatti
         Quaternion targetRot = startRot;
-        if (yawStep > 0f)
+        if (snapToNearestAxis)
+            targetRot = NearestAxisRotation(startRot, yawStep);
+        else if (yawStep > 0f)
         {
             float yaw = Mathf.Round(startRot.eulerAngles.y / yawStep) * yawStep;
             targetRot = Quaternion.Euler(0f, yaw, 0f);
         }
 
-        // calcolo dei bounds nella rotazione finale
-        transform.rotation = targetRot;
+        // la rotazione avviene attorno al centro dell'oggetto (non attorno all'origine del modello, che può stare altrove)
+        Vector3 center0 = WorldBounds().center;
+        Quaternion dq = targetRot * Quaternion.Inverse(startRot);
+        Vector3 posAfterRot = center0 + dq * (startPos - center0);
+
+        // calcolo dei bounds nella posa finale (dopo la rotazione)
+        transform.SetPositionAndRotation(posAfterRot, targetRot);
         Bounds b = WorldBounds();
-        transform.rotation = startRot;
-        Vector3 targetPos = startPos;
+        transform.SetPositionAndRotation(startPos, startRot);
+        Vector3 targetPos = posAfterRot;
 
         // 2) posizione orizzontale sulla griglia (si allinea il centro dei bounds)
         if (gridStep > 0f)
         {
             // il passo non supera mai la cella della griglia visibile: su un oggetto piccolo l'aggancio è più fine
-            Vector3 sz = CurrentSize();
+            Vector3 sz = _mb != null && _mb.HasData ? b.size : CurrentSize();
             float step = Mathf.Min(gridStep, Mathf.Max(Mathf.Max(sz.x, sz.z), 0.02f) / gridDivisions);
             float nx = Mathf.Round(b.center.x / step) * step;
             float nz = Mathf.Round(b.center.z / step) * step;
@@ -207,6 +227,35 @@ public class ObjectPlacementAids : MonoBehaviour
         var col = GetComponent<ObjectCollision>();
         if (col != null) col.ResolveNow();   // l'aggancio non deve far entrare l'oggetto in un altro
         _snapRoutine = null;
+    }
+
+    /// <summary>
+    /// Orientamento "a scatti" sull'asse più vicino: l'asse locale più verticale diventa esattamente verticale
+    /// (su o giù, quello più vicino) e la rotazione attorno alla verticale scatta a passi di yawStep.
+    /// Oggetto quasi dritto → dritto; quasi sdraiato → sdraiato su un lato.
+    /// </summary>
+    static Quaternion NearestAxisRotation(Quaternion q, float yawStep)
+    {
+        Vector3[] axes = { Vector3.right, Vector3.up, Vector3.forward };
+        int up = 1; float best = -1f; Vector3 upDir = Vector3.up;
+        for (int i = 0; i < 3; i++)
+        {
+            Vector3 w = q * axes[i];
+            float d = Mathf.Abs(w.y);
+            if (d > best) { best = d; up = i; upDir = w.y >= 0f ? w : -w; }
+        }
+        Quaternion q1 = Quaternion.FromToRotation(upDir, Vector3.up) * q;   // inclinazione: l'asse scelto diventa verticale
+        if (yawStep > 0f)
+        {
+            Vector3 h = q1 * axes[(up + 1) % 3]; h.y = 0f;                    // un asse orizzontale: se ne scatta la direzione
+            if (h.sqrMagnitude > 1e-6f)
+            {
+                float ang = Mathf.Atan2(h.x, h.z) * Mathf.Rad2Deg;
+                float snapped = Mathf.Round(ang / yawStep) * yawStep;
+                q1 = Quaternion.Euler(0f, snapped - ang, 0f) * q1;
+            }
+        }
+        return q1;
     }
 
     bool TryFindSupport(Bounds b, out float supportY)
