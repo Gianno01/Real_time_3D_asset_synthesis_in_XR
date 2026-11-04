@@ -1106,6 +1106,7 @@ UnityEngine.Mesh/MeshDataArray::ApplyToMeshImpl_Injected
 UnityEngine.Mesh/MeshDataArray::CreateNewMeshDatas
 UnityEngine.Mesh/MeshDataArray::ReleaseMeshDatas
 UnityEngine.MeshCollider::get_convex_Injected
+UnityEngine.MeshCollider::set_convex_Injected
 UnityEngine.MeshCollider::set_sharedMesh_Injected
 UnityEngine.MeshFilter::get_mesh_Injected
 UnityEngine.MeshFilter::get_sharedMesh_Injected
@@ -1196,6 +1197,7 @@ UnityEngine.ParticleSystem/MainModule::get_startColorBlittable_Injected
 UnityEngine.ParticleSystem/MainModule::get_startSizeBlittable_Injected
 UnityEngine.ParticleSystemRenderer::GetMeshes_Injected
 UnityEngine.Physics::GetIgnoreCollision_Injected
+UnityEngine.Physics::Query_ComputePenetration_Injected
 UnityEngine.Physics::get_invokeCollisionCallbacks
 UnityEngine.Physics::get_queriesHitTriggers
 UnityEngine.Physics::get_reuseCollisionCallbacks
@@ -1207,6 +1209,7 @@ UnityEngine.Physics::Internal_RaycastAll_Injected
 UnityEngine.Physics::SendOnCollisionEnter_Injected
 UnityEngine.Physics::SendOnCollisionExit_Injected
 UnityEngine.Physics::SendOnCollisionStay_Injected
+UnityEngine.Physics::SyncTransforms
 UnityEngine.Physics::get_gravity_Injected
 UnityEngine.Physics2D::get_queriesHitTriggers
 UnityEngine.Physics2D::GetRayIntersectionAll_Internal_Injected
@@ -1214,6 +1217,7 @@ UnityEngine.PhysicsScene::Internal_Raycast_Injected
 UnityEngine.PhysicsScene::IsValid_Internal_Injected
 UnityEngine.PhysicsScene::Internal_RaycastNonAlloc_Injected
 UnityEngine.PhysicsScene::Internal_SphereCastNonAlloc_Injected
+UnityEngine.PhysicsScene::OverlapBoxNonAlloc_Internal_Injected
 UnityEngine.PhysicsScene::OverlapSphereNonAlloc_Internal_Injected
 UnityEngine.PhysicsScene2D::IsValid_Internal_Injected
 UnityEngine.PhysicsScene2D::GetRayIntersectionArray_Internal_Injected

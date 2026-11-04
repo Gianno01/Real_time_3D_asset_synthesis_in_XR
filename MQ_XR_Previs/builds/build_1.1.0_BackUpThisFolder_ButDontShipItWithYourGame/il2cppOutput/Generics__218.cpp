@@ -5631,7 +5631,7 @@ IL_000c:
 #pragma clang diagnostic ignored "-Winvalid-offsetof"
 #pragma clang diagnostic ignored "-Wunused-variable"
 #endif
-// Method Definition Index: 66908
+// Method Definition Index: 67877
 IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR int32_t XRSubsystem_3_GetPermissionState_mABA1B0A7D8841E2B639E430B5BD92BF8823E2B36_gshared (XRSubsystem_3_t68FC818A8054236AC9E931964F2FBE6557E59C44* __this, const RuntimeMethod* method) 
 {
 	//<source_info:<no-source>:1>
@@ -5639,7 +5639,7 @@ IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR int32_t XRSubsystem_3_GetPermissionState_mABA
 		return (int32_t)(0);
 	}
 }
-// Method Definition Index: 66909
+// Method Definition Index: 67878
 IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR Awaitable_1_t9A35C3CFA6CF88CE75E68EB053253B574AF23EB7* XRSubsystem_3_TryStartAsync_m3FF6EDA1E8E2B8526D4EA00AA96DB4EE1850E443_gshared (XRSubsystem_3_t68FC818A8054236AC9E931964F2FBE6557E59C44* __this, CancellationToken_t51142D9C6D7C02D314DA34A6A7988C528992FFED ___0_token, int32_t ___1_options, const RuntimeMethod* method) 
 {
 	static bool s_Il2CppMethodInitialized;
@@ -5662,7 +5662,7 @@ IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR Awaitable_1_t9A35C3CFA6CF88CE75E68EB053253B57
 		return L_1;
 	}
 }
-// Method Definition Index: 66910
+// Method Definition Index: 67879
 IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void XRSubsystem_3__ctor_mF006E6745B514555338C06CA890EC167D118ED8A_gshared (XRSubsystem_3_t68FC818A8054236AC9E931964F2FBE6557E59C44* __this, const RuntimeMethod* method) 
 {
 	//<source_info:<no-source>:1>

@@ -25147,7 +25147,7 @@ IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void Action_1_Invoke_mCF599E293F2E97255BAEAD6
 #ifdef __clang__
 #pragma clang diagnostic pop
 #endif
-// Method Definition Index: 78997
+// Method Definition Index: 79057
 IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR bool SubsystemWithProvider_get_running_m6BF31FC3BDA38C56C0F60FEA37767A4151B22C44_inline (SubsystemWithProvider_tC72E35EE2D413A4B0635B058154BABF265F31242* __this, const RuntimeMethod* method) 
 {
 	//<source_info:<no-source>:1>
@@ -25156,7 +25156,7 @@ IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR bool SubsystemWithProvider_get_ru
 		return L_0;
 	}
 }
-// Method Definition Index: 67704
+// Method Definition Index: 68673
 IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR TrackableId_t49EAE8AA4B9584E314518723DC22B66496D47AD7 BoundedPlane_get_trackableId_m7AA7FD63EA8F8A903300EFDF15616315ACFDA8AA_inline (BoundedPlane_tF51C315A8961EB42F0A1B60D47158646E5AF75CE* __this, const RuntimeMethod* method) 
 {
 	//<source_info:<no-source>:1>
@@ -25165,7 +25165,7 @@ IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR TrackableId_t49EAE8AA4B9584E31451
 		return L_0;
 	}
 }
-// Method Definition Index: 74709
+// Method Definition Index: 74759
 IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR Transform_tB27202C6F4E36D225EE28A13E4D662BF99785DB1* XROrigin_get_TrackablesParent_m6F7933DF03A5376C31D328F865F77D28EEC18E9C_inline (XROrigin_t5E534A6D886991AF3C1C64127E19A3A510009CFE* __this, const RuntimeMethod* method) 
 {
 	//<source_info:<no-source>:1>
@@ -25174,7 +25174,7 @@ IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR Transform_tB27202C6F4E36D225EE28A
 		return L_0;
 	}
 }
-// Method Definition Index: 66163
+// Method Definition Index: 67132
 IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR TrackableId_t49EAE8AA4B9584E314518723DC22B66496D47AD7 XRAnchor_get_trackableId_m0F50E81D0152D0BA4152EF9B66F648EF9FC664AE_inline (XRAnchor_tDD427E66CAA09DE7B058EA76223EF7DC3880FE82* __this, const RuntimeMethod* method) 
 {
 	//<source_info:<no-source>:1>
@@ -25183,7 +25183,7 @@ IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR TrackableId_t49EAE8AA4B9584E31451
 		return L_0;
 	}
 }
-// Method Definition Index: 66278
+// Method Definition Index: 67247
 IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR TrackableId_t49EAE8AA4B9584E314518723DC22B66496D47AD7 XRBoundingBox_get_trackableId_mF5CD5DB3F259DE8F7153195F3AF90638D741867A_inline (XRBoundingBox_tF12DE2409AC158AA9821C5F37C76716468FA6F85* __this, const RuntimeMethod* method) 
 {
 	//<source_info:<no-source>:1>
@@ -25192,7 +25192,7 @@ IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR TrackableId_t49EAE8AA4B9584E31451
 		return L_0;
 	}
 }
-// Method Definition Index: 66914
+// Method Definition Index: 67883
 IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR TrackableId_t49EAE8AA4B9584E314518723DC22B66496D47AD7 XREnvironmentProbe_get_trackableId_m7B20AFD8D153397E7270F72C81B32043DA83C57F_inline (XREnvironmentProbe_tAA657FAB648E2599B519F9FD66A1CEED65034DD9* __this, const RuntimeMethod* method) 
 {
 	//<source_info:<no-source>:1>
@@ -25201,7 +25201,7 @@ IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR TrackableId_t49EAE8AA4B9584E31451
 		return L_0;
 	}
 }
-// Method Definition Index: 67020
+// Method Definition Index: 67989
 IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR TrackableId_t49EAE8AA4B9584E314518723DC22B66496D47AD7 XRFace_get_trackableId_m9FC29FB643FFBAB989AB8179F57CDB52D14737B3_inline (XRFace_t235F951F4AC7CC6A0CA6829CECA05210D64982FB* __this, const RuntimeMethod* method) 
 {
 	//<source_info:<no-source>:1>
@@ -25210,7 +25210,7 @@ IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR TrackableId_t49EAE8AA4B9584E31451
 		return L_0;
 	}
 }
-// Method Definition Index: 67124
+// Method Definition Index: 68093
 IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR TrackableId_t49EAE8AA4B9584E314518723DC22B66496D47AD7 XRHumanBody_get_trackableId_m7CC5B8BB5179303ED1424ACDC46FBFA16C30B2FD_inline (XRHumanBody_t88EF91F599A4F22EABB233F85DE7782EE8B86692* __this, const RuntimeMethod* method) 
 {
 	//<source_info:<no-source>:1>
@@ -25219,7 +25219,7 @@ IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR TrackableId_t49EAE8AA4B9584E31451
 		return L_0;
 	}
 }
-// Method Definition Index: 67378
+// Method Definition Index: 68347
 IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR TrackableId_t49EAE8AA4B9584E314518723DC22B66496D47AD7 XRMarker_get_trackableId_mB7F7D5B482A252200B2BCEE16E0DEBD3C157FAB3_inline (XRMarker_tB71230354250D35F3BC8629A43B81E8A4BFA6C3D* __this, const RuntimeMethod* method) 
 {
 	//<source_info:<no-source>:1>
@@ -25228,7 +25228,7 @@ IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR TrackableId_t49EAE8AA4B9584E31451
 		return L_0;
 	}
 }
-// Method Definition Index: 67667
+// Method Definition Index: 68636
 IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR TrackableId_t49EAE8AA4B9584E314518723DC22B66496D47AD7 XRParticipant_get_trackableId_mA33D6F01E0C98B53E73D3AE91E9D27637D3EDCF1_inline (XRParticipant_t3885B841862D28B0509433D566F00FA3C3CD79E1* __this, const RuntimeMethod* method) 
 {
 	//<source_info:<no-source>:1>
@@ -25237,7 +25237,7 @@ IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR TrackableId_t49EAE8AA4B9584E31451
 		return L_0;
 	}
 }
-// Method Definition Index: 67831
+// Method Definition Index: 68800
 IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR TrackableId_t49EAE8AA4B9584E314518723DC22B66496D47AD7 XRPointCloud_get_trackableId_m3AFB6026E205E26C8B7A3209696F566FB686144D_inline (XRPointCloud_t99DB921A9C92F53CEA3EB29A64E2DECDA6EA7D8C* __this, const RuntimeMethod* method) 
 {
 	//<source_info:<no-source>:1>
@@ -25246,7 +25246,7 @@ IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR TrackableId_t49EAE8AA4B9584E31451
 		return L_0;
 	}
 }
-// Method Definition Index: 67891
+// Method Definition Index: 68860
 IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR TrackableId_t49EAE8AA4B9584E314518723DC22B66496D47AD7 XRRaycast_get_trackableId_mA844E950A9862ABA13C47395893C18A55C9117AB_inline (XRRaycast_t100015712885CDF4EF42820EB36277DC6DDC8103* __this, const RuntimeMethod* method) 
 {
 	//<source_info:<no-source>:1>
@@ -25255,7 +25255,7 @@ IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR TrackableId_t49EAE8AA4B9584E31451
 		return L_0;
 	}
 }
-// Method Definition Index: 67359
+// Method Definition Index: 68328
 IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR TrackableId_t49EAE8AA4B9584E314518723DC22B66496D47AD7 XRTrackedImage_get_trackableId_m9EA6E15BEF6777E27B50A4903E0069AC04ED6405_inline (XRTrackedImage_t0F99DAB96B2D6422D0F8DA720F9BEFD3655DDFDD* __this, const RuntimeMethod* method) 
 {
 	//<source_info:<no-source>:1>
@@ -25264,7 +25264,7 @@ IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR TrackableId_t49EAE8AA4B9584E31451
 		return L_0;
 	}
 }
-// Method Definition Index: 67497
+// Method Definition Index: 68466
 IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR TrackableId_t49EAE8AA4B9584E314518723DC22B66496D47AD7 XRTrackedObject_get_trackableId_mE8CA173C4D77E4910C47CD5A3DBEA7570CCA69F8_inline (XRTrackedObject_t56B5A101A8698B5C95F2CBE93FCF0F8911B67E75* __this, const RuntimeMethod* method) 
 {
 	//<source_info:<no-source>:1>
@@ -25273,7 +25273,7 @@ IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR TrackableId_t49EAE8AA4B9584E31451
 		return L_0;
 	}
 }
-// Method Definition Index: 67706
+// Method Definition Index: 68675
 IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR Pose_t06BA69EAA6E9FAF60056D519A87D25F54AFE7971 BoundedPlane_get_pose_mE6F416B0C7519EDA0D1AE8D8BD4D627E4CEA96CC_inline (BoundedPlane_tF51C315A8961EB42F0A1B60D47158646E5AF75CE* __this, const RuntimeMethod* method) 
 {
 	//<source_info:<no-source>:1>
@@ -25282,7 +25282,7 @@ IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR Pose_t06BA69EAA6E9FAF60056D519A87
 		return L_0;
 	}
 }
-// Method Definition Index: 67711
+// Method Definition Index: 68680
 IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR int32_t BoundedPlane_get_trackingState_mC294F13F8F79D53F8F04D8FB4E160B092BA6A577_inline (BoundedPlane_tF51C315A8961EB42F0A1B60D47158646E5AF75CE* __this, const RuntimeMethod* method) 
 {
 	//<source_info:<no-source>:1>
@@ -25291,7 +25291,7 @@ IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR int32_t BoundedPlane_get_tracking
 		return L_0;
 	}
 }
-// Method Definition Index: 67712
+// Method Definition Index: 68681
 IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR intptr_t BoundedPlane_get_nativePtr_mE8E2608856FE4327913A38005F4A8590D65A43E7_inline (BoundedPlane_tF51C315A8961EB42F0A1B60D47158646E5AF75CE* __this, const RuntimeMethod* method) 
 {
 	//<source_info:<no-source>:1>
@@ -25300,7 +25300,7 @@ IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR intptr_t BoundedPlane_get_nativeP
 		return L_0;
 	}
 }
-// Method Definition Index: 67713
+// Method Definition Index: 68682
 IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR TrackableId_t49EAE8AA4B9584E314518723DC22B66496D47AD7 BoundedPlane_get_parentId_mF226FF4C0F78D60C7E0908EDF9AE7D0D021463FA_inline (BoundedPlane_tF51C315A8961EB42F0A1B60D47158646E5AF75CE* __this, const RuntimeMethod* method) 
 {
 	//<source_info:<no-source>:1>
@@ -25309,7 +25309,7 @@ IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR TrackableId_t49EAE8AA4B9584E31451
 		return L_0;
 	}
 }
-// Method Definition Index: 66164
+// Method Definition Index: 67133
 IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR Pose_t06BA69EAA6E9FAF60056D519A87D25F54AFE7971 XRAnchor_get_pose_m2347783C1262EEFBC0B817EF0357FA4BB4BF053F_inline (XRAnchor_tDD427E66CAA09DE7B058EA76223EF7DC3880FE82* __this, const RuntimeMethod* method) 
 {
 	//<source_info:<no-source>:1>
@@ -25318,7 +25318,7 @@ IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR Pose_t06BA69EAA6E9FAF60056D519A87
 		return L_0;
 	}
 }
-// Method Definition Index: 66165
+// Method Definition Index: 67134
 IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR int32_t XRAnchor_get_trackingState_m6124A26C36CA93C25C57548576CB00C1F496ED83_inline (XRAnchor_tDD427E66CAA09DE7B058EA76223EF7DC3880FE82* __this, const RuntimeMethod* method) 
 {
 	//<source_info:<no-source>:1>
@@ -25327,7 +25327,7 @@ IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR int32_t XRAnchor_get_trackingStat
 		return L_0;
 	}
 }
-// Method Definition Index: 66166
+// Method Definition Index: 67135
 IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR intptr_t XRAnchor_get_nativePtr_mC0551FA7E8DB8A0DA1EAE02D9B0BFD9D47389C26_inline (XRAnchor_tDD427E66CAA09DE7B058EA76223EF7DC3880FE82* __this, const RuntimeMethod* method) 
 {
 	//<source_info:<no-source>:1>
@@ -25336,7 +25336,7 @@ IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR intptr_t XRAnchor_get_nativePtr_m
 		return L_0;
 	}
 }
-// Method Definition Index: 66168
+// Method Definition Index: 67137
 IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR TrackableId_t49EAE8AA4B9584E314518723DC22B66496D47AD7 XRAnchor_get_parentId_m93CA65E7CB8F253F0125F14F84FB3E404E9D5E9A_inline (XRAnchor_tDD427E66CAA09DE7B058EA76223EF7DC3880FE82* __this, const RuntimeMethod* method) 
 {
 	//<source_info:<no-source>:1>
@@ -25345,7 +25345,7 @@ IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR TrackableId_t49EAE8AA4B9584E31451
 		return L_0;
 	}
 }
-// Method Definition Index: 66279
+// Method Definition Index: 67248
 IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR Pose_t06BA69EAA6E9FAF60056D519A87D25F54AFE7971 XRBoundingBox_get_pose_m2A10A9EA8E5CDAEF4AF6B7788544B5A738D64BA6_inline (XRBoundingBox_tF12DE2409AC158AA9821C5F37C76716468FA6F85* __this, const RuntimeMethod* method) 
 {
 	//<source_info:<no-source>:1>
@@ -25354,7 +25354,7 @@ IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR Pose_t06BA69EAA6E9FAF60056D519A87
 		return L_0;
 	}
 }
-// Method Definition Index: 66281
+// Method Definition Index: 67250
 IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR int32_t XRBoundingBox_get_trackingState_mE55A3821D992D4E37203E41BC42A873F5BD81777_inline (XRBoundingBox_tF12DE2409AC158AA9821C5F37C76716468FA6F85* __this, const RuntimeMethod* method) 
 {
 	//<source_info:<no-source>:1>
@@ -25363,7 +25363,7 @@ IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR int32_t XRBoundingBox_get_trackin
 		return L_0;
 	}
 }
-// Method Definition Index: 66282
+// Method Definition Index: 67251
 IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR intptr_t XRBoundingBox_get_nativePtr_mB8265BAE055028EE0088A414D9D479883FF6F9F7_inline (XRBoundingBox_tF12DE2409AC158AA9821C5F37C76716468FA6F85* __this, const RuntimeMethod* method) 
 {
 	//<source_info:<no-source>:1>
@@ -25372,7 +25372,7 @@ IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR intptr_t XRBoundingBox_get_native
 		return L_0;
 	}
 }
-// Method Definition Index: 66284
+// Method Definition Index: 67253
 IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR TrackableId_t49EAE8AA4B9584E314518723DC22B66496D47AD7 XRBoundingBox_get_parentId_mD085E248182EB81C214477F843AB3A93BAE1E396_inline (XRBoundingBox_tF12DE2409AC158AA9821C5F37C76716468FA6F85* __this, const RuntimeMethod* method) 
 {
 	//<source_info:<no-source>:1>
@@ -25381,7 +25381,7 @@ IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR TrackableId_t49EAE8AA4B9584E31451
 		return L_0;
 	}
 }
-// Method Definition Index: 66918
+// Method Definition Index: 67887
 IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR Pose_t06BA69EAA6E9FAF60056D519A87D25F54AFE7971 XREnvironmentProbe_get_pose_m56C2FCB790DC220FAE0339EFC82055360984CAF0_inline (XREnvironmentProbe_tAA657FAB648E2599B519F9FD66A1CEED65034DD9* __this, const RuntimeMethod* method) 
 {
 	//<source_info:<no-source>:1>
@@ -25390,7 +25390,7 @@ IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR Pose_t06BA69EAA6E9FAF60056D519A87
 		return L_0;
 	}
 }
-// Method Definition Index: 66924
+// Method Definition Index: 67893
 IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR int32_t XREnvironmentProbe_get_trackingState_m4051D90D37D33EC33534368B64E5C85EA1888C83_inline (XREnvironmentProbe_tAA657FAB648E2599B519F9FD66A1CEED65034DD9* __this, const RuntimeMethod* method) 
 {
 	//<source_info:<no-source>:1>
@@ -25399,7 +25399,7 @@ IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR int32_t XREnvironmentProbe_get_tr
 		return L_0;
 	}
 }
-// Method Definition Index: 66926
+// Method Definition Index: 67895
 IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR intptr_t XREnvironmentProbe_get_nativePtr_m0C6C620B2D3C20FBE8AEE478EBEA0006E8E7FB40_inline (XREnvironmentProbe_tAA657FAB648E2599B519F9FD66A1CEED65034DD9* __this, const RuntimeMethod* method) 
 {
 	//<source_info:<no-source>:1>
@@ -25408,7 +25408,7 @@ IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR intptr_t XREnvironmentProbe_get_n
 		return L_0;
 	}
 }
-// Method Definition Index: 66928
+// Method Definition Index: 67897
 IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR TrackableId_t49EAE8AA4B9584E314518723DC22B66496D47AD7 XREnvironmentProbe_get_parentId_m93DB24135B2F46BF2853193588562B4E6D126E1B_inline (XREnvironmentProbe_tAA657FAB648E2599B519F9FD66A1CEED65034DD9* __this, const RuntimeMethod* method) 
 {
 	//<source_info:<no-source>:1>
@@ -25417,7 +25417,7 @@ IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR TrackableId_t49EAE8AA4B9584E31451
 		return L_0;
 	}
 }
-// Method Definition Index: 67021
+// Method Definition Index: 67990
 IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR Pose_t06BA69EAA6E9FAF60056D519A87D25F54AFE7971 XRFace_get_pose_m1625DED173751F25873C4BB6650238A195CD04EE_inline (XRFace_t235F951F4AC7CC6A0CA6829CECA05210D64982FB* __this, const RuntimeMethod* method) 
 {
 	//<source_info:<no-source>:1>
@@ -25426,7 +25426,7 @@ IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR Pose_t06BA69EAA6E9FAF60056D519A87
 		return L_0;
 	}
 }
-// Method Definition Index: 67022
+// Method Definition Index: 67991
 IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR int32_t XRFace_get_trackingState_m7D5C3002DCB9FC01F7C1BE66D3F1092281E847FB_inline (XRFace_t235F951F4AC7CC6A0CA6829CECA05210D64982FB* __this, const RuntimeMethod* method) 
 {
 	//<source_info:<no-source>:1>
@@ -25435,7 +25435,7 @@ IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR int32_t XRFace_get_trackingState_
 		return L_0;
 	}
 }
-// Method Definition Index: 67023
+// Method Definition Index: 67992
 IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR intptr_t XRFace_get_nativePtr_mCE3681420B25EA0AE4B5FA1687310DF7D49C0899_inline (XRFace_t235F951F4AC7CC6A0CA6829CECA05210D64982FB* __this, const RuntimeMethod* method) 
 {
 	//<source_info:<no-source>:1>
@@ -25444,7 +25444,7 @@ IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR intptr_t XRFace_get_nativePtr_mCE
 		return L_0;
 	}
 }
-// Method Definition Index: 67027
+// Method Definition Index: 67996
 IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR TrackableId_t49EAE8AA4B9584E314518723DC22B66496D47AD7 XRFace_get_parentId_m6A1F521E3A97116AD376BCEDF9CEC5C10EF0BBD0_inline (XRFace_t235F951F4AC7CC6A0CA6829CECA05210D64982FB* __this, const RuntimeMethod* method) 
 {
 	//<source_info:<no-source>:1>
@@ -25453,7 +25453,7 @@ IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR TrackableId_t49EAE8AA4B9584E31451
 		return L_0;
 	}
 }
-// Method Definition Index: 67126
+// Method Definition Index: 68095
 IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR Pose_t06BA69EAA6E9FAF60056D519A87D25F54AFE7971 XRHumanBody_get_pose_mE154F73E48997BDB6828FE12D7116E93E4D4BBCF_inline (XRHumanBody_t88EF91F599A4F22EABB233F85DE7782EE8B86692* __this, const RuntimeMethod* method) 
 {
 	//<source_info:<no-source>:1>
@@ -25462,7 +25462,7 @@ IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR Pose_t06BA69EAA6E9FAF60056D519A87
 		return L_0;
 	}
 }
-// Method Definition Index: 67130
+// Method Definition Index: 68099
 IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR int32_t XRHumanBody_get_trackingState_mE53C1B287B5BD8E021FCAC0E4550C0D551C0F79A_inline (XRHumanBody_t88EF91F599A4F22EABB233F85DE7782EE8B86692* __this, const RuntimeMethod* method) 
 {
 	//<source_info:<no-source>:1>
@@ -25471,7 +25471,7 @@ IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR int32_t XRHumanBody_get_trackingS
 		return L_0;
 	}
 }
-// Method Definition Index: 67132
+// Method Definition Index: 68101
 IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR intptr_t XRHumanBody_get_nativePtr_mBD7FABEADEC1EA20A472626430176AC6681C50E2_inline (XRHumanBody_t88EF91F599A4F22EABB233F85DE7782EE8B86692* __this, const RuntimeMethod* method) 
 {
 	//<source_info:<no-source>:1>
@@ -25480,7 +25480,7 @@ IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR intptr_t XRHumanBody_get_nativePt
 		return L_0;
 	}
 }
-// Method Definition Index: 67134
+// Method Definition Index: 68103
 IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR TrackableId_t49EAE8AA4B9584E314518723DC22B66496D47AD7 XRHumanBody_get_parentId_m7ADFA9D736134923F551D78834D6D2EAB059121A_inline (XRHumanBody_t88EF91F599A4F22EABB233F85DE7782EE8B86692* __this, const RuntimeMethod* method) 
 {
 	//<source_info:<no-source>:1>
@@ -25489,7 +25489,7 @@ IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR TrackableId_t49EAE8AA4B9584E31451
 		return L_0;
 	}
 }
-// Method Definition Index: 67379
+// Method Definition Index: 68348
 IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR Pose_t06BA69EAA6E9FAF60056D519A87D25F54AFE7971 XRMarker_get_pose_m970EA431244AE2BDCD40A822654527F80A4E311D_inline (XRMarker_tB71230354250D35F3BC8629A43B81E8A4BFA6C3D* __this, const RuntimeMethod* method) 
 {
 	//<source_info:<no-source>:1>
@@ -25498,7 +25498,7 @@ IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR Pose_t06BA69EAA6E9FAF60056D519A87
 		return L_0;
 	}
 }
-// Method Definition Index: 67380
+// Method Definition Index: 68349
 IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR int32_t XRMarker_get_trackingState_m1D2143C6DE3631D02C53040D7E68CDEA47E0E596_inline (XRMarker_tB71230354250D35F3BC8629A43B81E8A4BFA6C3D* __this, const RuntimeMethod* method) 
 {
 	//<source_info:<no-source>:1>
@@ -25507,7 +25507,7 @@ IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR int32_t XRMarker_get_trackingStat
 		return L_0;
 	}
 }
-// Method Definition Index: 67381
+// Method Definition Index: 68350
 IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR intptr_t XRMarker_get_nativePtr_m2BC04C61C9E4C1E3533524B475B69428C37B93B4_inline (XRMarker_tB71230354250D35F3BC8629A43B81E8A4BFA6C3D* __this, const RuntimeMethod* method) 
 {
 	//<source_info:<no-source>:1>
@@ -25516,7 +25516,7 @@ IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR intptr_t XRMarker_get_nativePtr_m
 		return L_0;
 	}
 }
-// Method Definition Index: 67386
+// Method Definition Index: 68355
 IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR TrackableId_t49EAE8AA4B9584E314518723DC22B66496D47AD7 XRMarker_get_parentId_m862A3B4AE409CB39921627BC1805130EC8548A54_inline (XRMarker_tB71230354250D35F3BC8629A43B81E8A4BFA6C3D* __this, const RuntimeMethod* method) 
 {
 	//<source_info:<no-source>:1>
@@ -25525,7 +25525,7 @@ IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR TrackableId_t49EAE8AA4B9584E31451
 		return L_0;
 	}
 }
-// Method Definition Index: 67668
+// Method Definition Index: 68637
 IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR Pose_t06BA69EAA6E9FAF60056D519A87D25F54AFE7971 XRParticipant_get_pose_m68A36D0B3837325D073CCB92A93F600A2D535B7B_inline (XRParticipant_t3885B841862D28B0509433D566F00FA3C3CD79E1* __this, const RuntimeMethod* method) 
 {
 	//<source_info:<no-source>:1>
@@ -25534,7 +25534,7 @@ IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR Pose_t06BA69EAA6E9FAF60056D519A87
 		return L_0;
 	}
 }
-// Method Definition Index: 67669
+// Method Definition Index: 68638
 IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR int32_t XRParticipant_get_trackingState_m65687E606627A087623C9937E49EDE133C5EDD89_inline (XRParticipant_t3885B841862D28B0509433D566F00FA3C3CD79E1* __this, const RuntimeMethod* method) 
 {
 	//<source_info:<no-source>:1>
@@ -25543,7 +25543,7 @@ IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR int32_t XRParticipant_get_trackin
 		return L_0;
 	}
 }
-// Method Definition Index: 67670
+// Method Definition Index: 68639
 IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR intptr_t XRParticipant_get_nativePtr_m55B683C801F0EDB9EBBCE21A31B507469838D09A_inline (XRParticipant_t3885B841862D28B0509433D566F00FA3C3CD79E1* __this, const RuntimeMethod* method) 
 {
 	//<source_info:<no-source>:1>
@@ -25552,7 +25552,7 @@ IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR intptr_t XRParticipant_get_native
 		return L_0;
 	}
 }
-// Method Definition Index: 67672
+// Method Definition Index: 68641
 IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR TrackableId_t49EAE8AA4B9584E314518723DC22B66496D47AD7 XRParticipant_get_parentId_m0B3CBDE0AA95424C8C7C4DBBF3723C02F3A11AD1_inline (XRParticipant_t3885B841862D28B0509433D566F00FA3C3CD79E1* __this, const RuntimeMethod* method) 
 {
 	//<source_info:<no-source>:1>
@@ -25561,7 +25561,7 @@ IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR TrackableId_t49EAE8AA4B9584E31451
 		return L_0;
 	}
 }
-// Method Definition Index: 67832
+// Method Definition Index: 68801
 IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR Pose_t06BA69EAA6E9FAF60056D519A87D25F54AFE7971 XRPointCloud_get_pose_m0A8AC4386A388238F4910916CDD3D1B936DB8A51_inline (XRPointCloud_t99DB921A9C92F53CEA3EB29A64E2DECDA6EA7D8C* __this, const RuntimeMethod* method) 
 {
 	//<source_info:<no-source>:1>
@@ -25570,7 +25570,7 @@ IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR Pose_t06BA69EAA6E9FAF60056D519A87
 		return L_0;
 	}
 }
-// Method Definition Index: 67833
+// Method Definition Index: 68802
 IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR int32_t XRPointCloud_get_trackingState_m2CD370D0D6A2A920AC1637D94BDD3BCC5DB8945D_inline (XRPointCloud_t99DB921A9C92F53CEA3EB29A64E2DECDA6EA7D8C* __this, const RuntimeMethod* method) 
 {
 	//<source_info:<no-source>:1>
@@ -25579,7 +25579,7 @@ IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR int32_t XRPointCloud_get_tracking
 		return L_0;
 	}
 }
-// Method Definition Index: 67834
+// Method Definition Index: 68803
 IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR intptr_t XRPointCloud_get_nativePtr_m606D5A1327EAF4D7A23811FE9D90BB8A027D5B11_inline (XRPointCloud_t99DB921A9C92F53CEA3EB29A64E2DECDA6EA7D8C* __this, const RuntimeMethod* method) 
 {
 	//<source_info:<no-source>:1>
@@ -25588,7 +25588,7 @@ IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR intptr_t XRPointCloud_get_nativeP
 		return L_0;
 	}
 }
-// Method Definition Index: 67835
+// Method Definition Index: 68804
 IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR TrackableId_t49EAE8AA4B9584E314518723DC22B66496D47AD7 XRPointCloud_get_parentId_m142DB8186A60AA4EDF6977E5C2260ED984CC8C9F_inline (XRPointCloud_t99DB921A9C92F53CEA3EB29A64E2DECDA6EA7D8C* __this, const RuntimeMethod* method) 
 {
 	//<source_info:<no-source>:1>
@@ -25597,7 +25597,7 @@ IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR TrackableId_t49EAE8AA4B9584E31451
 		return L_0;
 	}
 }
-// Method Definition Index: 67892
+// Method Definition Index: 68861
 IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR Pose_t06BA69EAA6E9FAF60056D519A87D25F54AFE7971 XRRaycast_get_pose_mADE80A4AABEFCCCB8297186D7E836EAE5B730F73_inline (XRRaycast_t100015712885CDF4EF42820EB36277DC6DDC8103* __this, const RuntimeMethod* method) 
 {
 	//<source_info:<no-source>:1>
@@ -25606,7 +25606,7 @@ IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR Pose_t06BA69EAA6E9FAF60056D519A87
 		return L_0;
 	}
 }
-// Method Definition Index: 67893
+// Method Definition Index: 68862
 IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR int32_t XRRaycast_get_trackingState_mDBA1DEB482B9346E44263E8B2201C1D8AF919B09_inline (XRRaycast_t100015712885CDF4EF42820EB36277DC6DDC8103* __this, const RuntimeMethod* method) 
 {
 	//<source_info:<no-source>:1>
@@ -25615,7 +25615,7 @@ IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR int32_t XRRaycast_get_trackingSta
 		return L_0;
 	}
 }
-// Method Definition Index: 67894
+// Method Definition Index: 68863
 IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR intptr_t XRRaycast_get_nativePtr_m79D980249D35343744B394D7238F8A8FB943D484_inline (XRRaycast_t100015712885CDF4EF42820EB36277DC6DDC8103* __this, const RuntimeMethod* method) 
 {
 	//<source_info:<no-source>:1>
@@ -25624,7 +25624,7 @@ IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR intptr_t XRRaycast_get_nativePtr_
 		return L_0;
 	}
 }
-// Method Definition Index: 67897
+// Method Definition Index: 68866
 IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR TrackableId_t49EAE8AA4B9584E314518723DC22B66496D47AD7 XRRaycast_get_parentId_mA111941841202CC7856FB969B1036B8E173F0840_inline (XRRaycast_t100015712885CDF4EF42820EB36277DC6DDC8103* __this, const RuntimeMethod* method) 
 {
 	//<source_info:<no-source>:1>
@@ -25633,7 +25633,7 @@ IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR TrackableId_t49EAE8AA4B9584E31451
 		return L_0;
 	}
 }
-// Method Definition Index: 67361
+// Method Definition Index: 68330
 IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR Pose_t06BA69EAA6E9FAF60056D519A87D25F54AFE7971 XRTrackedImage_get_pose_m24132085AC8CCE5762C01ECCC1C264A36E77FD69_inline (XRTrackedImage_t0F99DAB96B2D6422D0F8DA720F9BEFD3655DDFDD* __this, const RuntimeMethod* method) 
 {
 	//<source_info:<no-source>:1>
@@ -25642,7 +25642,7 @@ IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR Pose_t06BA69EAA6E9FAF60056D519A87
 		return L_0;
 	}
 }
-// Method Definition Index: 67363
+// Method Definition Index: 68332
 IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR int32_t XRTrackedImage_get_trackingState_m059B99A670B142384AE772376780095877CA72F9_inline (XRTrackedImage_t0F99DAB96B2D6422D0F8DA720F9BEFD3655DDFDD* __this, const RuntimeMethod* method) 
 {
 	//<source_info:<no-source>:1>
@@ -25651,7 +25651,7 @@ IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR int32_t XRTrackedImage_get_tracki
 		return L_0;
 	}
 }
-// Method Definition Index: 67364
+// Method Definition Index: 68333
 IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR intptr_t XRTrackedImage_get_nativePtr_m2ECEAC93477008FB415D4A388ACAA4A9DB6E1892_inline (XRTrackedImage_t0F99DAB96B2D6422D0F8DA720F9BEFD3655DDFDD* __this, const RuntimeMethod* method) 
 {
 	//<source_info:<no-source>:1>
@@ -25660,7 +25660,7 @@ IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR intptr_t XRTrackedImage_get_nativ
 		return L_0;
 	}
 }
-// Method Definition Index: 67365
+// Method Definition Index: 68334
 IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR TrackableId_t49EAE8AA4B9584E314518723DC22B66496D47AD7 XRTrackedImage_get_parentId_m0FDFD30028D372FB73E7D0FB2131D4763F87C2C0_inline (XRTrackedImage_t0F99DAB96B2D6422D0F8DA720F9BEFD3655DDFDD* __this, const RuntimeMethod* method) 
 {
 	//<source_info:<no-source>:1>
@@ -25669,7 +25669,7 @@ IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR TrackableId_t49EAE8AA4B9584E31451
 		return L_0;
 	}
 }
-// Method Definition Index: 67498
+// Method Definition Index: 68467
 IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR Pose_t06BA69EAA6E9FAF60056D519A87D25F54AFE7971 XRTrackedObject_get_pose_mC8BBDFCC19D9FAF22FA0484E58C5BB1114C929C7_inline (XRTrackedObject_t56B5A101A8698B5C95F2CBE93FCF0F8911B67E75* __this, const RuntimeMethod* method) 
 {
 	//<source_info:<no-source>:1>
@@ -25678,7 +25678,7 @@ IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR Pose_t06BA69EAA6E9FAF60056D519A87
 		return L_0;
 	}
 }
-// Method Definition Index: 67499
+// Method Definition Index: 68468
 IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR int32_t XRTrackedObject_get_trackingState_m7D1D9DD436ECB10D02D1413AB660ACBC23D60E89_inline (XRTrackedObject_t56B5A101A8698B5C95F2CBE93FCF0F8911B67E75* __this, const RuntimeMethod* method) 
 {
 	//<source_info:<no-source>:1>
@@ -25687,7 +25687,7 @@ IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR int32_t XRTrackedObject_get_track
 		return L_0;
 	}
 }
-// Method Definition Index: 67500
+// Method Definition Index: 68469
 IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR intptr_t XRTrackedObject_get_nativePtr_m804A89CA593F513109FCBC04A4FB2C16505F388C_inline (XRTrackedObject_t56B5A101A8698B5C95F2CBE93FCF0F8911B67E75* __this, const RuntimeMethod* method) 
 {
 	//<source_info:<no-source>:1>
@@ -25696,7 +25696,7 @@ IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR intptr_t XRTrackedObject_get_nati
 		return L_0;
 	}
 }
-// Method Definition Index: 67502
+// Method Definition Index: 68471
 IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR TrackableId_t49EAE8AA4B9584E314518723DC22B66496D47AD7 XRTrackedObject_get_parentId_mF9514C7F6AFC6806DC9E313EAB19B60C4CD05047_inline (XRTrackedObject_t56B5A101A8698B5C95F2CBE93FCF0F8911B67E75* __this, const RuntimeMethod* method) 
 {
 	//<source_info:<no-source>:1>
@@ -25801,7 +25801,7 @@ IL_003c:
 		return;
 	}
 }
-// Method Definition Index: 66855
+// Method Definition Index: 67824
 IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR NativeArray_1_tDB8B8DC66CC8E16ED6D9A8C75D2C1AFC80AC1E18 TrackableChanges_1_get_added_m73BB2284A0AF0BFBFCAA80F8F5B4FF7B66BCF367_fshared_inline (TrackableChanges_1_t766C81F173FAD10AE2354632C3ED8BC00F0F55FD* __this, const RuntimeMethod* method) 
 {
 	//<source_info:<no-source>:1>
@@ -25901,7 +25901,7 @@ IL_003f:
 		return (bool)0;
 	}
 }
-// Method Definition Index: 66856
+// Method Definition Index: 67825
 IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR NativeArray_1_tDB8B8DC66CC8E16ED6D9A8C75D2C1AFC80AC1E18 TrackableChanges_1_get_updated_m66EA7E8039DF12806D9D4625B79C453CC5C98BD6_fshared_inline (TrackableChanges_1_t766C81F173FAD10AE2354632C3ED8BC00F0F55FD* __this, const RuntimeMethod* method) 
 {
 	//<source_info:<no-source>:1>
@@ -25941,7 +25941,7 @@ IL_003c:
 		return;
 	}
 }
-// Method Definition Index: 66857
+// Method Definition Index: 67826
 IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR NativeArray_1_t7A26520FDE477098D7B2CC8D14E778889D50A15E TrackableChanges_1_get_removed_mAB913A3B635F6ABE4EF7A3CD18B3C120DD5F2738_fshared_inline (TrackableChanges_1_t766C81F173FAD10AE2354632C3ED8BC00F0F55FD* __this, const RuntimeMethod* method) 
 {
 	//<source_info:<no-source>:1>
@@ -27308,7 +27308,7 @@ IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR XRTrackedObject_t56B5A101A8698B5C
 		return L_2;
 	}
 }
-// Method Definition Index: 78699
+// Method Definition Index: 78759
 IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR BoundedPlane_tF51C315A8961EB42F0A1B60D47158646E5AF75CE UnsafeUtilityInternal_ReadArrayElement_TisBoundedPlane_tF51C315A8961EB42F0A1B60D47158646E5AF75CE_mD1DE0F69D4477B33A3A3C208CEB9059CA23CB44A_inline (void* ___0_source, int32_t ___1_index, const RuntimeMethod* method) 
 {
 	//<source_info:<no-source>:1>
@@ -27323,7 +27323,7 @@ IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR BoundedPlane_tF51C315A8961EB42F0A
 		return L_6;
 	}
 }
-// Method Definition Index: 78699
+// Method Definition Index: 78759
 IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR TrackableId_t49EAE8AA4B9584E314518723DC22B66496D47AD7 UnsafeUtilityInternal_ReadArrayElement_TisTrackableId_t49EAE8AA4B9584E314518723DC22B66496D47AD7_mD07B0367A1F2D164C367D7B7104A0D2B36B4C1FA_inline (void* ___0_source, int32_t ___1_index, const RuntimeMethod* method) 
 {
 	//<source_info:<no-source>:1>
@@ -27338,7 +27338,7 @@ IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR TrackableId_t49EAE8AA4B9584E31451
 		return L_6;
 	}
 }
-// Method Definition Index: 78699
+// Method Definition Index: 78759
 IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR XRAnchor_tDD427E66CAA09DE7B058EA76223EF7DC3880FE82 UnsafeUtilityInternal_ReadArrayElement_TisXRAnchor_tDD427E66CAA09DE7B058EA76223EF7DC3880FE82_m9F0D1EFF45F5B53C61A23BE64799BC4042B66A33_inline (void* ___0_source, int32_t ___1_index, const RuntimeMethod* method) 
 {
 	//<source_info:<no-source>:1>
@@ -27353,7 +27353,7 @@ IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR XRAnchor_tDD427E66CAA09DE7B058EA7
 		return L_6;
 	}
 }
-// Method Definition Index: 78699
+// Method Definition Index: 78759
 IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR XRBoundingBox_tF12DE2409AC158AA9821C5F37C76716468FA6F85 UnsafeUtilityInternal_ReadArrayElement_TisXRBoundingBox_tF12DE2409AC158AA9821C5F37C76716468FA6F85_mF43A772228F34772A7D82D67026FCC3A285FEB36_inline (void* ___0_source, int32_t ___1_index, const RuntimeMethod* method) 
 {
 	//<source_info:<no-source>:1>
@@ -27368,7 +27368,7 @@ IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR XRBoundingBox_tF12DE2409AC158AA98
 		return L_6;
 	}
 }
-// Method Definition Index: 78699
+// Method Definition Index: 78759
 IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR XREnvironmentProbe_tAA657FAB648E2599B519F9FD66A1CEED65034DD9 UnsafeUtilityInternal_ReadArrayElement_TisXREnvironmentProbe_tAA657FAB648E2599B519F9FD66A1CEED65034DD9_mA2BAD63574A7CBA1DB1F9AED49D38B67679AD72B_inline (void* ___0_source, int32_t ___1_index, const RuntimeMethod* method) 
 {
 	//<source_info:<no-source>:1>
@@ -27383,7 +27383,7 @@ IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR XREnvironmentProbe_tAA657FAB648E2
 		return L_6;
 	}
 }
-// Method Definition Index: 78699
+// Method Definition Index: 78759
 IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR XRFace_t235F951F4AC7CC6A0CA6829CECA05210D64982FB UnsafeUtilityInternal_ReadArrayElement_TisXRFace_t235F951F4AC7CC6A0CA6829CECA05210D64982FB_m7985DB038DDD5668FA76E77C9653F1EBDFEE7D5F_inline (void* ___0_source, int32_t ___1_index, const RuntimeMethod* method) 
 {
 	//<source_info:<no-source>:1>
@@ -27398,7 +27398,7 @@ IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR XRFace_t235F951F4AC7CC6A0CA6829CE
 		return L_6;
 	}
 }
-// Method Definition Index: 78699
+// Method Definition Index: 78759
 IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR XRHumanBody_t88EF91F599A4F22EABB233F85DE7782EE8B86692 UnsafeUtilityInternal_ReadArrayElement_TisXRHumanBody_t88EF91F599A4F22EABB233F85DE7782EE8B86692_m2F46D64679D5AAFF06F464521C89341001727253_inline (void* ___0_source, int32_t ___1_index, const RuntimeMethod* method) 
 {
 	//<source_info:<no-source>:1>
@@ -27413,7 +27413,7 @@ IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR XRHumanBody_t88EF91F599A4F22EABB2
 		return L_6;
 	}
 }
-// Method Definition Index: 78699
+// Method Definition Index: 78759
 IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR XRMarker_tB71230354250D35F3BC8629A43B81E8A4BFA6C3D UnsafeUtilityInternal_ReadArrayElement_TisXRMarker_tB71230354250D35F3BC8629A43B81E8A4BFA6C3D_mDE7009EB9A2985756E099B1163D999D8A69BB210_inline (void* ___0_source, int32_t ___1_index, const RuntimeMethod* method) 
 {
 	//<source_info:<no-source>:1>
@@ -27428,7 +27428,7 @@ IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR XRMarker_tB71230354250D35F3BC8629
 		return L_6;
 	}
 }
-// Method Definition Index: 78699
+// Method Definition Index: 78759
 IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR XRParticipant_t3885B841862D28B0509433D566F00FA3C3CD79E1 UnsafeUtilityInternal_ReadArrayElement_TisXRParticipant_t3885B841862D28B0509433D566F00FA3C3CD79E1_m3A5D827554C44179BC075105856D2B3115D95BB7_inline (void* ___0_source, int32_t ___1_index, const RuntimeMethod* method) 
 {
 	//<source_info:<no-source>:1>
@@ -27443,7 +27443,7 @@ IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR XRParticipant_t3885B841862D28B050
 		return L_6;
 	}
 }
-// Method Definition Index: 78699
+// Method Definition Index: 78759
 IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR XRPointCloud_t99DB921A9C92F53CEA3EB29A64E2DECDA6EA7D8C UnsafeUtilityInternal_ReadArrayElement_TisXRPointCloud_t99DB921A9C92F53CEA3EB29A64E2DECDA6EA7D8C_m6C9A8CA404D72F61F206A78A1850ECC00532B52E_inline (void* ___0_source, int32_t ___1_index, const RuntimeMethod* method) 
 {
 	//<source_info:<no-source>:1>
@@ -27458,7 +27458,7 @@ IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR XRPointCloud_t99DB921A9C92F53CEA3
 		return L_6;
 	}
 }
-// Method Definition Index: 78699
+// Method Definition Index: 78759
 IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR XRRaycast_t100015712885CDF4EF42820EB36277DC6DDC8103 UnsafeUtilityInternal_ReadArrayElement_TisXRRaycast_t100015712885CDF4EF42820EB36277DC6DDC8103_m536D03F3E6D61E173A662FED694717E0F387C836_inline (void* ___0_source, int32_t ___1_index, const RuntimeMethod* method) 
 {
 	//<source_info:<no-source>:1>
@@ -27473,7 +27473,7 @@ IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR XRRaycast_t100015712885CDF4EF4282
 		return L_6;
 	}
 }
-// Method Definition Index: 78699
+// Method Definition Index: 78759
 IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR XRTrackedImage_t0F99DAB96B2D6422D0F8DA720F9BEFD3655DDFDD UnsafeUtilityInternal_ReadArrayElement_TisXRTrackedImage_t0F99DAB96B2D6422D0F8DA720F9BEFD3655DDFDD_mF37F2E30D3B5538EF1D350D7FE1356416C0C98DA_inline (void* ___0_source, int32_t ___1_index, const RuntimeMethod* method) 
 {
 	//<source_info:<no-source>:1>
@@ -27488,7 +27488,7 @@ IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR XRTrackedImage_t0F99DAB96B2D6422D
 		return L_6;
 	}
 }
-// Method Definition Index: 78699
+// Method Definition Index: 78759
 IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR XRTrackedObject_t56B5A101A8698B5C95F2CBE93FCF0F8911B67E75 UnsafeUtilityInternal_ReadArrayElement_TisXRTrackedObject_t56B5A101A8698B5C95F2CBE93FCF0F8911B67E75_m78ED87B4B65A06F10E8CB77945997E6144677812_inline (void* ___0_source, int32_t ___1_index, const RuntimeMethod* method) 
 {
 	//<source_info:<no-source>:1>
