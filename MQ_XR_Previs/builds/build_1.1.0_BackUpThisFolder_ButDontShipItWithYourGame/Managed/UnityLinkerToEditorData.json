@@ -1164,6 +1164,18 @@
             "icon": null
           },
           {
+            "name": "FixedJoint",
+            "scenes": [],
+            "dependencyType": 0,
+            "icon": null
+          },
+          {
+            "name": "Joint",
+            "scenes": [],
+            "dependencyType": 1,
+            "icon": null
+          },
+          {
             "name": "MeshCollider",
             "scenes": [
               "Assets/Scenes/BasicScene.unity"
@@ -1213,9 +1225,33 @@
         "name": "Physics2D",
         "dependencies": [
           {
+            "name": "AnchoredJoint2D",
+            "scenes": [],
+            "dependencyType": 1,
+            "icon": null
+          },
+          {
+            "name": "FixedJoint2D",
+            "scenes": [],
+            "dependencyType": 0,
+            "icon": null
+          },
+          {
+            "name": "Joint2D",
+            "scenes": [],
+            "dependencyType": 1,
+            "icon": null
+          },
+          {
             "name": "Physics2DSettings",
             "scenes": [],
             "dependencyType": 1,
+            "icon": null
+          },
+          {
+            "name": "Rigidbody2D",
+            "scenes": [],
+            "dependencyType": 0,
             "icon": null
           }
         ]

@@ -1321,12 +1321,12 @@ static const Il2CppTokenIndexMethodTuple s_reversePInvokeIndices[20] =
 	{ 0x060000D4, 29,  (void**)&BatchLoadAnchors_OnBatchLoadAsyncComplete_m522F876D7FDD3B71A42C849612128C0B7C25A840_RuntimeMethod_var, 0 },
 	{ 0x060000E0, 31,  (void**)&BatchSaveAnchors_OnBatchSaveAsyncComplete_mD2B2175C6FEA37094A9D3742AEAD891D2610B234_RuntimeMethod_var, 0 },
 	{ 0x060000E8, 32,  (void**)&BatchShareAnchors_OnBatchShareAsyncComplete_m20CE9A882B13708A7B2804E19FEE740B6A810445_RuntimeMethod_var, 0 },
-	{ 0x060000F0, 187,  (void**)&LoadAllSharedAnchors_OnIncrementalLoadResultsAvailable_mDFD118F95B13AD528951A34CCF4A11A2312A357D_RuntimeMethod_var, 0 },
-	{ 0x060000F1, 186,  (void**)&LoadAllSharedAnchors_OnBatchLoadAsyncComplete_mF301D47681DB9ED2405FD603739A492B46A18D5A_RuntimeMethod_var, 0 },
-	{ 0x06000133, 207,  (void**)&SingleEraseAnchor_OnSingleEraseAsyncComplete_m1B0020815CCEE4799AC799CAEF27840F16DA7985_RuntimeMethod_var, 0 },
-	{ 0x0600013B, 208,  (void**)&SingleLoadAnchor_OnSingleLoadAsyncComplete_m09A96CB2A9D4F4334F894391D10698B9B22293EB_RuntimeMethod_var, 0 },
-	{ 0x06000143, 209,  (void**)&SingleSaveAnchor_OnSingleSaveAsyncComplete_mD321D99E7CCCD8F8A9B432756B8F1A5A84D8F792_RuntimeMethod_var, 0 },
-	{ 0x0600014B, 210,  (void**)&SingleShareAnchor_OnSingleShareAsyncComplete_m4829D6EEA306D6454717E5ABAC899212C2C44289_RuntimeMethod_var, 0 },
+	{ 0x060000F0, 190,  (void**)&LoadAllSharedAnchors_OnIncrementalLoadResultsAvailable_mDFD118F95B13AD528951A34CCF4A11A2312A357D_RuntimeMethod_var, 0 },
+	{ 0x060000F1, 189,  (void**)&LoadAllSharedAnchors_OnBatchLoadAsyncComplete_mF301D47681DB9ED2405FD603739A492B46A18D5A_RuntimeMethod_var, 0 },
+	{ 0x06000133, 223,  (void**)&SingleEraseAnchor_OnSingleEraseAsyncComplete_m1B0020815CCEE4799AC799CAEF27840F16DA7985_RuntimeMethod_var, 0 },
+	{ 0x0600013B, 224,  (void**)&SingleLoadAnchor_OnSingleLoadAsyncComplete_m09A96CB2A9D4F4334F894391D10698B9B22293EB_RuntimeMethod_var, 0 },
+	{ 0x06000143, 225,  (void**)&SingleSaveAnchor_OnSingleSaveAsyncComplete_mD321D99E7CCCD8F8A9B432756B8F1A5A84D8F792_RuntimeMethod_var, 0 },
+	{ 0x0600014B, 226,  (void**)&SingleShareAnchor_OnSingleShareAsyncComplete_m4829D6EEA306D6454717E5ABAC899212C2C44289_RuntimeMethod_var, 0 },
 };
 IL2CPP_EXTERN_C const Il2CppCodeGenModule g_Unity_XR_MetaOpenXR_CodeGenModule;
 const Il2CppCodeGenModule g_Unity_XR_MetaOpenXR_CodeGenModule = 

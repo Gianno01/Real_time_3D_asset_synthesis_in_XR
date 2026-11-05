@@ -1,0 +1,8 @@
+{
+  "name": "xr-sync",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Relay in tempo reale della scena XR: un visore host pubblica, i visori e i browser spettatori guardano",
+  "main": "server.js",
+  "dependencies": { "ws": "8.18.0", "three": "0.160.0" }
+}

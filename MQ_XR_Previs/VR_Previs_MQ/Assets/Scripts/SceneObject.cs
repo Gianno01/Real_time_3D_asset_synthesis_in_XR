@@ -36,6 +36,8 @@ public class SceneObject : MonoBehaviour
     public string placedBy = "";
     public float genImageSeconds, genModelSeconds;
 
+    [NonSerialized] public string syncId;   // identificativo nel multiplayer (assegnato da SyncHost; la copia ne riceve uno nuovo)
+
     [NonSerialized] public Texture2D thumbnail;   // miniatura 256 px (solo oggetti generati in questa sessione)
 
     public bool IsSaved => !string.IsNullOrEmpty(assetId);

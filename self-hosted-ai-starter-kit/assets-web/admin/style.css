@@ -31,6 +31,8 @@ svg { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; 
 .brand svg { width: 26px; height: 26px; color: var(--accent); }
 .tabs { display: flex; gap: 4px; }
 .tabs button { background: none; border: 0; color: var(--dim); font: inherit; font-weight: 600; padding: 8px 14px; border-radius: 9px; cursor: pointer; }
+.tabs .tablink { color: var(--dim); font: inherit; font-weight: 600; padding: 8px 14px; border-radius: 9px; text-decoration: none; }
+.tabs .tablink:hover { color: var(--text); background: var(--card); }
 .tabs button:hover { color: var(--text); background: var(--card); }
 .tabs button[aria-selected="true"] { color: var(--text); background: var(--accent-bg); }
 .health { margin-left: auto; display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--dim); }

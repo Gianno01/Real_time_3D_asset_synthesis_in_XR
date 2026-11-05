@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b0d12">
+<title>Vista live · Libreria XR</title>
+<link rel="stylesheet" href="style.css">
+<script>
+// three.js: prima la copia servita dal relay (funziona senza Internet), altrimenti il CDN.
+// L'import map va definita PRIMA del modulo che la usa, quindi si decide qui, in modo sincrono.
+(function () {
+  var local = '/sync/vendor/', cdn = 'https://cdn.jsdelivr.net/npm/three@0.160.0/';
+  var useLocal = false;
+  try {
+    var x = new XMLHttpRequest();
+    x.open('HEAD', local + 'three.module.js', false);
+    x.send();
+    useLocal = x.status === 200;
+  } catch (e) {}
+  var map = useLocal
+    ? { three: local + 'three.module.js', 'three/addons/': local + 'addons/' }
+    : { three: cdn + 'build/three.module.js', 'three/addons/': cdn + 'examples/jsm/' };
+  var s = document.createElement('script');
+  s.type = 'importmap';
+  s.textContent = JSON.stringify({ imports: map });
+  document.head.appendChild(s);
+  var m = document.createElement('script');
+  m.type = 'module';
+  m.src = 'viewer.js';
+  document.head.appendChild(m);
+})();
+</script>
+</head>
+<body>
+<div id="stage"></div>
+<div class="bar">
+  <span class="dot" id="dot"></span><span class="title">Vista live</span><span id="status">Connessione…</span>
+  <span id="viewers"></span>
+  <span id="scene"></span>
+</div>
+<div id="gen" hidden></div>
+<div id="hint"></div>
+<div class="tools">
+  <button data-mode="orbit" class="on">Libera</button>
+  <button data-mode="top">Dall’alto</button>
+  <button data-mode="follow">Come il visore</button>
+  <button id="listBtn">Oggetti (<span id="count">0</span>)</button>
+</div>
+<aside id="drawer"><h2>OGGETTI IN SCENA</h2><ul id="list"></ul></aside>
+</body>
+</html>

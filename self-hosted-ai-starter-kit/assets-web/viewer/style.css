@@ -1,0 +1,25 @@
+:root { color-scheme: dark; --bg:#0b0d12; --card:#12151c; --line:#232a38; --text:#eef1f6; --dim:#8b95a8; --acc:#6aa3ff; --ok:#33dc8f; --warn:#ffb44d; --bad:#ff6b6b; }
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); font: 15px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif; overflow: hidden; }
+#stage { position: fixed; inset: 0; }
+#stage canvas { width: 100%; height: 100%; display: block; touch-action: none; }
+.bar { position: fixed; left: 0; right: 0; top: 0; display: flex; align-items: center; gap: 10px; padding: 10px 16px; padding-top: max(10px, env(safe-area-inset-top)); background: linear-gradient(#0b0d12e6, #0b0d1200); pointer-events: none; }
+.bar > * { pointer-events: auto; }
+.title { font-weight: 650; }
+.dot { width: 10px; height: 10px; border-radius: 50%; background: var(--dim); flex: none; }
+.dot.ok { background: var(--ok); box-shadow: 0 0 8px var(--ok); } .dot.warn { background: var(--warn); } .dot.bad { background: var(--bad); }
+#status { color: var(--dim); }
+#scene { color: var(--acc); margin-left: auto; text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 40%; }
+#viewers { color: var(--dim); font-size: 13px; }
+#gen { position: fixed; top: 52px; left: 50%; transform: translateX(-50%); max-width: calc(100% - 32px); padding: 8px 14px; border-radius: 999px; background: #1a2740ee; border: 1px solid #2d4a7a; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#gen[hidden] { display: none; }
+.tools { position: fixed; left: 0; right: 0; bottom: 0; display: flex; justify-content: center; gap: 8px; padding: 12px 16px; padding-bottom: max(12px, env(safe-area-inset-bottom)); }
+button { font: inherit; color: var(--text); background: #12151cdd; border: 1px solid var(--line); border-radius: 12px; padding: 10px 14px; min-height: 44px; backdrop-filter: blur(6px); }
+button.on { background: #1d3258; border-color: #3a64a8; }
+#hint { position: fixed; left: 0; right: 0; bottom: 70px; text-align: center; color: var(--warn); font-size: 13px; padding: 0 16px; }
+#drawer { position: fixed; right: 0; top: 0; bottom: 0; width: min(320px, 85vw); background: var(--card); border-left: 1px solid var(--line); transform: translateX(100%); transition: transform .2s; padding: 56px 0 80px; overflow: auto; }
+#drawer.open { transform: none; }
+#drawer h2 { font-size: 13px; letter-spacing: .08em; color: var(--acc); margin: 0; padding: 0 16px 8px; }
+#list { list-style: none; margin: 0; padding: 0; }
+#list li { display: flex; justify-content: space-between; gap: 8px; padding: 12px 16px; border-top: 1px solid var(--line); }
+#list li small { color: var(--dim); }

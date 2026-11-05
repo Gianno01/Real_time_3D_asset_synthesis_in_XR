@@ -31,6 +31,8 @@ public class SettingsUI : MonoBehaviour
 #endif
     [Tooltip("Calibrazione della stanza (se vuoto viene cercata nella scena)")]
     public RoomCalibration roomCalibration;
+    [Tooltip("Multiplayer in sola visione (se vuoto viene creato da solo)")]
+    public SyncManager sync;
 
     [Header("Posizione")]
     [Tooltip("Pulsante \"Impostazioni\" usato solo se nella scena non c'è il pannello di controllo (GenerationStatusUI)")]
@@ -44,10 +46,11 @@ public class SettingsUI : MonoBehaviour
 
     const string Prefix = "xr.settings.";
 #if SCENE_OCCLUSION
-    const float PanelH = 780f;
+    const float BasePanelH = 780f;     // altezza per cui sono tarati i valori di panelOffset
 #else
-    const float PanelH = 650f;
+    const float BasePanelH = 650f;
 #endif
+    float PanelH = BasePanelH;         // calcolata sulle righe presenti (BuildPanel)
     const float PanelW = 720f, ColW = 324f, RowH = 44f;
 
     static readonly Color CardBg   = new Color(0.07f, 0.08f, 0.11f, 0.94f);
@@ -123,6 +126,7 @@ public class SettingsUI : MonoBehaviour
         if (occlusion == null) occlusion = SceneOcclusion.EnsureExists(gameObject);
 #endif
         if (roomCalibration == null) roomCalibration = FindAnyObjectByType<RoomCalibration>();
+        if (sync == null) sync = SyncManager.EnsureExists(gameObject);
         if (generator == null) { Debug.LogError("[SettingsUI] Serve QuestObjectGenerator nella scena."); enabled = false; return; }
 
         Define();
@@ -198,6 +202,21 @@ public class SettingsUI : MonoBehaviour
         }
 #endif
         if (room.Count > 0) Add(_right, "STANZA", room.ToArray());
+
+        if (sync != null)
+            Add(_right, "MULTIPLAYER",
+                Step("sync_role", "Questo dispositivo", new[] { 0f, 1f, 2f },
+                     () => (float)(int)sync.Role, v => sync.SetRole((SyncRole)Mathf.RoundToInt(v)),
+                     v => new[] { "Spento", "Host", "Spettatore" }[Mathf.Clamp(Mathf.RoundToInt(v), 0, 2)]),
+                Step("sync_link", "Collegamento visori", new[] { 0f, 1f },
+                     () => (float)(int)sync.LinkMode, v => sync.SetLinkMode((SyncLinkMode)Mathf.RoundToInt(v)),
+                     v => Mathf.RoundToInt(v) == 1 ? (sync.NetcodeAvailable ? "Netcode (LAN)" : "Netcode (non installato)") : "Relay (server)"),
+                new ActionSetting
+                {
+                    key = "sync_status", label = "Rete", buttonText = "Riconnetti", confirm = false,
+                    status = () => sync.StatusLabel,
+                    run = () => sync.Reconnect(),
+                });
 
         if (statusUI != null)
             Add(_right, "INTERFACCIA",
@@ -338,13 +357,26 @@ public class SettingsUI : MonoBehaviour
 
     // ── Costruzione UI ────────────────────────────────────────────────
 
+    // altezza = parte alta (70) + colonna più lunga + riga di Ripristina (70); mai meno del valore tarato
+    float ComputePanelHeight()
+    {
+        float Column(List<(string section, List<Setting> items)> col)
+        {
+            float y = 70;
+            foreach (var (_, items) in col) y += 30 + items.Count * RowH + 8;
+            return y;
+        }
+        return Mathf.Max(BasePanelH, Mathf.Max(Column(_left), Column(_right)) + 70f);
+    }
+
     void BuildPanel()
     {
+        PanelH = ComputePanelHeight();
         var root = NewCanvas("SettingsPanel", PanelW, PanelH, out _panel);
         if (statusUI != null)
         {
             _panel.SetParent(statusUI.transform, false);
-            _panel.localPosition = panelOffset;
+            _panel.localPosition = panelOffset + Vector3.up * ((PanelH - BasePanelH) * 0.0005f);   // più alto: il pannello cresce verso l'alto
             _panel.localRotation = Quaternion.Euler(panelTilt, 0f, 0f);
         }
         else

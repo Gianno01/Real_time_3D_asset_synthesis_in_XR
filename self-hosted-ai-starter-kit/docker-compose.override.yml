@@ -4,11 +4,14 @@
 #   seaweedfs   storage dei file (GLB, immagini, miniature). Interno alla rete docker: solo n8n può scrivere.
 #   assets-web  nginx: file in SOLA LETTURA per i visori (http://<IP_PC>:8090/assets/...)
 #               + pannello web di gestione http://<IP_PC>:8090/admin/ (inventario, caricamento GLB, scene)
+#   sync        relay in tempo reale (Node.js): il visore "host" pubblica la scena, visori e browser spettatori la guardano.
+#               Il browser apre http://<IP_PC>:8090/viewer/ ; i visori si collegano a ws://<IP_PC>:8090/sync
 #
-# Entrambi gratuiti e open source (SeaweedFS: Apache-2.0, nginx: BSD-2).
+# Tutto gratuito e open source (SeaweedFS: Apache-2.0, nginx: BSD-2, Node.js e ws: MIT, three.js: MIT).
 
 volumes:
   seaweedfs_storage:
+  sync_modules:
 
 services:
   seaweedfs:
@@ -32,7 +35,23 @@ services:
     volumes:
       - ./assets-web/nginx.conf:/etc/nginx/conf.d/default.conf:ro
       - ./assets-web/admin:/usr/share/nginx/admin:ro
+      - ./assets-web/viewer:/usr/share/nginx/viewer:ro
       # - ./assets-web/.htpasswd:/etc/nginx/.htpasswd:ro     # facoltativo: password (vedi nginx.conf)
+    extra_hosts:
+      - "host.docker.internal:host-gateway"   # per leggere da ComfyUI (/comfy/view) quando gira sul PC, fuori da Docker
     depends_on:
       - seaweedfs
       - n8n
+
+  sync:
+    image: node:20-alpine
+    container_name: sync
+    networks: ['demo']
+    restart: unless-stopped
+    working_dir: /app
+    volumes:
+      - ./sync:/app
+      - sync_modules:/app/node_modules
+    # al primo avvio installa "ws" e "three" (serve Internet una volta sola); poi parte subito
+    command: sh -c "[ -d node_modules/ws ] && [ -d node_modules/three ] || npm install --no-audit --no-fund --omit=dev; exec node server.js"
+    # nessuna porta pubblicata: si passa da nginx (porta 8090, percorso /sync)
