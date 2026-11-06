@@ -5650,10 +5650,10 @@ IL2CPP_EXTERN_C  void Enumerator_System_Collections_IEnumerator_Reset_mB7DC07CE7
 #pragma clang diagnostic ignored "-Winvalid-offsetof"
 #pragma clang diagnostic ignored "-Wunused-variable"
 #endif
-// Method Definition Index: 59189
-// Method Definition Index: 59190
-// Method Definition Index: 59191
-// Method Definition Index: 59192
+// Method Definition Index: 59217
+// Method Definition Index: 59218
+// Method Definition Index: 59219
+// Method Definition Index: 59220
 IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR KeyValue_2_tD16CE2E07FE1603EBE80DF2DC5702A01313D7A93 Enumerator_get_Current_mAEF46C6F5DADDF4B6D1AB65B0D083473A8650858 (Enumerator_t7D83178752C8D8F8853495899B2C35A7FD4D5C40* __this, const RuntimeMethod* method) 
 {
 	//<source_info:<no-source>:1>
@@ -5672,7 +5672,7 @@ IL2CPP_EXTERN_C  KeyValue_2_tD16CE2E07FE1603EBE80DF2DC5702A01313D7A93 Enumerator
 	_returnValue = Enumerator_get_Current_mAEF46C6F5DADDF4B6D1AB65B0D083473A8650858_inline(_thisAdjusted, method);
 	return _returnValue;
 }
-// Method Definition Index: 59193
+// Method Definition Index: 59221
 IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR RuntimeObject* Enumerator_System_Collections_IEnumerator_get_Current_mFD1BF9BE163BF1738A42B4B12BB7E211C74F282D (Enumerator_t7D83178752C8D8F8853495899B2C35A7FD4D5C40* __this, const RuntimeMethod* method) 
 {
 	CHECKED_LOCAL(classRgctxInit);
@@ -5701,10 +5701,10 @@ IL2CPP_EXTERN_C  RuntimeObject* Enumerator_System_Collections_IEnumerator_get_Cu
 #pragma clang diagnostic ignored "-Winvalid-offsetof"
 #pragma clang diagnostic ignored "-Wunused-variable"
 #endif
-// Method Definition Index: 60384
-// Method Definition Index: 60385
-// Method Definition Index: 60386
-// Method Definition Index: 60387
+// Method Definition Index: 60412
+// Method Definition Index: 60413
+// Method Definition Index: 60414
+// Method Definition Index: 60415
 IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR KeyValue_2_tD16CE2E07FE1603EBE80DF2DC5702A01313D7A93 Enumerator_get_Current_m4F3B9BC8CCFFC4777F74D7E87031BC557DC73EA9 (Enumerator_t9EE5D4B69A7E800B0A29EC3473ED985DC8961C68* __this, const RuntimeMethod* method) 
 {
 	//<source_info:<no-source>:1>
@@ -5723,7 +5723,7 @@ IL2CPP_EXTERN_C  KeyValue_2_tD16CE2E07FE1603EBE80DF2DC5702A01313D7A93 Enumerator
 	_returnValue = Enumerator_get_Current_m4F3B9BC8CCFFC4777F74D7E87031BC557DC73EA9_inline(_thisAdjusted, method);
 	return _returnValue;
 }
-// Method Definition Index: 60388
+// Method Definition Index: 60416
 IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR RuntimeObject* Enumerator_System_Collections_IEnumerator_get_Current_mE65295A7B4FEABB0CAB3A965149A8B280DE2F11E (Enumerator_t9EE5D4B69A7E800B0A29EC3473ED985DC8961C68* __this, const RuntimeMethod* method) 
 {
 	CHECKED_LOCAL(classRgctxInit);
@@ -12639,7 +12639,7 @@ IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR Il2CppSharedGenericObject* Enumer
 		return L_0;
 	}
 }
-// Method Definition Index: 60335
+// Method Definition Index: 60363
 IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR KeyValue_2_t6CF850BB70347624D35C74018B4BBBAE4CED68AB UnsafeParallelHashMapDataEnumerator_GetCurrent_TisIl2CppFullySharedGenericStruct_TisIl2CppFullySharedGenericStruct_mF329629AC81460B256D980C6CB8DD9E758F034A3_fshared_inline (UnsafeParallelHashMapDataEnumerator_t8CD0B557DE7804D4ED6A5599D87CC889C2DDA4F5* __this, const RuntimeMethod* method) 
 {
 	//<source_info:<no-source>:1>
@@ -12655,7 +12655,7 @@ IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR KeyValue_2_t6CF850BB70347624D35C7
 		return L_2;
 	}
 }
-// Method Definition Index: 59192
+// Method Definition Index: 59220
 IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR KeyValue_2_tD16CE2E07FE1603EBE80DF2DC5702A01313D7A93 Enumerator_get_Current_mAEF46C6F5DADDF4B6D1AB65B0D083473A8650858_inline (Enumerator_t7D83178752C8D8F8853495899B2C35A7FD4D5C40* __this, const RuntimeMethod* method) 
 {
 	//<source_info:<no-source>:1>
@@ -12666,7 +12666,7 @@ IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR KeyValue_2_tD16CE2E07FE1603EBE80D
 		return L_1;
 	}
 }
-// Method Definition Index: 60387
+// Method Definition Index: 60415
 IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR KeyValue_2_tD16CE2E07FE1603EBE80DF2DC5702A01313D7A93 Enumerator_get_Current_m4F3B9BC8CCFFC4777F74D7E87031BC557DC73EA9_inline (Enumerator_t9EE5D4B69A7E800B0A29EC3473ED985DC8961C68* __this, const RuntimeMethod* method) 
 {
 	//<source_info:<no-source>:1>

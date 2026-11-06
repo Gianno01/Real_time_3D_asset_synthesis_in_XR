@@ -13865,7 +13865,7 @@ IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR RuntimeObject* Dictionary_2_System_Collection
 #ifdef __clang__
 #pragma clang diagnostic pop
 #endif
-// Method Definition Index: 52590
+// Method Definition Index: 52618
 IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR int32_t NetworkSceneHandle_GetHashCode_m6716FA68B8EA8038B588D0BC6C21E0EC4185114F_inline (NetworkSceneHandle_tA610B2527B1ACB80F5DD0846BC521C0319C71E6D* __this, const RuntimeMethod* method) 
 {
 	//<source_info:<no-source>:1>

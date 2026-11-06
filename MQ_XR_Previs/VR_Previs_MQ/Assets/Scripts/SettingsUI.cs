@@ -33,6 +33,8 @@ public class SettingsUI : MonoBehaviour
     public RoomCalibration roomCalibration;
     [Tooltip("Multiplayer in sola visione (se vuoto viene creato da solo)")]
     public SyncManager sync;
+    [Tooltip("Luci, oscuramento e blocchi di occlusione (se vuoto viene creato da solo)")]
+    public SceneLighting lighting;
 
     [Header("Posizione")]
     [Tooltip("Pulsante \"Impostazioni\" usato solo se nella scena non c'è il pannello di controllo (GenerationStatusUI)")]
@@ -127,6 +129,7 @@ public class SettingsUI : MonoBehaviour
 #endif
         if (roomCalibration == null) roomCalibration = FindAnyObjectByType<RoomCalibration>();
         if (sync == null) sync = SyncManager.EnsureExists(gameObject);
+        if (lighting == null) lighting = SceneLighting.EnsureExists(gameObject);
         if (generator == null) { Debug.LogError("[SettingsUI] Serve QuestObjectGenerator nella scena."); enabled = false; return; }
 
         Define();
@@ -208,6 +211,15 @@ public class SettingsUI : MonoBehaviour
             room.Add(Bool("occl_debug", "Mostra occlusori (prova)", () => occlusion.showDebug, v => { occlusion.showDebug = v; occlusion.Apply(); }));
         }
 #endif
+        if (lighting != null)
+        {
+            room.Add(new ActionSetting
+            {
+                key = "lights_panel", label = "Luci e oscuramento", buttonText = "Apri", confirm = false,
+                status = () => lighting.StatusLabel,
+                run = () => { Hide(); lighting.OpenPanel(); },
+            });
+        }
         if (room.Count > 0) Add(_right, "STANZA", room.ToArray());
 
         if (sync != null)

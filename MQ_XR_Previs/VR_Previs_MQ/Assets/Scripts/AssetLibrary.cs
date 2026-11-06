@@ -40,6 +40,7 @@ public class SceneInfo
     public string id = "", name = "", author = "";
     public int object_count;
     public string updated_at = "";
+    public string extras = "";   // luci, oscuramento e blocchi di occlusione (JSON, vedi SceneLighting)
 }
 
 [Serializable]
@@ -104,6 +105,10 @@ public class AssetLibrary : MonoBehaviour
     /// <summary>Inventario o scene cambiati (salvataggio, eliminazione).</summary>
     public event Action Changed;
 
+    /// <summary>Dati aggiuntivi della scena (luci, blocchi): SceneLighting li fornisce al salvataggio e li riceve al caricamento.</summary>
+    public Func<string> SceneExtrasProvider;
+    public Action<string> SceneExtrasApplier;
+
     readonly Dictionary<string, Texture2D> _thumbCache = new Dictionary<string, Texture2D>();
     string CacheDir => Path.Combine(Application.persistentDataPath, "xrcache");
 
@@ -123,6 +128,7 @@ public class AssetLibrary : MonoBehaviour
         public int limit, offset;
         public float min_score;
         public string scene_id = "";
+        public string extras = "";
         public List<ObjOut> objects = new List<ObjOut>();
     }
     [Serializable] class ObjOut { public string asset_id = "", placed_by = ""; public float px, py, pz, rx, ry, rz, rw, scale; }
@@ -297,6 +303,7 @@ public class AssetLibrary : MonoBehaviour
     public void ClearScene()
     {
         foreach (var o in SceneObject.All.ToArray()) Destroy(o.gameObject);
+        SceneExtrasApplier?.Invoke("");   // spegne luci e blocchi della scena precedente
         CurrentSceneId = "";
         CurrentSceneName = "";
     }
@@ -340,6 +347,7 @@ public class AssetLibrary : MonoBehaviour
                 action = "save_scene", author = Author,
                 scene_id = asNew ? "" : CurrentSceneId,
                 name = string.IsNullOrWhiteSpace(name) ? (asNew || string.IsNullOrEmpty(CurrentSceneName) ? DefaultSceneName() : CurrentSceneName) : name.Trim(),
+                extras = SceneExtrasProvider != null ? (SceneExtrasProvider() ?? "") : "",
             };
             foreach (var o in objects)
             {
@@ -415,6 +423,9 @@ public class AssetLibrary : MonoBehaviour
                 so.displayName = rec.name; so.objectName = rec.object_name; so.promptIt = rec.prompt_it; so.promptEn = rec.prompt_en;
                 so.category = rec.category; so.style = rec.style; so.placedBy = rec.placed_by;
             }
+
+            if (SceneExtrasApplier != null && (replace || !string.IsNullOrEmpty(r.scene.extras)))
+                SceneExtrasApplier(r.scene.extras ?? "");
 
             CurrentSceneId = r.scene.id;
             CurrentSceneName = r.scene.name;

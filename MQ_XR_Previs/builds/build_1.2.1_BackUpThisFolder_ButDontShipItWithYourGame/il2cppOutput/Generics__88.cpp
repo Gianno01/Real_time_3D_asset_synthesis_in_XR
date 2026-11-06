@@ -16741,9 +16741,9 @@ IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void Func_5_Invoke_mC05570EABD976522EEE513938
 #pragma clang diagnostic ignored "-Winvalid-offsetof"
 #pragma clang diagnostic ignored "-Wunused-variable"
 #endif
-// Method Definition Index: 84689
-// Method Definition Index: 84690
-// Method Definition Index: 84691
+// Method Definition Index: 84870
+// Method Definition Index: 84871
+// Method Definition Index: 84872
 IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR Il2CppSharedGenericObject* FunctionPointer_1_get_Invoke_m3F0482C6260FC7E19719A7996CA1456AE3836613_gshared (FunctionPointer_1_tFA7B05CB8F034C67CD0B63063DD837ACC1C06AE9* __this, const RuntimeMethod* method) 
 {
 	CHECKED_LOCAL(Marshal_tD976A56A90263C3CE2B780D4B1CADADE2E70B4A7_StaticInit);
@@ -16757,7 +16757,7 @@ IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR Il2CppSharedGenericObject* FunctionPointer_1_
 		return L_1;
 	}
 }
-// Method Definition Index: 84692
+// Method Definition Index: 84873
 #ifdef __clang__
 #pragma clang diagnostic pop
 #endif
@@ -16766,7 +16766,7 @@ IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR Il2CppSharedGenericObject* FunctionPointer_1_
 #pragma clang diagnostic ignored "-Winvalid-offsetof"
 #pragma clang diagnostic ignored "-Wunused-variable"
 #endif
-// Method Definition Index: 84689
+// Method Definition Index: 84870
 IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void FunctionPointer_1__ctor_m539FE4A638EAB194C030CB25B52DBB1BADEA6E5A_fshared (FunctionPointer_1_t8F9F55036C9757966AA570D1DB1FADC59D4C7547* __this, intptr_t ___0_ptr, const RuntimeMethod* method) 
 {
 	//<source_info:<no-source>:1>
@@ -16776,7 +16776,7 @@ IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void FunctionPointer_1__ctor_m539FE4A638EAB19
 		return;
 	}
 }
-// Method Definition Index: 84690
+// Method Definition Index: 84871
 IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR intptr_t FunctionPointer_1_get_Value_mCA7B606EE025B3DD396B15DCB1C19A92CCC192C1_fshared (FunctionPointer_1_t8F9F55036C9757966AA570D1DB1FADC59D4C7547* __this, const RuntimeMethod* method) 
 {
 	//<source_info:<no-source>:1>
@@ -16785,7 +16785,7 @@ IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR intptr_t FunctionPointer_1_get_Value_mCA7B606
 		return L_0;
 	}
 }
-// Method Definition Index: 84691
+// Method Definition Index: 84872
 IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void FunctionPointer_1_get_Invoke_mB8B8414B557AA48ABCA960D3706E5467D454D156_fshared (FunctionPointer_1_t8F9F55036C9757966AA570D1DB1FADC59D4C7547* __this, Il2CppFullySharedGenericAny* il2cppRetVal, const RuntimeMethod* method) 
 {
 	CHECKED_LOCAL(Marshal_tD976A56A90263C3CE2B780D4B1CADADE2E70B4A7_StaticInit);
@@ -16801,7 +16801,7 @@ IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void FunctionPointer_1_get_Invoke_mB8B8414B55
 		return;
 	}
 }
-// Method Definition Index: 84692
+// Method Definition Index: 84873
 IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR bool FunctionPointer_1_get_IsCreated_m532027F865C78AD70AAAFD9E26C672203ED19ACE_fshared (FunctionPointer_1_t8F9F55036C9757966AA570D1DB1FADC59D4C7547* __this, const RuntimeMethod* method) 
 {
 	//<source_info:<no-source>:1>
@@ -16820,7 +16820,7 @@ IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR bool FunctionPointer_1_get_IsCreated_m532027F
 #pragma clang diagnostic ignored "-Winvalid-offsetof"
 #pragma clang diagnostic ignored "-Wunused-variable"
 #endif
-// Method Definition Index: 67640
+// Method Definition Index: 69056
 IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR NativeArray_1_tDB8B8DC66CC8E16ED6D9A8C75D2C1AFC80AC1E18 GPUInstanceDataBufferReadback_1_get_data_m85A66715F31C0E08C13BA9C091BE27292CEAFA28_fshared (GPUInstanceDataBufferReadback_1_t5AE9021A468A030012E49A0B36B7A5A237D5BDA0* __this, const RuntimeMethod* method) 
 {
 	//<source_info:<no-source>:1>
@@ -16829,7 +16829,7 @@ IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR NativeArray_1_tDB8B8DC66CC8E16ED6D9A8C75D2C1A
 		return L_0;
 	}
 }
-// Method Definition Index: 67641
+// Method Definition Index: 69057
 IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void GPUInstanceDataBufferReadback_1_set_data_m7113F6AA3060BFE24F83C25673C2F5D85A7092A7_fshared (GPUInstanceDataBufferReadback_1_t5AE9021A468A030012E49A0B36B7A5A237D5BDA0* __this, NativeArray_1_tDB8B8DC66CC8E16ED6D9A8C75D2C1AFC80AC1E18 ___0_value, const RuntimeMethod* method) 
 {
 	//<source_info:<no-source>:1>
@@ -16839,7 +16839,7 @@ IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void GPUInstanceDataBufferReadback_1_set_data
 		return;
 	}
 }
-// Method Definition Index: 67642
+// Method Definition Index: 69058
 IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR bool GPUInstanceDataBufferReadback_1_Load_m83665036757894EC4D0B5D980D0BAC425A5B7267_fshared (GPUInstanceDataBufferReadback_1_t5AE9021A468A030012E49A0B36B7A5A237D5BDA0* __this, CommandBuffer_tB56007DC84EF56296C325EC32DD12AC1E3DC91F7* ___0_cmd, GPUInstanceDataBuffer_tAF2FDE10337956B935AE0961BAB4F5A4E534ACF3* ___1_instanceDataBuffer, const RuntimeMethod* method) 
 {
 	static bool s_Il2CppMethodInitialized;
@@ -16926,7 +16926,7 @@ IL_007b:
 		return (bool)((((int32_t)L_23) == ((int32_t)0))? 1 : 0);
 	}
 }
-// Method Definition Index: 67644
+// Method Definition Index: 69060
 IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void GPUInstanceDataBufferReadback_1_Dispose_m14D34F06B04E86E7F723BB4D560AB33AEE47E916_fshared (GPUInstanceDataBufferReadback_1_t5AE9021A468A030012E49A0B36B7A5A237D5BDA0* __this, const RuntimeMethod* method) 
 {
 	CHECKED_LOCAL(classRgctxInit);
