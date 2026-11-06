@@ -47,8 +47,11 @@ CREATE TABLE IF NOT EXISTS xr.scenes (
     object_count  integer     NOT NULL DEFAULT 0,
     created_at    timestamptz NOT NULL DEFAULT now(),
     updated_at    timestamptz NOT NULL DEFAULT now(),
-    deleted_at    timestamptz
+    deleted_at    timestamptz,
+    extras        text        NOT NULL DEFAULT ''   -- luci, oscuramento e blocchi di occlusione (JSON scritto da Unity)
 );
+-- Database già esistenti: aggiunge la colonna (si può rieseguire senza danni)
+ALTER TABLE xr.scenes ADD COLUMN IF NOT EXISTS extras text NOT NULL DEFAULT '';
 
 -- Posizioni: nello spazio dell'ancora di scena (oggi l'origine del pavimento dell'XR Origin;
 -- con la colocation diventerà un'ancora spaziale condivisa).

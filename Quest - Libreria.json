@@ -1,0 +1,1519 @@
+{
+  "name": "Quest - Libreria",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "quest-library",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "f924ba5e-fdb2-495b-8e87-c1277908dab0",
+      "name": "Webhook libreria2",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -9152,
+        384
+      ],
+      "webhookId": "quest-library"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Legge la richiesta (Unity o pannello web) e prepara la query SQL.\n// action: save_asset | register_asset | list_assets | delete_asset | save_scene | list_scenes | load_scene\n//         | rename_scene | delete_scene | reindex | enrich_assets\nconst b = $input.first().json.body ?? $input.first().json;\nconst action = String(b.action ?? '').toLowerCase();\nconst ACTIONS = ['save_asset', 'register_asset', 'list_assets', 'delete_asset', 'save_scene', 'list_scenes', 'load_scene',\n                 'rename_scene', 'delete_scene', 'reindex', 'enrich_assets'];\nif (!ACTIONS.includes(action)) throw new Error(`Azione sconosciuta: \"${action}\"`);\n\nconst uuid = () => 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {\n  const r = Math.random() * 16 | 0;\n  return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);\n});\n\nconst payload = { ...b };\ndelete payload.thumb_base64;            // la miniatura va nello storage, non nel database\nlet route = action;\n\nif (action === 'save_asset') {\n  if (b.asset_id) {\n    route = 'update_asset';             // già sul server: aggiorna i dati / lo mette nell'inventario\n  } else {\n    if (!b.source_glb) throw new Error('save_asset: manca source_glb (percorso del GLB su ComfyUI)');\n    payload.id = uuid();\n    payload.glb_key   = `assets/${payload.id}/model.glb`;\n    payload.image_key = b.source_image ? `assets/${payload.id}/image.png` : '';\n    payload.thumb_key = b.thumb_base64 ? `assets/${payload.id}/thumb.jpg` : '';\n  }\n}\nif (action === 'register_asset') {\n  // il pannello web ha già caricato i file nello storage con questo id: si controlla che i percorsi siano quelli attesi\n  const id = String(b.id ?? '').toLowerCase();\n  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(id)) throw new Error('register_asset: id non valido');\n  const base = `assets/${id}/`;\n  if (b.glb_key !== base + 'model.glb') throw new Error('register_asset: glb_key non valido');\n  if (b.thumb_key && b.thumb_key !== base + 'thumb.jpg') throw new Error('register_asset: thumb_key non valido');\n  if (b.image_key && !['image.png', 'image.jpg'].map(f => base + f).includes(b.image_key)) throw new Error('register_asset: image_key non valido');\n  payload.id = id;\n  payload.in_inventory = true;\n}\nif (action === 'list_assets' && String(b.q ?? '').trim() !== '' && b.scope !== 'scene_only') route = 'search';   // ricerca semantica (Qdrant)\nif (action === 'save_scene' && !b.scene_id) payload.new_id = uuid();\nif (action === 'delete_asset' && !b.asset_id) throw new Error('delete_asset: manca asset_id');\nif (['load_scene', 'rename_scene', 'delete_scene'].includes(action) && !b.scene_id) throw new Error(`${action}: manca scene_id`);\n\nconst p = JSON.stringify(payload).split('$xrq$').join('');   // il JSON va dentro $xrq$...$xrq$ (nessun escape necessario)\nconst Q = {\n  \"update_asset\": \"WITH p AS (SELECT $xrq${P}$xrq$::jsonb AS j),\\nup AS (\\n  UPDATE xr.assets a SET\\n    name        = COALESCE(NULLIF(p.j->>'name',''), a.name),\\n    category    = COALESCE(NULLIF(p.j->>'category',''), a.category),\\n    style       = COALESCE(NULLIF(p.j->>'style',''), a.style),\\n    tags        = CASE WHEN jsonb_array_length(COALESCE(p.j->'tags','[]'::jsonb)) > 0\\n                       THEN ARRAY(SELECT jsonb_array_elements_text(p.j->'tags')) ELSE a.tags END,\\n    prompt_it   = COALESCE(NULLIF(p.j->>'prompt_it',''), a.prompt_it),\\n    width_cm    = COALESCE(NULLIF((p.j->>'width_cm')::real, 0), a.width_cm),\\n    height_cm   = COALESCE(NULLIF((p.j->>'height_cm')::real, 0), a.height_cm),\\n    depth_cm    = COALESCE(NULLIF((p.j->>'depth_cm')::real, 0), a.depth_cm),\\n    in_inventory = a.in_inventory OR COALESCE((p.j->>'in_inventory')::boolean, false),\\n    deleted_at  = NULL,\\n    updated_at  = now()\\n  FROM p\\n  WHERE a.id = (p.j->>'asset_id')::uuid\\n  RETURNING a.id, name, category, style, tags, prompt_it, prompt_en, object_name, model,\\n       glb_key, image_key, thumb_key, width_cm, height_cm, depth_cm, glb_bytes,\\n       author, in_inventory, use_count, to_char(created_at, 'YYYY-MM-DD\\\"T\\\"HH24:MI:SS') AS created_at\\n)\\nSELECT CASE WHEN EXISTS (SELECT 1 FROM up)\\n            THEN json_build_object('ok', true, 'asset', (SELECT row_to_json(up) FROM up))\\n            ELSE json_build_object('ok', false, 'error', 'Oggetto non trovato') END AS result;\",\n  \"list_assets\": \"WITH p AS (SELECT $xrq${P}$xrq$::jsonb AS j),\\nf AS (\\n  SELECT a.*,\\n         CASE WHEN COALESCE(p.j->>'q','') <> ''\\n              THEN GREATEST(similarity(a.name, p.j->>'q'),\\n                            word_similarity(p.j->>'q', a.name || ' ' || a.prompt_it || ' ' || a.object_name)) ELSE 0 END AS score\\n  FROM xr.assets a, p\\n  WHERE a.deleted_at IS NULL\\n    AND a.in_inventory = (COALESCE(p.j->>'scope','') <> 'scene_only')\\n    AND (COALESCE(p.j->>'category','') = '' OR a.category = p.j->>'category')\\n    AND (COALESCE(p.j->>'style','')    = '' OR a.style    = p.j->>'style')\\n),\\npage AS (\\n  SELECT id, name, category, style, tags, prompt_it, prompt_en, object_name, model,\\n       glb_key, image_key, thumb_key, width_cm, height_cm, depth_cm, glb_bytes,\\n       author, in_inventory, use_count, to_char(created_at, 'YYYY-MM-DD\\\"T\\\"HH24:MI:SS') AS created_at, round(score::numeric, 3)::real AS score\\n  FROM f, p\\n  WHERE COALESCE(p.j->>'q','') = '' OR score >= COALESCE(NULLIF((p.j->>'min_score')::real, 0), 0.3)\\n  ORDER BY score DESC, f.created_at DESC\\n  LIMIT  (SELECT LEAST(COALESCE(NULLIF((j->>'limit')::int, 0), 24), 100) FROM p)\\n  OFFSET (SELECT GREATEST(COALESCE((j->>'offset')::int, 0), 0) FROM p)\\n)\\nSELECT json_build_object(\\n  'ok', true,\\n  'mode',   CASE WHEN COALESCE((SELECT j->>'q' FROM p),'') = '' THEN 'list' ELSE 'text' END,\\n  'items',  COALESCE((SELECT json_agg(page) FROM page), '[]'::json),\\n  'total',  (SELECT count(*) FROM f, p WHERE COALESCE(p.j->>'q','') = '' OR f.score >= COALESCE(NULLIF((p.j->>'min_score')::real, 0), 0.3)),\\n  'styles', COALESCE((SELECT json_agg(DISTINCT style ORDER BY style) FROM xr.assets\\n                      WHERE in_inventory AND deleted_at IS NULL AND style <> ''), '[]'::json)\\n) AS result;\",\n  \"delete_asset\": \"WITH p AS (SELECT $xrq${P}$xrq$::jsonb AS j),\\nup AS (\\n  UPDATE xr.assets a SET\\n    in_inventory = false,\\n    updated_at   = now(),\\n    deleted_at   = CASE WHEN EXISTS (SELECT 1 FROM xr.scene_objects so JOIN xr.scenes s ON s.id = so.scene_id\\n                                     WHERE so.asset_id = a.id AND s.deleted_at IS NULL)\\n                        THEN NULL ELSE now() END\\n  FROM p\\n  WHERE a.id = (p.j->>'asset_id')::uuid\\n  RETURNING a.id\\n)\\nSELECT json_build_object('ok', EXISTS (SELECT 1 FROM up)) AS result;\",\n  \"save_scene\": \"WITH p AS (SELECT $xrq${P}$xrq$::jsonb AS j),\\nup AS (\\n  INSERT INTO xr.scenes (id, name, author, object_count, extras)\\n  SELECT COALESCE(NULLIF(j->>'scene_id','')::uuid, (j->>'new_id')::uuid),\\n         COALESCE(NULLIF(j->>'name',''), 'Scena'), COALESCE(j->>'author',''),\\n         jsonb_array_length(COALESCE(j->'objects','[]'::jsonb)), COALESCE(j->>'extras','')\\n  FROM p\\n  ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, object_count = EXCLUDED.object_count, extras = EXCLUDED.extras,\\n                                 updated_at = now(), deleted_at = NULL\\n  RETURNING id, name\\n),\\ndel AS (DELETE FROM xr.scene_objects WHERE scene_id = (SELECT id FROM up)),\\nins AS (\\n  INSERT INTO xr.scene_objects (scene_id, asset_id, px, py, pz, rx, ry, rz, rw, scale, placed_by)\\n  SELECT (SELECT id FROM up), o.asset_id, o.px, o.py, o.pz, o.rx, o.ry, o.rz, o.rw, COALESCE(o.scale, 1), COALESCE(o.placed_by, '')\\n  FROM p, jsonb_to_recordset(COALESCE(p.j->'objects','[]'::jsonb))\\n       AS o(asset_id uuid, px real, py real, pz real, rx real, ry real, rz real, rw real, scale real, placed_by text)\\n  RETURNING asset_id\\n),\\nused AS (\\n  UPDATE xr.assets SET use_count = use_count + 1 WHERE id IN (SELECT DISTINCT asset_id FROM ins) RETURNING id\\n)\\nSELECT json_build_object('ok', true, 'scene_id', (SELECT id FROM up), 'name', (SELECT name FROM up),\\n                         'saved', (SELECT count(*) FROM ins)) AS result;\",\n  \"list_scenes\": \"WITH p AS (SELECT $xrq${P}$xrq$::jsonb AS j)\\nSELECT json_build_object('ok', true, 'scenes', COALESCE((\\n  SELECT json_agg(s ORDER BY s.updated_at DESC) FROM (\\n    SELECT id, name, author, object_count,\\n           to_char(updated_at, 'YYYY-MM-DD\\\"T\\\"HH24:MI:SS') AS updated_at\\n    FROM xr.scenes WHERE deleted_at IS NULL\\n    ORDER BY updated_at DESC\\n    LIMIT LEAST(COALESCE(NULLIF((SELECT (j->>'limit')::int FROM p), 0), 50), 200)\\n  ) s), '[]'::json)) AS result;\",\n  \"load_scene\": \"WITH p AS (SELECT $xrq${P}$xrq$::jsonb AS j),\\ns AS (SELECT id, name, author, extras FROM xr.scenes, p WHERE id = (p.j->>'scene_id')::uuid AND deleted_at IS NULL)\\nSELECT CASE WHEN NOT EXISTS (SELECT 1 FROM s)\\n       THEN json_build_object('ok', false, 'error', 'Scena non trovata')\\n       ELSE json_build_object('ok', true, 'scene', (SELECT row_to_json(s) FROM s), 'objects', COALESCE((\\n         SELECT json_agg(o ORDER BY o.oid) FROM (\\n           SELECT so.id AS oid, a.id AS asset_id, a.name, a.object_name, a.prompt_it, a.prompt_en, a.category, a.style,\\n                  a.glb_key, a.image_key, a.thumb_key, a.in_inventory, a.width_cm, a.height_cm, a.depth_cm,\\n                  so.px, so.py, so.pz, so.rx, so.ry, so.rz, so.rw, so.scale, so.placed_by\\n           FROM xr.scene_objects so JOIN xr.assets a ON a.id = so.asset_id\\n           WHERE so.scene_id = (SELECT id FROM s)\\n         ) o), '[]'::json)) END AS result;\",\n  \"delete_scene\": \"WITH p AS (SELECT $xrq${P}$xrq$::jsonb AS j),\\nup AS (UPDATE xr.scenes SET deleted_at = now() FROM p WHERE id = (p.j->>'scene_id')::uuid AND deleted_at IS NULL RETURNING id)\\nSELECT json_build_object('ok', EXISTS (SELECT 1 FROM up)) AS result;\",\n  \"reindex\": \"WITH p AS (SELECT $xrq${P}$xrq$::jsonb AS j)\\nSELECT json_build_object('ok', true, 'assets', COALESCE((\\n  SELECT json_agg(x) FROM (\\n    SELECT id, name, category, style, tags, prompt_it, prompt_en, object_name, in_inventory,\\n           to_char(created_at, 'YYYY-MM-DD\\\"T\\\"HH24:MI:SS') AS created_at\\n    FROM xr.assets WHERE in_inventory AND deleted_at IS NULL\\n    ORDER BY created_at\\n  ) x), '[]'::json)) AS result;\",\n  \"rename_scene\": \"WITH p AS (SELECT $xrq${P}$xrq$::jsonb AS j),\\nup AS (UPDATE xr.scenes SET name = COALESCE(NULLIF(trim(p.j->>'name'),''), name), updated_at = now()\\n       FROM p WHERE id = (p.j->>'scene_id')::uuid AND deleted_at IS NULL RETURNING id, name)\\nSELECT CASE WHEN EXISTS (SELECT 1 FROM up)\\n            THEN json_build_object('ok', true, 'scene_id', (SELECT id FROM up), 'name', (SELECT name FROM up))\\n            ELSE json_build_object('ok', false, 'error', 'Scena non trovata') END AS result;\",\n  \"enrich_assets\": \"WITH p AS (SELECT $xrq${P}$xrq$::jsonb AS j),\\ntodo AS (\\n  SELECT id, name, category, style, object_name, created_at FROM xr.assets\\n  WHERE in_inventory AND deleted_at IS NULL AND cardinality(tags) = 0\\n),\\nlim AS (SELECT LEAST(COALESCE(NULLIF((j->>'limit')::int, 0), 3), 10) AS n FROM p)\\nSELECT json_build_object('ok', true,\\n  'remaining', (SELECT count(*) FROM todo),\\n  'assets', COALESCE((SELECT json_agg(x) FROM (\\n      SELECT id, name, category, style, object_name FROM todo ORDER BY created_at LIMIT (SELECT n FROM lim)) x), '[]'::json)) AS result;\",\n  \"register_asset\": \"WITH p AS (SELECT $xrq${P}$xrq$::jsonb AS j),\\nins AS (\\n  INSERT INTO xr.assets (id, name, category, style, tags, prompt_it, prompt_en, object_name, model,\\n                         glb_key, image_key, thumb_key, width_cm, height_cm, depth_cm, glb_bytes,\\n                         gen_image_s, gen_model_s, author, in_inventory)\\n  SELECT (j->>'id')::uuid, COALESCE(NULLIF(j->>'name',''), 'Oggetto'), COALESCE(j->>'category',''), COALESCE(j->>'style',''),\\n         COALESCE(ARRAY(SELECT jsonb_array_elements_text(COALESCE(j->'tags','[]'::jsonb))), '{}'),\\n         COALESCE(j->>'prompt_it',''), COALESCE(j->>'prompt_en',''), COALESCE(j->>'object_name',''), COALESCE(j->>'model',''),\\n         j->>'glb_key', COALESCE(j->>'image_key',''), COALESCE(j->>'thumb_key',''),\\n         COALESCE((j->>'width_cm')::real,0), COALESCE((j->>'height_cm')::real,0), COALESCE((j->>'depth_cm')::real,0),\\n         COALESCE((j->>'glb_bytes')::bigint,0), COALESCE((j->>'gen_image_s')::real,0), COALESCE((j->>'gen_model_s')::real,0),\\n         COALESCE(j->>'author',''), COALESCE((j->>'in_inventory')::boolean, false)\\n  FROM p\\n  RETURNING id, name, category, style, tags, prompt_it, prompt_en, object_name, model,\\n       glb_key, image_key, thumb_key, width_cm, height_cm, depth_cm, glb_bytes,\\n       author, in_inventory, use_count, to_char(created_at, 'YYYY-MM-DD\\\"T\\\"HH24:MI:SS') AS created_at\\n)\\nSELECT json_build_object('ok', true, 'asset', row_to_json(ins)) AS result FROM ins;\"\n};\nconst sql = (route === 'save_asset' || route === 'search') ? '' : Q[route].split('{P}').join(p);\n\nreturn [{ json: { action, route, payload, sql, thumb_base64: b.thumb_base64 ?? '' } }];"
+      },
+      "id": "123bcc06-1ea0-4bdf-b4c3-406674e092fa",
+      "name": "Leggi richiesta1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -8944,
+        384
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "70d6ea97-a3be-49d2-b17f-1ef146b9535e",
+              "leftValue": "={{ $json.route }}",
+              "rightValue": "save_asset",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "28b9d9d8-a501-4003-9718-a12d071c0497",
+      "name": "Nuovo oggetto?1",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -8720,
+        384
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "1daa45e3-4b11-430b-b52d-11b5debde609",
+              "leftValue": "={{ $json.route }}",
+              "rightValue": "search",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "bc7091c1-56a4-4b6f-b41f-f6d107dd210b",
+      "name": "Ricerca semantica?1",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -8496,
+        512
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=http://host.docker.internal:8188{{ $json.payload.source_glb }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          },
+          "timeout": 60000
+        }
+      },
+      "id": "cf551105-4fec-46bc-817a-b39126d4cd26",
+      "name": "Scarica GLB da ComfyUI1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -8496,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Dimensione del GLB (byte), il file passa invariato al nodo successivo\nconst item = $input.first();\nconst buf = await this.helpers.getBinaryDataBuffer(0, 'data');\nreturn [{ json: { bytes: buf.length }, binary: item.binary }];"
+      },
+      "id": "202958e0-0e14-482b-b494-4950ae637492",
+      "name": "Misura GLB1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -8272,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=http://seaweedfs:8888/{{ $('Leggi richiesta1').first().json.payload.glb_key }}",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "file",
+              "inputDataFieldName": "data"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "id": "6e9bf45d-ae6d-4a5c-ba62-586106d651dd",
+      "name": "Carica GLB nello storage1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -8064,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "6bc91d86-673c-44b9-bfd6-e6be0aaac6fc",
+              "leftValue": "={{ $('Leggi richiesta1').first().json.payload.image_key }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "36da6d95-e4dc-40d3-9979-82eb7ee10f40",
+      "name": "Ha immagine?1",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -7840,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=http://host.docker.internal:8188{{ $('Leggi richiesta1').first().json.payload.source_image }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          },
+          "timeout": 60000
+        }
+      },
+      "id": "57387298-bf15-495b-ac0a-bc235dd339f6",
+      "name": "Scarica immagine da ComfyUI1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -7616,
+        0
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=http://seaweedfs:8888/{{ $('Leggi richiesta1').first().json.payload.image_key }}",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "file",
+              "inputDataFieldName": "data"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "id": "ad3097d5-1559-4a4f-9a02-c19933e033d1",
+      "name": "Carica immagine nello storage1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -7392,
+        0
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "993aecff-2035-4ad5-a87e-e4fd4d557cb6",
+              "leftValue": "={{ $('Leggi richiesta1').first().json.payload.thumb_key }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "b5b13a4f-8562-47a4-9004-fd37571a834e",
+      "name": "Ha miniatura?1",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -7184,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Miniatura JPG inviata da Unity in Base64 → file binario da caricare\nconst b64 = $('Leggi richiesta1').first().json.thumb_base64;\nconst data = await this.helpers.prepareBinaryData(Buffer.from(b64, 'base64'), 'thumb.jpg', 'image/jpeg');\nreturn [{ json: {}, binary: { data } }];"
+      },
+      "id": "647879c8-a980-4d89-ada4-f225c9c8a653",
+      "name": "Miniatura da Base",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -6960,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=http://seaweedfs:8888/{{ $('Leggi richiesta1').first().json.payload.thumb_key }}",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "file",
+              "inputDataFieldName": "data"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "id": "59c46d03-3475-4da9-b245-a409e86b4feb",
+      "name": "Carica miniatura nello storage1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -6736,
+        0
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// File copiati nello storage: inserisce l'oggetto nel database\nconst payload = { ...$('Leggi richiesta1').first().json.payload, glb_bytes: $('Misura GLB1').first().json.bytes };\nconst p = JSON.stringify(payload).split('$xrq$').join('');\nconst sql = \"WITH p AS (SELECT $xrq${P}$xrq$::jsonb AS j),\\nins AS (\\n  INSERT INTO xr.assets (id, name, category, style, tags, prompt_it, prompt_en, object_name, model,\\n                         glb_key, image_key, thumb_key, width_cm, height_cm, depth_cm, glb_bytes,\\n                         gen_image_s, gen_model_s, author, in_inventory)\\n  SELECT (j->>'id')::uuid, COALESCE(NULLIF(j->>'name',''), 'Oggetto'), COALESCE(j->>'category',''), COALESCE(j->>'style',''),\\n         COALESCE(ARRAY(SELECT jsonb_array_elements_text(COALESCE(j->'tags','[]'::jsonb))), '{}'),\\n         COALESCE(j->>'prompt_it',''), COALESCE(j->>'prompt_en',''), COALESCE(j->>'object_name',''), COALESCE(j->>'model',''),\\n         j->>'glb_key', COALESCE(j->>'image_key',''), COALESCE(j->>'thumb_key',''),\\n         COALESCE((j->>'width_cm')::real,0), COALESCE((j->>'height_cm')::real,0), COALESCE((j->>'depth_cm')::real,0),\\n         COALESCE((j->>'glb_bytes')::bigint,0), COALESCE((j->>'gen_image_s')::real,0), COALESCE((j->>'gen_model_s')::real,0),\\n         COALESCE(j->>'author',''), COALESCE((j->>'in_inventory')::boolean, false)\\n  FROM p\\n  RETURNING id, name, category, style, tags, prompt_it, prompt_en, object_name, model,\\n       glb_key, image_key, thumb_key, width_cm, height_cm, depth_cm, glb_bytes,\\n       author, in_inventory, use_count, to_char(created_at, 'YYYY-MM-DD\\\"T\\\"HH24:MI:SS') AS created_at\\n)\\nSELECT json_build_object('ok', true, 'asset', row_to_json(ins)) AS result FROM ins;\".split('{P}').join(p);\nreturn [{ json: { sql } }];"
+      },
+      "id": "a72f82ac-6295-4bc9-a24f-a9bd0ccf626c",
+      "name": "SQL inserimento1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -6512,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://ollama:11434/api/embed",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: 'bge-m3', input: $('Leggi richiesta1').first().json.payload.q, options: { num_gpu: 0 }, keep_alive: '30m' }) }}",
+        "options": {
+          "timeout": 20000
+        }
+      },
+      "id": "dd23c67c-f372-4133-8ca8-9787ccc739d4",
+      "name": "Embedding ricerca1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -8272,
+        512
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Corpo della ricerca su Qdrant: vettore della frase + filtri (solo inventario, categoria/stile se scelti)\nconst req = $('Leggi richiesta1').first().json.payload;\nconst emb = $input.first().json.embeddings?.[0];\nif (!emb) return [{ json: { skip: true, error: $input.first().json.error ?? 'embedding mancante' } }];\nconst must = [{ key: 'in_inventory', match: { value: true } }];\nif (req.category) must.push({ key: 'category', match: { value: req.category } });\nif (req.style) must.push({ key: 'style', match: { value: req.style } });\nconst limit = Math.min(Number(req.limit) || 24, 100);\nconst threshold = Number(req.min_score) > 0 ? Number(req.min_score) : 0.35;\nreturn [{ json: { skip: false, body: { vector: emb, limit, score_threshold: threshold, filter: { must }, with_payload: false } } }];"
+      },
+      "id": "f0d77801-f688-4b22-9eac-59ac1f90d231",
+      "name": "Corpo ricerca1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -8064,
+        512
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://qdrant:6333/collections/xr_assets/points/search",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.body) }}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "65637a4a-f6db-45a3-a52a-cb0ab248041b",
+      "name": "Cerca in Qdrant1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -7840,
+        512
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Ricerca: risultati di Qdrant (id + punteggio) → dettagli da Postgres.\n// Se embedding o Qdrant non rispondono, ripiega sulla ricerca testuale (parole simili) di Postgres.\nconst req = $('Leggi richiesta1').first().json;\nconst res = $input.first().json;\nconst P = s => JSON.stringify(s).split('$xrq$').join('');\nlet sql;\nif (Array.isArray(res.result)) {\n  let hits = res.result.map(h => ({ id: String(h.id), score: h.score }));\n  // Soglia assoluta + margine dal migliore: i punteggi di una ricerca sono tutti compressi (es. 0.45-0.60) e una soglia fissa\n  // lascia passare anche ciò che non c'entra. Si tengono solo i risultati vicini al primo. Con min_score esplicito (suggerimenti\n  // di Unity) il margine non si applica, a meno che la richiesta passi rel_margin.\n  const q = req.payload;\n  const floor = Number(q.min_score) > 0 ? Number(q.min_score) : 0.42;\n  const margin = q.rel_margin !== undefined ? Math.max(0, Number(q.rel_margin) || 0) : (Number(q.min_score) > 0 ? 0 : 0.08);\n  if (hits.length && margin > 0) { const top = Math.max(...hits.map(h => h.score)); hits = hits.filter(h => h.score >= top - margin); }\n  hits = hits.filter(h => h.score >= floor);\n  sql = \"WITH p AS (SELECT $xrq${P}$xrq$::jsonb AS j),\\nhits AS (\\n  SELECT (h->>'id')::uuid AS hid, (h->>'score')::real AS hscore, ord\\n  FROM p, jsonb_array_elements(COALESCE(p.j->'hits','[]'::jsonb)) WITH ORDINALITY AS t(h, ord)\\n),\\npage AS (\\n  SELECT a.id, a.name, a.category, a.style, a.tags, a.prompt_it, a.prompt_en, a.object_name, a.model,\\n         a.glb_key, a.image_key, a.thumb_key, a.width_cm, a.height_cm, a.depth_cm, a.glb_bytes,\\n         a.author, a.in_inventory, a.use_count, to_char(a.created_at, 'YYYY-MM-DD\\\"T\\\"HH24:MI:SS') AS created_at,\\n         round(hits.hscore::numeric, 3)::real AS score, hits.ord\\n  FROM hits JOIN xr.assets a ON a.id = hits.hid\\n  WHERE a.in_inventory AND a.deleted_at IS NULL\\n)\\nSELECT json_build_object(\\n  'ok', true,\\n  'mode', 'semantic',\\n  'items',  COALESCE((SELECT json_agg(page ORDER BY page.ord) FROM page), '[]'::json),\\n  'total',  (SELECT count(*) FROM page),\\n  'styles', COALESCE((SELECT json_agg(DISTINCT style ORDER BY style) FROM xr.assets\\n                      WHERE in_inventory AND deleted_at IS NULL AND style <> ''), '[]'::json)\\n) AS result;\".split('{P}').join(P({ hits }));\n} else {\n  console.log('Qdrant/embedding non disponibili, ricerca testuale:', JSON.stringify(res).substring(0, 300));\n  sql = \"WITH p AS (SELECT $xrq${P}$xrq$::jsonb AS j),\\nf AS (\\n  SELECT a.*,\\n         CASE WHEN COALESCE(p.j->>'q','') <> ''\\n              THEN GREATEST(similarity(a.name, p.j->>'q'),\\n                            word_similarity(p.j->>'q', a.name || ' ' || a.prompt_it || ' ' || a.object_name)) ELSE 0 END AS score\\n  FROM xr.assets a, p\\n  WHERE a.deleted_at IS NULL\\n    AND a.in_inventory = (COALESCE(p.j->>'scope','') <> 'scene_only')\\n    AND (COALESCE(p.j->>'category','') = '' OR a.category = p.j->>'category')\\n    AND (COALESCE(p.j->>'style','')    = '' OR a.style    = p.j->>'style')\\n),\\npage AS (\\n  SELECT id, name, category, style, tags, prompt_it, prompt_en, object_name, model,\\n       glb_key, image_key, thumb_key, width_cm, height_cm, depth_cm, glb_bytes,\\n       author, in_inventory, use_count, to_char(created_at, 'YYYY-MM-DD\\\"T\\\"HH24:MI:SS') AS created_at, round(score::numeric, 3)::real AS score\\n  FROM f, p\\n  WHERE COALESCE(p.j->>'q','') = '' OR score >= COALESCE(NULLIF((p.j->>'min_score')::real, 0), 0.3)\\n  ORDER BY score DESC, f.created_at DESC\\n  LIMIT  (SELECT LEAST(COALESCE(NULLIF((j->>'limit')::int, 0), 24), 100) FROM p)\\n  OFFSET (SELECT GREATEST(COALESCE((j->>'offset')::int, 0), 0) FROM p)\\n)\\nSELECT json_build_object(\\n  'ok', true,\\n  'mode',   CASE WHEN COALESCE((SELECT j->>'q' FROM p),'') = '' THEN 'list' ELSE 'text' END,\\n  'items',  COALESCE((SELECT json_agg(page) FROM page), '[]'::json),\\n  'total',  (SELECT count(*) FROM f, p WHERE COALESCE(p.j->>'q','') = '' OR f.score >= COALESCE(NULLIF((p.j->>'min_score')::real, 0), 0.3)),\\n  'styles', COALESCE((SELECT json_agg(DISTINCT style ORDER BY style) FROM xr.assets\\n                      WHERE in_inventory AND deleted_at IS NULL AND style <> ''), '[]'::json)\\n) AS result;\".split('{P}').join(P({ ...req.payload, min_score: 0 }));\n}\nreturn [{ json: { sql } }];"
+      },
+      "id": "e8825f70-a0f5-4410-844d-8205cb24a456",
+      "name": "SQL ricerca1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -7616,
+        512
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "{{ $json.sql }}",
+        "options": {}
+      },
+      "id": "bfa5356d-85ac-4d3f-92c6-2b908d6405d6",
+      "name": "Database1",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        -6304,
+        384
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "RtZN5vT43vCpP5cI",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "f22699ae-5f48-47a4-9f67-94e46e1e1b77",
+              "leftValue": "={{ ['save_asset', 'update_asset', 'register_asset'].includes($('Leggi richiesta1').first().json.route) }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "51dc88cd-8289-471d-abc9-f885968e6fa7",
+      "name": "Indicizza oggetto?1",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -6080,
+        384
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "b6f59255-663a-49e0-99aa-31dd6e1f5e6f",
+              "leftValue": "={{ $('Database1').first().json.result?.asset?.in_inventory === true && ($('Database1').first().json.result?.asset?.tags ?? []).length === 0 }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "60ab9c43-9d62-4625-a573-24c55ec6141f",
+      "name": "Servono parole chiave?1",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -5856,
+        144
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parole chiave (LLM) per l'oggetto appena salvato nell'inventario; se l'LLM non risponde si va avanti senza (non è bloccante)\n// Parole chiave per la ricerca, generate dall'LLM locale: sinonimi, traduzioni, categorie generali (animale, veicolo, cibo...)\n// e usi (\"si può guidare\", \"da mangiare\"): è ciò che permette di trovare un cavallo cercando \"animale\".\nconst KEYWORD_MODEL = 'llama3.2';\nconst makeKeywords = async (a) => {\n  const prompt = `Prepari le parole chiave per cercare oggetti 3D in una libreria.\nOggetto: \"${a.name}\"${a.object_name ? ` (inglese: \"${a.object_name}\")` : ''}. Categoria: ${a.category || 'n/d'}. Stile: ${a.style || 'n/d'}.\nRispondi SOLO con JSON: {\"parole_chiave\": [...]}\nScrivi 12-16 parole chiave brevi, in italiano E in inglese, che una persona potrebbe cercare per trovare questo oggetto:\n- sinonimi e traduzione del nome\n- categorie generali a cui appartiene (animale, veicolo, mezzo di trasporto, mobile, cibo, arma, edificio, pianta, personaggio, creatura fantastica...)\n- a cosa serve o cosa ci si fa (si può guidare, si può mangiare, ci si siede, si indossa...)\n- materiale, colore, ambiente tipico\nEsempi:\n\"camion\" -> {\"parole_chiave\": [\"truck\",\"lorry\",\"veicolo\",\"vehicle\",\"mezzo di trasporto\",\"trasporto merci\",\"si può guidare\",\"guidare\",\"strada\",\"pesante\",\"motore\"]}\n\"formaggio\" -> {\"parole_chiave\": [\"cheese\",\"cibo\",\"alimento\",\"food\",\"latticino\",\"dairy\",\"da mangiare\",\"si può mangiare\",\"mangiare\",\"cucina\",\"giallo\"]}\n\"cavallo\" -> {\"parole_chiave\": [\"horse\",\"animale\",\"animal\",\"quadrupede\",\"mammifero\",\"equino\",\"si può cavalcare\",\"cavalcare\",\"fattoria\",\"marrone\"]}`;\n  const res = await this.helpers.httpRequest({\n    method: 'POST', url: 'http://ollama:11434/api/generate', json: true, timeout: 45000,\n    body: { model: KEYWORD_MODEL, prompt, format: 'json', stream: false, keep_alive: '30m',\n            options: { temperature: 0.2, num_predict: 260, num_gpu: 0 } }\n  });\n  let data = res;\n  if (typeof res?.response === 'string') { try { data = JSON.parse(res.response); } catch { data = {}; } }\n  let list = data?.parole_chiave ?? data?.keywords ?? data?.tags ?? [];\n  if (typeof list === 'string') list = list.split(/[,;\\n]/);\n  if (!Array.isArray(list)) list = [];\n  const name = String(a.name || '').toLowerCase();\n  const out = [];\n  for (const w of list) {\n    const t = String(w ?? '').toLowerCase().replace(/\\s+/g, ' ').trim().replace(/^[-•*\"'\\s]+|[\"'.\\s]+$/g, '');\n    if (t.length < 2 || t.length > 40 || /[{}\\[\\]<>]/.test(t) || t === name || out.includes(t)) continue;\n    out.push(t);\n    if (out.length >= 16) break;\n  }\n  return out;\n};\n\nconst a = $('Database1').first().json.result.asset;\nlet keywords = [], error = null;\ntry { keywords = await makeKeywords(a); } catch (e) { error = String(e.message || e).slice(0, 200); console.log('Parole chiave non generate:', error); }\nconst P = s => JSON.stringify(s).split('$xrq$').join('');\nconst sql = keywords.length ? \"WITH p AS (SELECT $xrq${P}$xrq$::jsonb AS j),\\nup AS (\\n  UPDATE xr.assets a SET tags = ARRAY(SELECT jsonb_array_elements_text(x.tags)), updated_at = now()\\n  FROM p, jsonb_to_recordset(COALESCE(p.j->'items','[]'::jsonb)) AS x(id uuid, tags jsonb)\\n  WHERE a.id = x.id AND cardinality(a.tags) = 0 AND jsonb_array_length(x.tags) > 0\\n  RETURNING a.id\\n)\\nSELECT json_build_object('ok', true, 'updated', (SELECT count(*) FROM up)) AS result;\".split('{P}').join(P({ items: [{ id: a.id, tags: keywords }] })) : \"SELECT json_build_object('ok', true, 'updated', 0) AS result;\";\nreturn [{ json: { keywords, error, sql } }];"
+      },
+      "id": "d1881535-651f-49f6-8c5a-e2826a06ca24",
+      "name": "Parole chiave (LLM)1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -5632,
+        48
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "{{ $json.sql }}",
+        "options": {}
+      },
+      "id": "39c9b61e-bb99-4352-bc06-db6b89f0ff13",
+      "name": "Salva parole chiave1",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        -5424,
+        48
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "RtZN5vT43vCpP5cI",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Testo e dati dell'oggetto per l'indice semantico (Qdrant)\n// Testo che descrive l'oggetto per l'indice semantico. Niente prompt di generazione: sono pieni di frasi uguali per tutti\n// (\"sfondo bianco, figura intera, luce da studio\") e avvicinerebbero tra loro tutti i vettori, quindi la ricerca non distingue.\nconst buildText = (a, extra = []) => {\n  const tags = [...new Set([...(a.tags || []), ...extra])];\n  const sameName = a.object_name && String(a.object_name).toLowerCase() === String(a.name || '').toLowerCase();\n  const parts = [a.object_name && !sameName ? `${a.name} (${a.object_name})` : a.name];\n  if (a.category) parts.push(a.category);\n  if (tags.length) parts.push(tags.join(', '));\n  if (a.style) parts.push(a.style);\n  return parts.filter(Boolean).join('. ') || 'oggetto';\n};\n\nconst r = $('Database1').first().json.result;\nconst a = r?.asset;\nif (!r?.ok || !a) return [{ json: { skip: true } }];\nlet extra = [];\ntry { extra = $('Parole chiave (LLM)1').first().json.keywords || []; } catch (e) { /* nodo non eseguito: già arricchito o fuori dall'inventario */ }\nconst text = buildText(a, extra);\nreturn [{ json: { skip: false, id: a.id, text, in_inventory: !!a.in_inventory,\n  payload: { name: a.name, category: a.category, style: a.style, in_inventory: !!a.in_inventory, created_at: a.created_at } } }];"
+      },
+      "id": "ff5ef89a-7c3f-4cf1-8cc2-b079e99c0f61",
+      "name": "Testo per indice1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -5200,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://ollama:11434/api/embed",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: 'bge-m3', input: $json.text, options: { num_gpu: 0 }, keep_alive: '30m' }) }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "cc2c4c8c-dddf-4556-8bf3-688b8725b1b3",
+      "name": "Embedding oggetto1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -4976,
+        240
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Punto da inserire/aggiornare in Qdrant (stesso id dell'oggetto su Postgres)\nconst src = $('Testo per indice1').first().json;\nconst emb = $input.first().json.embeddings?.[0];\nif (!emb) return [{ json: { skip: true } }];\nreturn [{ json: { skip: false, body: { points: [{ id: src.id, vector: emb, payload: src.payload }] } } }];"
+      },
+      "id": "fea7d785-4558-45b3-83b2-b9a385b60ceb",
+      "name": "Punto per Qdrant1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -4752,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "http://qdrant:6333/collections/xr_assets/points?wait=true",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.body) }}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "6953f3e5-9baa-42ea-82d4-d1d3d6dd6969",
+      "name": "Salva in Qdrant1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -4544,
+        240
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "c5f9c1ce-3075-4ff2-abf2-ea5735b4c117",
+              "leftValue": "={{ $('Leggi richiesta1').first().json.route }}",
+              "rightValue": "delete_asset",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "d1a18a14-90e2-4218-89b8-e1cd1863c4b3",
+      "name": "Togli dall'indice?1",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -5856,
+        512
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://qdrant:6333/collections/xr_assets/points/delete?wait=true",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ points: [$('Leggi richiesta1').first().json.payload.asset_id] }) }}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "82c48dfe-d01f-48d8-a3a3-6e181640c505",
+      "name": "Elimina da Qdrant1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -5632,
+        432
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "a78eae52-cf7b-448a-b068-7c22a9a6eb94",
+              "leftValue": "={{ $('Leggi richiesta1').first().json.route }}",
+              "rightValue": "reindex",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "97d3e9a8-4954-4a86-b492-8401a83c1fb7",
+      "name": "Reindicizza?1",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -5632,
+        624
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "http://qdrant:6333/collections/xr_assets",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ vectors: { size: 1024, distance: 'Cosine' } }) }}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "061c7335-ccfc-431b-b425-c158f5450797",
+      "name": "Crea collezione1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -5424,
+        544
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "http://qdrant:6333/collections/xr_assets/index?wait=true",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ field_name: 'in_inventory', field_schema: 'bool' }) }}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "5b0e499f-4216-46fd-8c89-74a01b40d4a3",
+      "name": "Indice in_inventory1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -5200,
+        544
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "http://qdrant:6333/collections/xr_assets/index?wait=true",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ field_name: 'category', field_schema: 'keyword' }) }}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "18bb3b2f-1bf4-4c74-8743-4572e657a409",
+      "name": "Indice categoria1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -4976,
+        544
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "http://qdrant:6333/collections/xr_assets/index?wait=true",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ field_name: 'style', field_schema: 'keyword' }) }}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "4f0de6ed-8af6-4f94-ba76-e6be265f3e29",
+      "name": "Indice stile1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -4752,
+        544
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Reindicizzazione: tutti gli oggetti dell'inventario → testi da trasformare in vettori (in un'unica chiamata)\n// Testo che descrive l'oggetto per l'indice semantico. Niente prompt di generazione: sono pieni di frasi uguali per tutti\n// (\"sfondo bianco, figura intera, luce da studio\") e avvicinerebbero tra loro tutti i vettori, quindi la ricerca non distingue.\nconst buildText = (a, extra = []) => {\n  const tags = [...new Set([...(a.tags || []), ...extra])];\n  const sameName = a.object_name && String(a.object_name).toLowerCase() === String(a.name || '').toLowerCase();\n  const parts = [a.object_name && !sameName ? `${a.name} (${a.object_name})` : a.name];\n  if (a.category) parts.push(a.category);\n  if (tags.length) parts.push(tags.join(', '));\n  if (a.style) parts.push(a.style);\n  return parts.filter(Boolean).join('. ') || 'oggetto';\n};\n\nconst assets = $('Database1').first().json.result?.assets ?? [];\nconst texts = assets.map(a => buildText(a));\nreturn [{ json: { count: assets.length, texts: texts.length ? texts : ['(vuoto)'], assets } }];"
+      },
+      "id": "6d1c44cb-60cd-482e-8174-ec462995fe03",
+      "name": "Elenco oggetti1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -4544,
+        544
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://ollama:11434/api/embed",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: 'bge-m3', input: $json.texts, options: { num_gpu: 0 }, keep_alive: '30m' }) }}",
+        "options": {
+          "timeout": 600000
+        }
+      },
+      "id": "eceb6f0f-5154-45f9-b6f9-d02ba6e12561",
+      "name": "Embedding inventario1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -4320,
+        544
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Vettori + dati → punti per Qdrant\nconst src = $('Elenco oggetti1').first().json;\nconst embs = $input.first().json.embeddings ?? [];\nconst points = src.assets.map((a, i) => embs[i] ? {\n  id: a.id, vector: embs[i],\n  payload: { name: a.name, category: a.category, style: a.style, in_inventory: !!a.in_inventory, created_at: a.created_at }\n} : null).filter(Boolean);\nreturn [{ json: { points, count: points.length, total: src.count, embedError: $input.first().json.error ?? null } }];"
+      },
+      "id": "a17e7d21-af47-4912-ba25-62b3564f7e88",
+      "name": "Punti da indicizzare1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -4096,
+        544
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "http://qdrant:6333/collections/xr_assets/points?wait=true",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ points: $json.points }) }}",
+        "options": {
+          "timeout": 120000
+        }
+      },
+      "id": "91e45871-f114-4904-ad80-0db6d112e0ca",
+      "name": "Salva tutti in Qdrant1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -3872,
+        544
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Esito della reindicizzazione\nconst p = $('Punti da indicizzare1').first().json;\nconst up = $input.first().json;\nconst ok = p.count === p.total && (p.total === 0 || !up.error);   // inventario vuoto: niente da salvare\nreturn [{ json: { result: { ok, indexed: p.count, total: p.total,\n  error: ok ? null : (p.embedError || up.error?.message || up.error || 'Indicizzazione incompleta') } } }];"
+      },
+      "id": "709e99ab-1d81-4920-936e-0535526e5035",
+      "name": "Esito reindicizzazione1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -3664,
+        544
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Risposta a Unity = risultato del database (l'indice semantico è un passaggio accessorio)\nreturn [{ json: { result: $('Database1').first().json.result } }];"
+      },
+      "id": "9b6c379c-1e4c-40bb-b4a7-35c20b47c583",
+      "name": "Risultato1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -4320,
+        288
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "09425b91-3a3e-4958-9c17-26cac07ddcd4",
+              "leftValue": "={{ $('Leggi richiesta1').first().json.route }}",
+              "rightValue": "enrich_assets",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "e5cfc099-8617-4564-b51f-c9df91c757d5",
+      "name": "Arricchire?1",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -5424,
+        752
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Arricchimento a blocchi degli oggetti già in inventario (pulsante \"Migliora la ricerca\" del pannello)\n// Parole chiave per la ricerca, generate dall'LLM locale: sinonimi, traduzioni, categorie generali (animale, veicolo, cibo...)\n// e usi (\"si può guidare\", \"da mangiare\"): è ciò che permette di trovare un cavallo cercando \"animale\".\nconst KEYWORD_MODEL = 'llama3.2';\nconst makeKeywords = async (a) => {\n  const prompt = `Prepari le parole chiave per cercare oggetti 3D in una libreria.\nOggetto: \"${a.name}\"${a.object_name ? ` (inglese: \"${a.object_name}\")` : ''}. Categoria: ${a.category || 'n/d'}. Stile: ${a.style || 'n/d'}.\nRispondi SOLO con JSON: {\"parole_chiave\": [...]}\nScrivi 12-16 parole chiave brevi, in italiano E in inglese, che una persona potrebbe cercare per trovare questo oggetto:\n- sinonimi e traduzione del nome\n- categorie generali a cui appartiene (animale, veicolo, mezzo di trasporto, mobile, cibo, arma, edificio, pianta, personaggio, creatura fantastica...)\n- a cosa serve o cosa ci si fa (si può guidare, si può mangiare, ci si siede, si indossa...)\n- materiale, colore, ambiente tipico\nEsempi:\n\"camion\" -> {\"parole_chiave\": [\"truck\",\"lorry\",\"veicolo\",\"vehicle\",\"mezzo di trasporto\",\"trasporto merci\",\"si può guidare\",\"guidare\",\"strada\",\"pesante\",\"motore\"]}\n\"formaggio\" -> {\"parole_chiave\": [\"cheese\",\"cibo\",\"alimento\",\"food\",\"latticino\",\"dairy\",\"da mangiare\",\"si può mangiare\",\"mangiare\",\"cucina\",\"giallo\"]}\n\"cavallo\" -> {\"parole_chiave\": [\"horse\",\"animale\",\"animal\",\"quadrupede\",\"mammifero\",\"equino\",\"si può cavalcare\",\"cavalcare\",\"fattoria\",\"marrone\"]}`;\n  const res = await this.helpers.httpRequest({\n    method: 'POST', url: 'http://ollama:11434/api/generate', json: true, timeout: 45000,\n    body: { model: KEYWORD_MODEL, prompt, format: 'json', stream: false, keep_alive: '30m',\n            options: { temperature: 0.2, num_predict: 260, num_gpu: 0 } }\n  });\n  let data = res;\n  if (typeof res?.response === 'string') { try { data = JSON.parse(res.response); } catch { data = {}; } }\n  let list = data?.parole_chiave ?? data?.keywords ?? data?.tags ?? [];\n  if (typeof list === 'string') list = list.split(/[,;\\n]/);\n  if (!Array.isArray(list)) list = [];\n  const name = String(a.name || '').toLowerCase();\n  const out = [];\n  for (const w of list) {\n    const t = String(w ?? '').toLowerCase().replace(/\\s+/g, ' ').trim().replace(/^[-•*\"'\\s]+|[\"'.\\s]+$/g, '');\n    if (t.length < 2 || t.length > 40 || /[{}\\[\\]<>]/.test(t) || t === name || out.includes(t)) continue;\n    out.push(t);\n    if (out.length >= 16) break;\n  }\n  return out;\n};\n\nconst list = $('Database1').first().json.result?.assets ?? [];\nconst items = [], failed = [];\nlet error = null;\nfor (const a of list) {\n  try {\n    const tags = await makeKeywords(a);\n    if (tags.length) items.push({ id: a.id, tags }); else failed.push(a.name);\n  } catch (e) {\n    error = String(e.message || e).slice(0, 200);\n    failed.push(a.name);\n    if (/not found|404|ECONNREFUSED|ENOTFOUND|EAI_AGAIN/i.test(error)) break;   // modello mancante o Ollama spento: inutile insistere\n  }\n}\nconst P = s => JSON.stringify(s).split('$xrq$').join('');\nconst sql = items.length ? \"WITH p AS (SELECT $xrq${P}$xrq$::jsonb AS j),\\nup AS (\\n  UPDATE xr.assets a SET tags = ARRAY(SELECT jsonb_array_elements_text(x.tags)), updated_at = now()\\n  FROM p, jsonb_to_recordset(COALESCE(p.j->'items','[]'::jsonb)) AS x(id uuid, tags jsonb)\\n  WHERE a.id = x.id AND cardinality(a.tags) = 0 AND jsonb_array_length(x.tags) > 0\\n  RETURNING a.id\\n)\\nSELECT json_build_object('ok', true, 'updated', (SELECT count(*) FROM up)) AS result;\".split('{P}').join(P({ items })) : \"SELECT json_build_object('ok', true, 'updated', 0) AS result;\";\nreturn [{ json: { sql, processed: items.length, failed, error } }];"
+      },
+      "id": "9eb08d7e-ea8b-4004-b407-626a02c59f55",
+      "name": "Parole chiave in blocco1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -5200,
+        688
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "{{ $json.sql }}",
+        "options": {}
+      },
+      "id": "57b3ddaa-8342-4129-a54b-09511655d163",
+      "name": "Salva tag in blocco1",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        -4976,
+        688
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "RtZN5vT43vCpP5cI",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Esito di un blocco di arricchimento: quanti aggiornati, quanti ne mancano\nconst src = $('Parole chiave in blocco1').first().json;\nconst total = Number($('Database1').first().json.result?.remaining ?? 0);\nconst updated = Number($input.first().json.result?.updated ?? 0);\nconst remaining = Math.max(0, total - updated);\nconst hardError = updated === 0 && src.error;\nreturn [{ json: { result: { ok: !hardError, processed: updated, failed: src.failed, remaining,\n  error: hardError ? (src.error + ` — controlla che il modello \"llama3.2\" sia installato (docker compose exec ollama ollama pull llama3.2)`) : null } } }];"
+      },
+      "id": "feb21af6-1093-4b14-9c37-6b3faa10ee0e",
+      "name": "Esito arricchimento1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -4752,
+        688
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json.result) }}",
+        "options": {}
+      },
+      "id": "44506260-e04f-4386-9ef5-7620323f951c",
+      "name": "Rispondi1",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        -3216,
+        384
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook libreria2": {
+      "main": [
+        [
+          {
+            "node": "Leggi richiesta1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leggi richiesta1": {
+      "main": [
+        [
+          {
+            "node": "Nuovo oggetto?1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Nuovo oggetto?1": {
+      "main": [
+        [
+          {
+            "node": "Scarica GLB da ComfyUI1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Ricerca semantica?1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ricerca semantica?1": {
+      "main": [
+        [
+          {
+            "node": "Embedding ricerca1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Database1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Scarica GLB da ComfyUI1": {
+      "main": [
+        [
+          {
+            "node": "Misura GLB1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Misura GLB1": {
+      "main": [
+        [
+          {
+            "node": "Carica GLB nello storage1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Carica GLB nello storage1": {
+      "main": [
+        [
+          {
+            "node": "Ha immagine?1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ha immagine?1": {
+      "main": [
+        [
+          {
+            "node": "Scarica immagine da ComfyUI1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Ha miniatura?1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Scarica immagine da ComfyUI1": {
+      "main": [
+        [
+          {
+            "node": "Carica immagine nello storage1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Carica immagine nello storage1": {
+      "main": [
+        [
+          {
+            "node": "Ha miniatura?1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ha miniatura?1": {
+      "main": [
+        [
+          {
+            "node": "Miniatura da Base",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "SQL inserimento1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Miniatura da Base": {
+      "main": [
+        [
+          {
+            "node": "Carica miniatura nello storage1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Carica miniatura nello storage1": {
+      "main": [
+        [
+          {
+            "node": "SQL inserimento1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SQL inserimento1": {
+      "main": [
+        [
+          {
+            "node": "Database1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embedding ricerca1": {
+      "main": [
+        [
+          {
+            "node": "Corpo ricerca1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Corpo ricerca1": {
+      "main": [
+        [
+          {
+            "node": "Cerca in Qdrant1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cerca in Qdrant1": {
+      "main": [
+        [
+          {
+            "node": "SQL ricerca1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SQL ricerca1": {
+      "main": [
+        [
+          {
+            "node": "Database1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Database1": {
+      "main": [
+        [
+          {
+            "node": "Indicizza oggetto?1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Indicizza oggetto?1": {
+      "main": [
+        [
+          {
+            "node": "Servono parole chiave?1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Togli dall'indice?1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Servono parole chiave?1": {
+      "main": [
+        [
+          {
+            "node": "Parole chiave (LLM)1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Testo per indice1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parole chiave (LLM)1": {
+      "main": [
+        [
+          {
+            "node": "Salva parole chiave1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Salva parole chiave1": {
+      "main": [
+        [
+          {
+            "node": "Testo per indice1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Testo per indice1": {
+      "main": [
+        [
+          {
+            "node": "Embedding oggetto1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embedding oggetto1": {
+      "main": [
+        [
+          {
+            "node": "Punto per Qdrant1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Punto per Qdrant1": {
+      "main": [
+        [
+          {
+            "node": "Salva in Qdrant1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Salva in Qdrant1": {
+      "main": [
+        [
+          {
+            "node": "Risultato1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Togli dall'indice?1": {
+      "main": [
+        [
+          {
+            "node": "Elimina da Qdrant1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Reindicizza?1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Elimina da Qdrant1": {
+      "main": [
+        [
+          {
+            "node": "Risultato1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reindicizza?1": {
+      "main": [
+        [
+          {
+            "node": "Crea collezione1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Arricchire?1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Crea collezione1": {
+      "main": [
+        [
+          {
+            "node": "Indice in_inventory1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Indice in_inventory1": {
+      "main": [
+        [
+          {
+            "node": "Indice categoria1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Indice categoria1": {
+      "main": [
+        [
+          {
+            "node": "Indice stile1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Indice stile1": {
+      "main": [
+        [
+          {
+            "node": "Elenco oggetti1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Elenco oggetti1": {
+      "main": [
+        [
+          {
+            "node": "Embedding inventario1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embedding inventario1": {
+      "main": [
+        [
+          {
+            "node": "Punti da indicizzare1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Punti da indicizzare1": {
+      "main": [
+        [
+          {
+            "node": "Salva tutti in Qdrant1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Salva tutti in Qdrant1": {
+      "main": [
+        [
+          {
+            "node": "Esito reindicizzazione1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Esito reindicizzazione1": {
+      "main": [
+        [
+          {
+            "node": "Rispondi1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Risultato1": {
+      "main": [
+        [
+          {
+            "node": "Rispondi1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Arricchire?1": {
+      "main": [
+        [
+          {
+            "node": "Parole chiave in blocco1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Risultato1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parole chiave in blocco1": {
+      "main": [
+        [
+          {
+            "node": "Salva tag in blocco1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Salva tag in blocco1": {
+      "main": [
+        [
+          {
+            "node": "Esito arricchimento1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Esito arricchimento1": {
+      "main": [
+        [
+          {
+            "node": "Rispondi1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "cfeffa95-307d-4ce8-a94d-d7395bcb7c1c",
+  "meta": {
+    "instanceId": "fe9646e0aa4cd870b6bb0a4db1bba1e72fbbdd9f780e5450977e1e63c74badac"
+  },
+  "nodeGroups": [],
+  "id": "lzIx6FWrWGX3O4gX",
+  "tags": []
+}

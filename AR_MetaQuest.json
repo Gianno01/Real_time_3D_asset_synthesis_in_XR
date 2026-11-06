@@ -3,164 +3,6 @@
   "nodes": [
     {
       "parameters": {
-        "jsCode": "const data = $input.first().json;\nconst msg = data.body?.prompt \n  ?? data.prompt \n  ?? data.chatInput \n  ?? data.input \n  ?? data.message \n  ?? 'una sedia medievale';\n\nconst sessionId = data.body?.session_id \n  ?? data.session_id \n  ?? 'test_' + Date.now().toString();\n\nreturn [{ json: { prompt: msg.trim(), session_id: sessionId } }];"
-      },
-      "id": "58bb569c-8516-4fb4-b509-8cae3ffaa8a7",
-      "name": "Estrai prompt + session_id",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        -1808,
-        2832
-      ]
-    },
-    {
-      "parameters": {
-        "model": "llama3.2:latest",
-        "options": {
-          "temperature": 0.2
-        }
-      },
-      "id": "31336818-4655-4350-8c99-32408c354a0e",
-      "name": "AI Agent — Ollama",
-      "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
-      "typeVersion": 1,
-      "position": [
-        -1584,
-        3024
-      ],
-      "credentials": {
-        "ollamaApi": {
-          "id": "irk0KqWqsoEfK3zf",
-          "name": "Ollama account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "jsCode": "// L'output dell'AI Agent arriva in output.text o output.output\nconst agentOutput = $input.first().json.output \n  ?? $input.first().json.text \n  ?? $input.first().json.content\n  ?? '';\n\nconst sessionId = $('Estrai prompt + session_id').first().json.session_id;\n\nlet parsed;\ntry {\n  const clean = agentOutput.replace(/```json|```/gi, '').trim();\n  const match = clean.match(/\\{[\\s\\S]*\\}/);\n  if (!match) throw new Error('Nessun JSON trovato');\n  parsed = JSON.parse(match[0]);\n} catch(e) {\n  // Fallback: usa il testo grezzo come prompt FLUX\n  console.log('JSON parse fallito, uso fallback. Output:', agentOutput.substring(0, 200));\n  parsed = {\n    flux_prompt: `${agentOutput.substring(0, 200)}, white background, studio lighting, product photography`,\n    object_name: 'object',\n    style_tags: ''\n  };\n}\n\nif (!parsed.flux_prompt) {\n  throw new Error(`flux_prompt mancante. Parsed: ${JSON.stringify(parsed)}`);\n}\n\nreturn [{ json: {\n  flux_prompt: parsed.flux_prompt,\n  object_name: parsed.object_name ?? 'object',\n  style_tags: parsed.style_tags ?? '',\n  session_id: sessionId,\n  seed: Math.floor(Math.random() * 9999999999)\n} }];"
-      },
-      "id": "0e68d9c7-504e-4bed-9721-44b2ccd53526",
-      "name": "Estrai JSON dall'agente",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        -1280,
-        2832
-      ]
-    },
-    {
-      "parameters": {
-        "jsCode": "const item = $input.first();\nconst agentData = $('Estrai JSON dall\\'agente').first().json;\nconst sessionId = agentData.session_id;\nconst objectName = agentData.object_name;\nconst seed = agentData.seed;\n\n// Il nodo comfyui mason276752 restituisce le immagini come binary\n// La chiave binary può essere 'data', 'image', o il filename\nconst binaryKeys = Object.keys(item.binary ?? {});\nconsole.log('Binary keys disponibili da FLUX:', JSON.stringify(binaryKeys));\nconsole.log('JSON da FLUX:', JSON.stringify(item.json).substring(0, 400));\n\nif (binaryKeys.length === 0) {\n  throw new Error(`Nessun binary trovato nell output FLUX. JSON: ${JSON.stringify(item.json).substring(0, 300)}`);\n}\n\nconst binaryKey = binaryKeys[0];\nconst buffer = await this.helpers.getBinaryDataBuffer(0, binaryKey);\nconst base64Image = buffer.toString('base64');\n\nconst dataUri = base64Image;\n\nconsole.log(`Immagine convertita: ${Math.round(buffer.length / 1024)}KB, key: ${binaryKey}`);\n\nreturn [{ json: {\n  image_base64: dataUri,\n  session_id: sessionId,\n  object_name: objectName,\n  seed: seed\n} }];"
-      },
-      "id": "252bad8c-7882-4baf-a380-0d29731782ea",
-      "name": "PNG → Base64 per Hunyuan",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        -880,
-        2832
-      ]
-    },
-    {
-      "parameters": {
-        "respondWith": "json",
-        "responseBody": "={{ JSON.stringify($json) }}",
-        "options": {}
-      },
-      "id": "28865515-f27b-4666-9b51-c8064fa4d405",
-      "name": "Rispondi a Unity",
-      "type": "n8n-nodes-base.respondToWebhook",
-      "typeVersion": 1.1,
-      "position": [
-        -64,
-        2832
-      ]
-    },
-    {
-      "parameters": {
-        "url": "http://10.54.15.50:8188/api/history",
-        "options": {}
-      },
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.4,
-      "position": [
-        -480,
-        2832
-      ],
-      "id": "9273142b-daf6-4b5a-b914-2aaff7abd717",
-      "name": "HTTP Request"
-    },
-    {
-      "parameters": {
-        "jsCode": "const history = $input.first().json;\n\nlet latestGlb = null;\nlet latestTime = 0;\n\nfor (const promptId of Object.keys(history)) {\n  const entry = history[promptId];\n  const outputs = entry?.outputs || {};\n  for (const nodeId of Object.keys(outputs)) {\n    const nodeOut = outputs[nodeId];\n    // Cerca sia in \"meshes\" che in \"3d\"\n    const meshArray = nodeOut?.meshes || nodeOut?.['3d'] || [];\n    for (const mesh of meshArray) {\n      if (mesh.filename?.endsWith('.glb')) {\n        const t = entry.status?.status_str === 'success'\n          ? new Date(entry.status?.completed_at || 0).getTime()\n          : 0;\n        if (t >= latestTime) {\n          latestTime = t;\n          latestGlb = mesh;\n        }\n      }\n    }\n  }\n}\n\nif (!latestGlb) throw new Error('Nessun file .glb trovato');\n\n//const host = \"10.54.128.46\";\n//const host = \"127.0.0.1\";\nconst host = \"10.54.15.50\";\nconst port = 8188;\n//const port = 8000;\n\nconst glbUrl = `http://${host}:${port}/view?filename=${latestGlb.filename}&type=${latestGlb.type || 'output'}&subfolder=${latestGlb.subfolder || 'mesh'}`;\n\nreturn [{\n  json: {\n    status: \"ready\",\n    glb_url: glbUrl,\n    object_name: $input.first().json.object_name || \"Object\",\n    session_id: $input.first().json.session_id || \"unknown\",\n    message: \"Oggetto generato con successo!\"\n  }\n}];"
-      },
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        -272,
-        2832
-      ],
-      "id": "b0ff0b2d-de54-4896-a1a6-594de0c2f86b",
-      "name": "Code in JavaScript"
-    },
-    {
-      "parameters": {
-        "workflow": "={\n  \"1\": {\n    \"inputs\": {\n      \"ckpt_name\": \"hunyuan_3d_v2.1.safetensors\"\n    },\n    \"class_type\": \"ImageOnlyCheckpointLoader\",\n    \"_meta\": {\n      \"title\": \"Image Only Checkpoint Loader (img2vid model)\"\n    }\n  },\n  \"3\": {\n    \"inputs\": {\n      \"shift\": 1,\n      \"model\": [\n        \"1\",\n        0\n      ]\n    },\n    \"class_type\": \"ModelSamplingAuraFlow\",\n    \"_meta\": {\n      \"title\": \"ModelSamplingAuraFlow\"\n    }\n  },\n  \"4\": {\n    \"inputs\": {\n      \"resolution\": 4096,\n      \"batch_size\": 1\n    },\n    \"class_type\": \"EmptyLatentHunyuan3Dv2\",\n    \"_meta\": {\n      \"title\": \"EmptyLatentHunyuan3Dv2\"\n    }\n  },\n  \"6\": {\n    \"inputs\": {\n      \"clip_vision_output\": [\n        \"13\",\n        0\n      ]\n    },\n    \"class_type\": \"Hunyuan3Dv2Conditioning\",\n    \"_meta\": {\n      \"title\": \"Hunyuan3Dv2Conditioning\"\n    }\n  },\n  \"7\": {\n    \"inputs\": {\n      \"seed\": 952805179515179,\n      \"steps\": 30,\n      \"cfg\": 5,\n      \"sampler_name\": \"euler\",\n      \"scheduler\": \"normal\",\n      \"denoise\": 1,\n      \"model\": [\n        \"3\",\n        0\n      ],\n      \"positive\": [\n        \"6\",\n        0\n      ],\n      \"negative\": [\n        \"6\",\n        1\n      ],\n      \"latent_image\": [\n        \"4\",\n        0\n      ]\n    },\n    \"class_type\": \"KSampler\",\n    \"_meta\": {\n      \"title\": \"KSampler\"\n    }\n  },\n  \"8\": {\n    \"inputs\": {\n      \"num_chunks\": 8000,\n      \"octree_resolution\": 256,\n      \"samples\": [\n        \"7\",\n        0\n      ],\n      \"vae\": [\n        \"1\",\n        2\n      ]\n    },\n    \"class_type\": \"VAEDecodeHunyuan3D\",\n    \"_meta\": {\n      \"title\": \"VAEDecodeHunyuan3D\"\n    }\n  },\n  \"9\": {\n    \"inputs\": {\n      \"algorithm\": \"surface net\",\n      \"threshold\": 0.6,\n      \"voxel\": [\n        \"8\",\n        0\n      ]\n    },\n    \"class_type\": \"VoxelToMesh\",\n    \"_meta\": {\n      \"title\": \"VoxelToMesh\"\n    }\n  },\n  \"10\": {\n    \"inputs\": {\n      \"filename_prefix\": \"mesh/ComfyUI\",\n      \"image\": \"\",\n      \"mesh\": [\n        \"9\",\n        0\n      ]\n    },\n    \"class_type\": \"SaveGLB\",\n    \"_meta\": {\n      \"title\": \"Save 3D Model\"\n    }\n  },\n  \"13\": {\n    \"inputs\": {\n      \"crop\": \"center\",\n      \"clip_vision\": [\n        \"1\",\n        1\n      ],\n      \"image\": [\n        \"14\",\n        0\n      ]\n    },\n    \"class_type\": \"CLIPVisionEncode\",\n    \"_meta\": {\n      \"title\": \"CLIP Vision Encode\"\n    }\n  },\n  \"14\": {\n    \"inputs\": {\n      \"base64_data\": \"{{ $json.image_base64 }}\",\n      \"image_output\": \"Preview\",\n      \"save_prefix\": \"ComfyUI\"\n    },\n    \"class_type\": \"easy loadImageBase64\",\n    \"_meta\": {\n      \"title\": \"Load Image (Base64)\"\n    }\n  }\n}"
-      },
-      "type": "n8n-nodes-comfyui.comfyui",
-      "typeVersion": 1,
-      "position": [
-        -688,
-        2832
-      ],
-      "id": "42a8659e-320f-4a66-a040-2954ca164c20",
-      "name": "ComfyUI - 3D - Hunyuan",
-      "credentials": {
-        "comfyUIApi": {
-          "id": "by5WzwddlVBMcxrX",
-          "name": "ComfyUI account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "promptType": "define",
-        "text": "={{ $json.prompt }}",
-        "options": {
-          "systemMessage": "You are an expert at writing image generation prompts for FLUX diffusion models and 3D asset pipelines.\n\nThe input will be a short object description in ITALIAN or ENGLISH. If the input is in Italian, translate it to English before generating the prompt.\n\nGiven the object description, you must produce a JSON object with exactly these fields:\n{\n  \"flux_prompt\": \"<detailed English prompt for FLUX, 60-90 words. Describe: object shape, materials, surface details, style. The object MUST be on a PURE WHITE background with studio lighting, product photography style, no shadows, no reflections>\",\n  \"object_name\": \"<short English name of the object, 1-3 words>\",\n  \"style_tags\": \"<3-5 comma-separated style keywords, e.g. medieval, worn leather, iron rivets>\"\n}\n\nSTRICT RULES:\n- The input language is always ITALIAN or ENGLISH — translate to English if needed\n- flux_prompt must describe a SINGLE object on a PURE WHITE background\n- flux_prompt must always be in English regardless of input language\n- The object must be centered, front-facing, fully visible, isolated\n- Do NOT include people, scenes, backgrounds, or multiple objects\n- Reply with valid JSON only — no markdown fences, no explanations, no extra text before or after the JSON\n\nIMPORTANT: Reply ONLY with a JSON object. No explanations, no descriptions, no preamble. Start your response with { and end with }.\n\nDo NOT explain your reasoning. Do NOT think out loud. Output ONLY the JSON object, nothing else."
-        }
-      },
-      "id": "507d08c3-8580-40d2-bd01-c7981a6f2f75",
-      "name": "AI Agent1",
-      "type": "@n8n/n8n-nodes-langchain.agent",
-      "typeVersion": 3.1,
-      "position": [
-        -1584,
-        2832
-      ]
-    },
-    {
-      "parameters": {
-        "workflow": "={{ JSON.stringify({\n  '9': {\n    'inputs': {\n      'filename_prefix': 'ar_flux_' + $json.session_id,\n      'images': ['41:8', 0],\n      'compress_level': 0\n    },\n    'class_type': 'SaveImage',\n    '_meta': { 'title': 'Save Image' }\n  },\n  '41:39': {\n    'inputs': { 'vae_name': 'ae.safetensors' },\n    'class_type': 'VAELoader',\n    '_meta': { 'title': 'Load VAE' }\n  },\n  '41:38': {\n    'inputs': {\n      'unet_name': 'flux1-dev.safetensors',\n      'weight_dtype': 'default'\n    },\n    'class_type': 'UNETLoader',\n    '_meta': { 'title': 'Load Diffusion Model' }\n  },\n  '41:42': {\n    'inputs': { 'conditioning': ['41:45', 0] },\n    'class_type': 'ConditioningZeroOut',\n    '_meta': { 'title': 'ConditioningZeroOut' }\n  },\n  '41:8': {\n    'inputs': {\n      'samples': ['41:31', 0],\n      'vae': ['41:39', 0]\n    },\n    'class_type': 'VAEDecode',\n    '_meta': { 'title': 'VAE Decode' }\n  },\n  '41:43': {\n    'inputs': {\n      'clip_name1': 'clip_l.safetensors',\n      'clip_name2': 't5xxl_fp16.safetensors',\n      'type': 'flux',\n      'device': 'default'\n    },\n    'class_type': 'DualCLIPLoader',\n    '_meta': { 'title': 'DualCLIPLoader' }\n  },\n  '41:45': {\n    'inputs': {\n      'text': $json.flux_prompt,\n      'clip': ['41:43', 0]\n    },\n    'class_type': 'CLIPTextEncode',\n    '_meta': { 'title': 'CLIP Text Encode (Prompt)' }\n  },\n  '41:27': {\n    'inputs': {\n      'width': 1024,\n      'height': 1024,\n      'batch_size': 1\n    },\n    'class_type': 'EmptySD3LatentImage',\n    '_meta': { 'title': 'EmptySD3LatentImage' }\n  },\n  '41:31': {\n    'inputs': {\n      'seed': $json.seed,\n      'steps': 20,\n      'cfg': 1,\n      'sampler_name': 'euler',\n      'scheduler': 'simple',\n      'denoise': 1,\n      'model': ['41:38', 0],\n      'positive': ['41:45', 0],\n      'negative': ['41:42', 0],\n      'latent_image': ['41:27', 0]\n    },\n    'class_type': 'KSampler',\n    '_meta': { 'title': 'KSampler' }\n  }\n}) }}"
-      },
-      "type": "n8n-nodes-comfyui.comfyui",
-      "typeVersion": 1,
-      "position": [
-        -1072,
-        2832
-      ],
-      "id": "1fb03d54-f69c-4278-871c-580498147459",
-      "name": "ComfyUI - FLUX",
-      "credentials": {
-        "comfyUIApi": {
-          "id": "by5WzwddlVBMcxrX",
-          "name": "ComfyUI account"
-        }
-      }
-    },
-    {
-      "parameters": {
         "method": "POST",
         "url": "http://10.54.15.50:8188/prompt",
         "sendBody": true,
@@ -201,7 +43,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// L'output dell'AI Agent arriva in output.text o output.output\nconst agentOutput = $input.first().json.output \n  ?? $input.first().json.text \n  ?? $input.first().json.content\n  ?? '';\n\nlet sessionId;\ntry {\n  sessionId = $('Estrai prompt + session_id2').first().json.session_id;\n} catch (e) {\n  sessionId = 'test_' + Date.now().toString();\n}\n\nlet parsed;\ntry {\n  const clean = agentOutput.replace(/```json|```/gi, '').trim();\n  const match = clean.match(/\\{[\\s\\S]*\\}/);\n  if (!match) throw new Error('Nessun JSON trovato');\n  parsed = JSON.parse(match[0]);\n} catch(e) {\n  console.log('JSON parse fallito, uso fallback. Output:', agentOutput.substring(0, 200));\n  parsed = {\n    flux_prompt: `${agentOutput.substring(0, 200)}, white background, studio lighting, product photography`,\n    object_name: 'object',\n    style_tags: ''\n  };\n}\n\nif (!parsed.flux_prompt) {\n  throw new Error(`flux_prompt mancante. Parsed: ${JSON.stringify(parsed)}`);\n}\n\nreturn [{ json: {\n  flux_prompt: parsed.flux_prompt,\n  object_name: parsed.object_name ?? 'object',\n  style_tags: parsed.style_tags ?? '',\n  session_id: sessionId,\n  seed: Math.floor(Math.random() * 9999999999)\n} }];"
+        "jsCode": "// Estrai JSON dall'agente2 — prompt per Qwen-Image + formato dell'immagine\n// Garantisce l'inquadratura a figura intera anche se il modello linguistico se ne dimentica.\nconst agentOutput = $input.first().json.output\n  ?? $input.first().json.text\n  ?? $input.first().json.content\n  ?? '';\n\nlet sessionId, userPrompt = '';\ntry {\n  const req = $('Estrai prompt + session_id2').first().json;\n  sessionId = req.session_id;\n  userPrompt = String(req.prompt ?? '');\n} catch (e) {\n  sessionId = 'test_' + Date.now().toString();\n}\n\nlet parsed;\ntry {\n  const clean = agentOutput.replace(/```json|```/gi, '').trim();\n  const match = clean.match(/\\{[\\s\\S]*\\}/);\n  if (!match) throw new Error('Nessun JSON trovato');\n  parsed = JSON.parse(match[0]);\n} catch (e) {\n  console.log('JSON parse fallito, uso fallback. Output:', agentOutput.substring(0, 200));\n  parsed = { flux_prompt: agentOutput.substring(0, 300) || userPrompt, object_name: 'object', style_tags: '' };\n}\nif (!parsed.flux_prompt) throw new Error(`flux_prompt mancante. Parsed: ${JSON.stringify(parsed)}`);\n\nconst type = String(parsed.subject_type ?? '').toLowerCase().trim();\nlet prompt = String(parsed.flux_prompt).trim();\n\n// l'utente ha chiesto esplicitamente un dettaglio? (allora niente figura intera forzata)\nconst askedDetail = /\\b(mezzo busto|busto|ritratto|primo piano|testa|volto|faccia|bust|portrait|head|close-?up)\\b/i.test(userPrompt);\nif (!askedDetail) {\n  prompt = prompt\n    .replace(/\\b(portrait|bust|close-?up|headshot|upper[- ]body|half[- ]body|waist[- ]up|macro)( shot| view)?\\b,?/gi, '')\n    .replace(/\\s+,/g, ',').replace(/\\s{2,}/g, ' ').trim();\n  if ((type === 'character' || type === 'creature') && !/full[- ]body/i.test(prompt))\n    prompt = /^of\\b/i.test(prompt) ? 'Full body shot ' + prompt : 'Full body shot of ' + prompt.charAt(0).toLowerCase() + prompt.slice(1);\n  if (!/(nothing cropped|entire subject|fully visible)/i.test(prompt))\n    prompt += ', entire subject fully visible with empty margin around it, nothing cropped';\n  if (!/white background/i.test(prompt)) prompt += ', isolated on a pure white background, soft even studio lighting';\n}\n\n// formato: verticale per i personaggi, orizzontale per animali e veicoli (stessi pixel di 800×800, multipli di 16)\nconst SIZES = { tall: [704, 928], wide: [928, 704], square: [800, 800] };\nlet aspect = String(parsed.aspect ?? '').toLowerCase().trim();\nif (!SIZES[aspect]) aspect = type === 'character' ? 'tall' : (type === 'creature' || type === 'vehicle') ? 'wide' : 'square';\nif (askedDetail) aspect = 'square';\nconst [width, height] = SIZES[aspect];\n\nreturn [{ json: {\n  flux_prompt: prompt,\n  object_name: parsed.object_name ?? 'object',\n  style_tags: parsed.style_tags ?? '',\n  subject_type: type || 'object',\n  aspect, width, height,\n  session_id: sessionId,\n  seed: Math.floor(Math.random() * 9999999999)\n} }];"
       },
       "id": "c6f9d57b-883e-44bb-a4ef-5c1ad096d0bc",
       "name": "Estrai JSON dall'agente2",
@@ -214,7 +56,7 @@
     },
     {
       "parameters": {
-        "workflow": "={{ JSON.stringify({\n  \"103\": {\n    \"inputs\": {\n      \"vae_name\": \"qwen_image_vae.safetensors\"\n    },\n    \"class_type\": \"VAELoader\",\n    \"_meta\": {\n      \"title\": \"Carica VAE\"\n    }\n  },\n  \"104\": {\n    \"inputs\": {\n      \"clip_name\": \"qwen_2.5_vl_7b_fp8_scaled.safetensors\",\n      \"type\": \"qwen_image\",\n      \"device\": \"default\"\n    },\n    \"class_type\": \"CLIPLoader\",\n    \"_meta\": {\n      \"title\": \"Carica CLIP\"\n    }\n  },\n  \"105\": {\n    \"inputs\": {\n      \"unet_name\": \"qwen_image_2512_fp8_e4m3fn.safetensors\",\n      \"weight_dtype\": \"default\"\n    },\n    \"class_type\": \"UNETLoader\",\n    \"_meta\": {\n      \"title\": \"Carica modello di diffusione\"\n    }\n  },\n  \"106\": {\n    \"inputs\": {\n      \"seed\": $json.seed,\n      \"steps\": 2,\n      \"cfg\": 1,\n      \"sampler_name\": \"euler\",\n      \"scheduler\": \"simple\",\n      \"denoise\": 1,\n      \"model\": [\n        \"110\",\n        0\n      ],\n      \"positive\": [\n        \"108\",\n        0\n      ],\n      \"negative\": [\n        \"128\",\n        0\n      ],\n      \"latent_image\": [\n        \"107\",\n        0\n      ]\n    },\n    \"class_type\": \"KSampler\",\n    \"_meta\": {\n      \"title\": \"KSampler\"\n    }\n  },\n  \"107\": {\n    \"inputs\": {\n      \"width\": 800,\n      \"height\": 800,\n      \"batch_size\": 1\n    },\n    \"class_type\": \"EmptySD3LatentImage\",\n    \"_meta\": {\n      \"title\": \"Immagine Latent Vuota SD3\"\n    }\n  },\n  \"108\": {\n    \"inputs\": {\n      \"text\": $json.flux_prompt,\n      \"clip\": [\n        \"104\",\n        0\n      ]\n    },\n    \"class_type\": \"CLIPTextEncode\",\n    \"_meta\": {\n      \"title\": \"CLIP Text Encode (Positive Prompt)\"\n    }\n  },\n  \"109\": {\n    \"inputs\": {\n      \"samples\": [\n        \"106\",\n        0\n      ],\n      \"vae\": [\n        \"103\",\n        0\n      ]\n    },\n    \"class_type\": \"VAEDecode\",\n    \"_meta\": {\n      \"title\": \"Decodifica VAE\"\n    }\n  },\n  \"110\": {\n    \"inputs\": {\n      \"shift\": 3,\n      \"sampling\": \"flow\",\n      \"model\": [\n        \"114\",\n        0\n      ]\n    },\n    \"class_type\": \"ModelSamplingAuraFlow\",\n    \"_meta\": {\n      \"title\": \"ModelSamplingAuraFlow\"\n    }\n  },\n  \"114\": {\n    \"inputs\": {\n      \"lora_name\": \"Wuli-Qwen-Image-2512-Turbo-LoRA-2steps-V1.0-bf16.safetensors\",\n      \"strength_model\": 1,\n      \"model\": [\n        \"105\",\n        0\n      ]\n    },\n    \"class_type\": \"LoraLoaderModelOnly\",\n    \"_meta\": {\n      \"title\": \"Carica LoRA\"\n    }\n  },\n  \"123\": {\n    \"inputs\": {\n      \"filename_prefix\": \"ar_\" + $json.session_id,\n      \"images\": [\n        \"109\",\n        0\n      ]\n    },\n    \"class_type\": \"SaveImage\",\n    \"_meta\": {\n      \"title\": \"Salva Immagine\"\n    }\n  },\n  \"128\": {\n    \"inputs\": {\n      \"conditioning\": [\n        \"108\",\n        0\n      ]\n    },\n    \"class_type\": \"ConditioningZeroOut\",\n    \"_meta\": {\n      \"title\": \"Condizionamento Azzerato\"\n    }\n  }\n}) }}"
+        "workflow": "={{ JSON.stringify({\n  \"103\": {\n    \"inputs\": {\n      \"vae_name\": \"qwen_image_vae.safetensors\"\n    },\n    \"class_type\": \"VAELoader\",\n    \"_meta\": {\n      \"title\": \"Carica VAE\"\n    }\n  },\n  \"104\": {\n    \"inputs\": {\n      \"clip_name\": \"qwen_2.5_vl_7b_fp8_scaled.safetensors\",\n      \"type\": \"qwen_image\",\n      \"device\": \"default\"\n    },\n    \"class_type\": \"CLIPLoader\",\n    \"_meta\": {\n      \"title\": \"Carica CLIP\"\n    }\n  },\n  \"105\": {\n    \"inputs\": {\n      \"unet_name\": \"qwen_image_2512_fp8_e4m3fn.safetensors\",\n      \"weight_dtype\": \"default\"\n    },\n    \"class_type\": \"UNETLoader\",\n    \"_meta\": {\n      \"title\": \"Carica modello di diffusione\"\n    }\n  },\n  \"106\": {\n    \"inputs\": {\n      \"seed\": $json.seed,\n      \"steps\": 2,\n      \"cfg\": 1,\n      \"sampler_name\": \"euler\",\n      \"scheduler\": \"simple\",\n      \"denoise\": 1,\n      \"model\": [\n        \"110\",\n        0\n      ],\n      \"positive\": [\n        \"108\",\n        0\n      ],\n      \"negative\": [\n        \"128\",\n        0\n      ],\n      \"latent_image\": [\n        \"107\",\n        0\n      ]\n    },\n    \"class_type\": \"KSampler\",\n    \"_meta\": {\n      \"title\": \"KSampler\"\n    }\n  },\n  \"107\": {\n    \"inputs\": {\n     \"width\": $json.width ?? 800,\n      \"height\": $json.height ?? 800,\n      \"batch_size\": 1\n    },\n    \"class_type\": \"EmptySD3LatentImage\",\n    \"_meta\": {\n      \"title\": \"Immagine Latent Vuota SD3\"\n    }\n  },\n  \"108\": {\n    \"inputs\": {\n      \"text\": $json.flux_prompt,\n      \"clip\": [\n        \"104\",\n        0\n      ]\n    },\n    \"class_type\": \"CLIPTextEncode\",\n    \"_meta\": {\n      \"title\": \"CLIP Text Encode (Positive Prompt)\"\n    }\n  },\n  \"109\": {\n    \"inputs\": {\n      \"samples\": [\n        \"106\",\n        0\n      ],\n      \"vae\": [\n        \"103\",\n        0\n      ]\n    },\n    \"class_type\": \"VAEDecode\",\n    \"_meta\": {\n      \"title\": \"Decodifica VAE\"\n    }\n  },\n  \"110\": {\n    \"inputs\": {\n      \"shift\": 3,\n      \"sampling\": \"flow\",\n      \"model\": [\n        \"114\",\n        0\n      ]\n    },\n    \"class_type\": \"ModelSamplingAuraFlow\",\n    \"_meta\": {\n      \"title\": \"ModelSamplingAuraFlow\"\n    }\n  },\n  \"114\": {\n    \"inputs\": {\n      \"lora_name\": \"Wuli-Qwen-Image-2512-Turbo-LoRA-2steps-V1.0-bf16.safetensors\",\n      \"strength_model\": 1,\n      \"model\": [\n        \"105\",\n        0\n      ]\n    },\n    \"class_type\": \"LoraLoaderModelOnly\",\n    \"_meta\": {\n      \"title\": \"Carica LoRA\"\n    }\n  },\n  \"123\": {\n    \"inputs\": {\n      \"filename_prefix\": \"ar_\" + $json.session_id,\n      \"images\": [\n        \"109\",\n        0\n      ]\n    },\n    \"class_type\": \"SaveImage\",\n    \"_meta\": {\n      \"title\": \"Salva Immagine\"\n    }\n  },\n  \"128\": {\n    \"inputs\": {\n      \"conditioning\": [\n        \"108\",\n        0\n      ]\n    },\n    \"class_type\": \"ConditioningZeroOut\",\n    \"_meta\": {\n      \"title\": \"Condizionamento Azzerato\"\n    }\n  }\n}) }}"
       },
       "type": "n8n-nodes-comfyui.comfyui",
       "typeVersion": 1,
@@ -240,8 +82,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -800,
-        4288
+        -720,
+        4016
       ]
     },
     {
@@ -291,7 +133,7 @@
         "promptType": "define",
         "text": "={{ $json.prompt }}",
         "options": {
-          "systemMessage": "You are an expert at writing image generation prompts for Qwen image generation models and 3D asset pipelines.\n\nThe input will be a short object description in ITALIAN or ENGLISH. If the input is in Italian, translate it to English before generating the prompt.\n\nGiven the object description, you must produce a JSON object with exactly these fields:\n{\n  \"flux_prompt\": \"<detailed English prompt for Qwen image generation, 40-60 words. Describe: object shape, materials, surface details, style. The object MUST be on a PURE WHITE background with studio lighting, product photography style, no shadows, no reflections. Use clear, direct descriptive language without artistic jargon>\",\n  \"object_name\": \"<short English name of the object, 1-3 words>\",\n  \"style_tags\": \"<3-5 comma-separated style keywords, e.g. medieval, worn leather, iron rivets>\"\n}\n\nSTRICT RULES:\n- The input language is always ITALIAN or ENGLISH — translate to English if needed\n- flux_prompt must describe a SINGLE object on a PURE WHITE background\n- flux_prompt must always be in English regardless of input language\n- The object must be centered, front-facing, fully visible, isolated\n- Use simple and descriptive language: Qwen responds better to direct descriptions than to stylistic or technical photography terms\n- Do NOT use FLUX-specific tokens or keywords like \"flux\", \"v1\", \"lora\", or model-specific syntax\n- Do NOT include people, scenes, backgrounds, or multiple objects\n- Reply with valid JSON only — no markdown fences, no explanations, no extra text before or after the JSON\n\nIMPORTANT: Reply ONLY with a JSON object. No explanations, no descriptions, no preamble. Start your response with { and end with }.\n\nDo NOT explain your reasoning. Do NOT think out loud. Output ONLY the JSON object, nothing else."
+          "systemMessage": "You write prompts for the Qwen-Image model. Every image is turned into a 3D model (image-to-3D), so the WHOLE subject must always be visible: never cropped, never a portrait.\n\nThe input is a short request in ITALIAN or ENGLISH. Translate it to English.\n\nReply ONLY with this JSON object:\n{\n  \"subject_type\": \"character | creature | object | vehicle | building | plant\",\n  \"aspect\": \"tall | wide | square\",\n  \"flux_prompt\": \"<English prompt, 40-70 words>\",\n  \"object_name\": \"<short English name, 1-3 words>\",\n  \"style_tags\": \"<3-5 comma-separated style keywords>\"\n}\n\nsubject_type:\n- character = people, soldiers, wizards, knights, humanoids, robots, statues of people\n- creature = animals, horses, dragons, monsters\n- object = furniture, props, tools, weapons, food, decorations\n- vehicle, building, plant = as the words say\n\naspect = the shape of the whole subject:\n- tall: taller than wide (standing people, lamps, trees, towers, bottles)\n- wide: wider than tall (horses, cars, sofas, tables, most animals)\n- square: roughly as wide as tall\n\nflux_prompt rules:\n- character / creature: start with \"Full body shot of ...\".\n- other types: start with \"A single complete ...\".\n- Then describe shape, materials, colours, clothing and details, style, in plain descriptive language.\n- character: standing upright, neutral relaxed pose, arms slightly away from the body, facing the camera, the whole figure visible from the top of the head down to both feet on the ground.\n- creature: the whole body visible including legs, hooves or paws, tail and wings, standing, three-quarter side view.\n- building (castles, houses, towers, temples, ruins): a standalone complete building presented like a detailed scale model, elevated three-quarter view from above, the whole structure visible from its base up to the tips of the towers and roofs. Only a small patch of ground under it if needed. No landscape, no hills, no sky, no surrounding buildings or walls that leave the frame.\n- vehicle: the whole vehicle including wheels, sails or wings, three-quarter side view.\n- plant: the whole plant from the pot or roots to the top leaves.\n- object: the whole object, three-quarter view slightly from above.\n- Prefer solid, opaque shapes: avoid smoke, fire, fog, glows, reflections and floating particles around the subject.\n- End with: \"isolated on a pure white background, soft even studio lighting, no shadows, entire subject visible with empty margin around it\".\n- The subject must fit inside the image with empty white space on every side: never touching or crossing the borders.\n- Exactly ONE subject. No other people, objects or scenery, unless they are part of what was asked (a soldier holding a spear, a knight on horseback).\n- Never use words that crop the subject: portrait, bust, close-up, headshot, upper body, half body, macro.\n- Only if the user explicitly asks for a part (e.g. \"la testa di un cavallo\", \"un busto\"), describe just that part.\n\nNo markdown, no explanations, no reasoning. Start with { and end with }."
         }
       },
       "id": "3d5ce9a9-d044-4248-b662-811eb2adc219",
@@ -437,8 +279,8 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
-        720,
-        4272
+        800,
+        4000
       ]
     },
     {
@@ -449,8 +291,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.4,
       "position": [
-        -144,
-        4288
+        -64,
+        4016
       ],
       "id": "d263b58d-18ef-4ab1-9b64-d0ec877e4ab2",
       "name": "HTTP Request4"
@@ -462,8 +304,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        48,
-        4288
+        128,
+        4016
       ],
       "id": "2a119dd8-636f-41b5-a78d-6b9505f2374c",
       "name": "Code in JavaScript5"
@@ -475,8 +317,8 @@
       "type": "n8n-nodes-base.wait",
       "typeVersion": 1.1,
       "position": [
-        -352,
-        4288
+        -272,
+        4016
       ],
       "id": "9d4aa866-8e3d-4dd9-b10c-c869012abd12",
       "name": "Wait",
@@ -510,8 +352,8 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
       "position": [
-        256,
-        4288
+        336,
+        4016
       ],
       "id": "ee01c30d-59b7-416a-820f-400e76445ac2",
       "name": "If"
@@ -523,8 +365,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        512,
-        4272
+        592,
+        4000
       ],
       "id": "57948787-5007-49e7-b9c6-eb801329317d",
       "name": "Code in JavaScript6"
@@ -541,8 +383,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.4,
       "position": [
-        -576,
-        4288
+        -496,
+        4016
       ],
       "id": "e9935454-7e72-4327-ab66-43d175bcb0af",
       "name": "Comfy3D - Trellis"
@@ -899,105 +741,6 @@
   ],
   "pinData": {},
   "connections": {
-    "Estrai prompt + session_id": {
-      "main": [
-        [
-          {
-            "node": "AI Agent1",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "AI Agent — Ollama": {
-      "ai_languageModel": [
-        [
-          {
-            "node": "AI Agent1",
-            "type": "ai_languageModel",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Estrai JSON dall'agente": {
-      "main": [
-        [
-          {
-            "node": "ComfyUI - FLUX",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "PNG → Base64 per Hunyuan": {
-      "main": [
-        [
-          {
-            "node": "ComfyUI - 3D - Hunyuan",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "HTTP Request": {
-      "main": [
-        [
-          {
-            "node": "Code in JavaScript",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Code in JavaScript": {
-      "main": [
-        [
-          {
-            "node": "Rispondi a Unity",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "ComfyUI - 3D - Hunyuan": {
-      "main": [
-        [
-          {
-            "node": "HTTP Request",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "AI Agent1": {
-      "main": [
-        [
-          {
-            "node": "Estrai JSON dall'agente",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "ComfyUI - FLUX": {
-      "main": [
-        [
-          {
-            "node": "PNG → Base64 per Hunyuan",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
     "AI Agent — Ollama2": {
       "ai_languageModel": [
         [
@@ -1380,7 +1123,7 @@
     "executionOrder": "v1",
     "binaryMode": "separate"
   },
-  "versionId": "baa8bc1a-f289-4a2f-a740-01461e3e63bd",
+  "versionId": "da062df6-48bf-4251-ae4d-f1b8924eac6f",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "fe9646e0aa4cd870b6bb0a4db1bba1e72fbbdd9f780e5450977e1e63c74badac"
