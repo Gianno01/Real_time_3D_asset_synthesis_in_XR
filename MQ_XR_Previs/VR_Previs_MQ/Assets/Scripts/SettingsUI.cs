@@ -146,11 +146,18 @@ public class SettingsUI : MonoBehaviour
         string Cm(float m) => $"{Mathf.RoundToInt(m * 100f)} cm";
 
         Add(_left, "VOCE",
+            Bool("keyboard_input", "Tastiera al posto della voce", () => g.keyboardInput, v => g.keyboardInput = v),
             Bool("hands_free", "Mani libere (\"genera...\")", () => g.handsFreeMode, v => g.SetHandsFree(v)),
             Bool("voice_proceed", "Prosegui a voce", () => g.voiceProceedEnabled, v => g.voiceProceedEnabled = v),
             Step("mic_threshold", "Sensibilità microfono", new[] { 0.08f, 0.06f, 0.04f, 0.03f, 0.02f },
                  () => g.voiceThreshold, v => g.voiceThreshold = v,
-                 v => new[] { "Bassa", "Medio-bassa", "Media", "Alta", "Molto alta" }[NearestIndex(new[] { 0.08f, 0.06f, 0.04f, 0.03f, 0.02f }, v)]));
+                 v => new[] { "Bassa", "Medio-bassa", "Media", "Alta", "Molto alta" }[NearestIndex(new[] { 0.08f, 0.06f, 0.04f, 0.03f, 0.02f }, v)]),
+            new ActionSetting
+            {
+                key = "mic_status", label = "Microfono", buttonText = "Richiedi", confirm = false,
+                status = () => g.MicDiagnostic,
+                run = () => g.RequestMicPermission(),
+            });
 
         var gen = new List<Setting>
         {
@@ -538,7 +545,7 @@ public class SettingsUI : MonoBehaviour
         t.color = color;
         t.alignment = align;
         t.textWrappingMode = TextWrappingModes.Normal;
-        t.overflowMode = TextOverflowModes.Ellipsis;
+        t.overflowMode = TextOverflowModes.Truncate;
         t.richText = true;
         t.raycastTarget = false;
         return t;

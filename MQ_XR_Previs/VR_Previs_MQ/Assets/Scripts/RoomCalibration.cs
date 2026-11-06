@@ -11,12 +11,13 @@
 // Le scene sono salvate e caricate rispetto a questa origine, quindi tornano sempre nello stesso punto della stanza. E se più
 // visori si calibrano sugli stessi due punti, condividono la stessa origine (utile per l'esperienza condivisa).
 //
-// Uso: Impostazioni → STANZA → Calibra (o parte da sola quando provi a salvare/caricare una scena non calibrata).
+// Uso: parte da sola all'apertura dell'app (calibrateOnStart), poi Impostazioni → STANZA → Calibra o quando provi a salvare/caricare una scena non calibrata.
 //   Grilletto destro = conferma il punto; tasto B (secondario destro) = annulla. Durante la calibrazione i raggi dei controller sono spenti.
 // Precisione: ±2-3 cm per punto; tieni A e B ad almeno 1 m di distanza (l'errore di direzione è circa 3 cm / distanza).
 //
 // SETUP: nessuno, AssetLibrary crea il componente da sola.
 
+using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using Unity.XR.CoreUtils;
@@ -30,6 +31,8 @@ public class RoomCalibration : MonoBehaviour
     public AssetLibrary library;
     [Tooltip("Salvare/caricare scene richiede la calibrazione (spento = come prima, con l'XR Origin)")]
     public bool required = true;
+    [Tooltip("All'apertura dell'app la calibrazione parte da sola, appena il visore è indossato (solo se 'Required' è attivo)")]
+    public bool calibrateOnStart = true;
     [Tooltip("Distanza minima tra A e B (m)")]
     public float minDistance = 0.5f;
     [Tooltip("Il punto toccato è questo tanto davanti all'origine del raggio del controller (m)")]
@@ -53,6 +56,37 @@ public class RoomCalibration : MonoBehaviour
     bool _prevTrigger = true, _prevCancel = true;
     float _hideAt;
     Material _markerMat;
+
+    // ── Calibrazione automatica all'apertura ──────────────────────────
+
+    void Start()
+    {
+        if (calibrateOnStart) StartCoroutine(CalibrateOnStartRoutine());
+    }
+
+    IEnumerator CalibrateOnStartRoutine()
+    {
+        yield return null;   // AssetLibrary ha finito di configurare 'required' e 'library'
+
+        // aspetta che il visore sia indossato e il controller destro tracciato (al massimo 60 s)
+        float waited = 0f;
+        while (waited < 60f)
+        {
+            var head = InputDevices.GetDeviceAtXRNode(XRNode.Head);
+            bool worn = true;
+            if (head.isValid && head.TryGetFeatureValue(CommonUsages.userPresence, out bool present)) worn = present;
+            var hand = InputDevices.GetDeviceAtXRNode(XRNode.RightHand);
+            var xr = FindAnyObjectByType<XROrigin>();
+            if (worn && hand.isValid && xr != null && xr.Camera != null) break;
+            waited += Time.unscaledDeltaTime;
+            yield return null;
+        }
+        yield return new WaitForSecondsRealtime(1.5f);   // il tracciamento si assesta
+
+        if (!required || IsCalibrated || InProgress) yield break;
+        Debug.Log("[RoomCalibration] Calibrazione automatica all'apertura.");
+        Begin();
+    }
 
     // ── Avvio della procedura ─────────────────────────────────────────
 

@@ -148,8 +148,25 @@ public class LibraryUI : MonoBehaviour
         if (_toolbar != null) Destroy(_toolbar.gameObject);
     }
 
+    // Con la tastiera attiva i pulsanti "a voce" aprono la tastiera (col microfono accanto)
+    string Lbl(string voice, string keyboard) => generator != null && generator.keyboardInput ? keyboard : voice;
+    string Wait() => generator != null && generator.keyboardInput ? "Scrivi..." : "Ascolto...";
+    bool _kbLabels;
+
+    void UpdateInputLabels()
+    {
+        bool kb = generator != null && generator.keyboardInput;
+        if (kb == _kbLabels && _searchLabel != null && _searchLabel.text != "Ascolto..." && _searchLabel.text != "Scrivi...") return;
+        _kbLabels = kb;
+        if (_searchLabel != null && _searchLabel.text != "Ascolto..." && _searchLabel.text != "Scrivi...") _searchLabel.text = Lbl("Cerca a voce", "Cerca");
+        if (_sceneVoiceLabel != null && _sceneVoiceLabel.text != "Ascolto..." && _sceneVoiceLabel.text != "Scrivi...") _sceneVoiceLabel.text = Lbl("Nome a voce", "Nome");
+        if (_saveVoiceLabel != null && _saveVoiceLabel.text != "Ascolto..." && _saveVoiceLabel.text != "Scrivi...") _saveVoiceLabel.text = Lbl("A voce", "Scrivi");
+        if (_styleVoiceLabel != null && _styleVoiceLabel.text != "Ascolto..." && _styleVoiceLabel.text != "Scrivi...") _styleVoiceLabel.text = Lbl("Nuovo stile a voce", "Nuovo stile");
+    }
+
     void LateUpdate()
     {
+        UpdateInputLabels();
         UpdateToolbar();
         UpdateArmedLabels();
         if (_view == View.None && _panelRoot != null && _panelRoot.gameObject.activeSelf) _panelRoot.gameObject.SetActive(false);
@@ -295,10 +312,10 @@ public class LibraryUI : MonoBehaviour
 
     void VoiceSearch()
     {
-        _searchLabel.text = "Ascolto...";
-        StartCoroutine(generator.Dictate(text =>
+        _searchLabel.text = Wait();
+        StartCoroutine(generator.AskText("Cosa cerchi nell'inventario?", _query, text =>
         {
-            _searchLabel.text = "Cerca a voce";
+            _searchLabel.text = Lbl("Cerca a voce", "Cerca");
             if (string.IsNullOrEmpty(text)) { SetStatus("Non ho capito: riprova", Bad); return; }
             _query = text;
             _offset = 0;
@@ -474,10 +491,10 @@ public class LibraryUI : MonoBehaviour
 
     void VoiceSceneName()
     {
-        _sceneVoiceLabel.text = "Ascolto...";
-        StartCoroutine(generator.Dictate(text =>
+        _sceneVoiceLabel.text = Wait();
+        StartCoroutine(generator.AskText("Nome della scena", _pendingSceneName, text =>
         {
-            _sceneVoiceLabel.text = "Nome a voce";
+            _sceneVoiceLabel.text = Lbl("Nome a voce", "Nome");
             if (string.IsNullOrEmpty(text)) { SetStatus("Non ho capito: riprova", Bad); return; }
             _pendingSceneName = Capitalize(text);
             UpdateCurrentSceneLabel();
@@ -532,10 +549,10 @@ public class LibraryUI : MonoBehaviour
 
     void VoiceObjectName()
     {
-        _saveVoiceLabel.text = "Ascolto...";
-        StartCoroutine(generator.Dictate(text =>
+        _saveVoiceLabel.text = Wait();
+        StartCoroutine(generator.AskText("Nome dell'oggetto", _saveNameText, text =>
         {
-            _saveVoiceLabel.text = "A voce";
+            _saveVoiceLabel.text = Lbl("A voce", "Scrivi");
             if (string.IsNullOrEmpty(text)) { SetStatus("Non ho capito: riprova", Bad); return; }
             _saveNameText = Capitalize(text);
             _saveName.text = _saveNameText;
@@ -544,10 +561,10 @@ public class LibraryUI : MonoBehaviour
 
     void VoiceNewStyle()
     {
-        _styleVoiceLabel.text = "Ascolto...";
-        StartCoroutine(generator.Dictate(text =>
+        _styleVoiceLabel.text = Wait();
+        StartCoroutine(generator.AskText("Nome del nuovo stile", "", text =>
         {
-            _styleVoiceLabel.text = "Nuovo stile a voce";
+            _styleVoiceLabel.text = Lbl("Nuovo stile a voce", "Nuovo stile");
             if (string.IsNullOrEmpty(text)) { SetStatus("Non ho capito: riprova", Bad); return; }
             string st = Capitalize(text);
             if (!_styles.Contains(st)) _styles.Insert(0, st);
@@ -999,7 +1016,7 @@ public class LibraryUI : MonoBehaviour
         t.color = color;
         t.alignment = align;
         t.textWrappingMode = TextWrappingModes.Normal;
-        t.overflowMode = TextOverflowModes.Ellipsis;
+        t.overflowMode = TextOverflowModes.Truncate;
         t.richText = true;
         t.raycastTarget = false;
         return t;

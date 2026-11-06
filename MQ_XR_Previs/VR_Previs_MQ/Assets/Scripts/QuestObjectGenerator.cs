@@ -49,12 +49,20 @@ public class QuestObjectGenerator : MonoBehaviour
     [Tooltip("Usato se Record Button è vuoto. Default: pressione dello stick (pad) del controller destro")]
     public string recordBindingPath = "<XRController>{RightHand}/{Primary2DAxisClick}";
 
+    [Header("Tastiera (alternativa alla voce)")]
+    [Tooltip("Al posto di parlare puoi scrivere con la tastiera a schermo, con il microfono accanto per dettare. Spenta di default: si accende da Impostazioni → VOCE")]
+    public bool keyboardInput = false;
+
     [Header("Mani libere (parola di attivazione)")]
     public bool handsFreeMode = true;
     [Tooltip("Parole di attivazione (minuscolo). Vale anche l'inizio della parola: 'genera' riconosce 'generami'")]
     public string[] wakeWords = { "genera", "crea" };
     [Tooltip("Volume minimo per considerare che stai parlando (0–1)")]
     public float voiceThreshold = 0.04f;
+    [Tooltip("Durata minima (s) di suono sopra la soglia per considerarlo voce: scarta soffi, colpi e rumori brevi")]
+    public float minSpeechSeconds = 0.3f;
+    [Tooltip("Mani libere: l'interfaccia reagisce subito (Ti ascolto → Audio inviato) senza aspettare la risposta di Whisper")]
+    public bool instantListenFeedback = true;
     [Tooltip("Pausa (s) che chiude una frase in ascolto continuo")]
     public float utteranceSilence = 1.0f;
     [Tooltip("Secondi di attesa dell'oggetto dopo aver detto solo la parola di attivazione")]
@@ -64,8 +72,11 @@ public class QuestObjectGenerator : MonoBehaviour
     [Tooltip("Webhook di PRODUZIONE n8n (/webhook/, non /webhook-test/)")]
     public string n8nWebhookUrl = "http://127.0.0.1:5678/webhook/quest-generate";
     public string whisperUrl = "http://127.0.0.1:9010";
-    [Tooltip("Frase di esempio passata a Whisper: migliora il riconoscimento della parola di attivazione")]
-    public string whisperPrompt = "Genera una sedia di legno. Genera un vaso di ceramica. Crea una lampada da tavolo.";
+    [Tooltip("Parole passate a Whisper per migliorare il riconoscimento. Solo nomi di oggetti: NON metterci parole di attivazione né frasi-comando (con audio vuoto Whisper le ripete e partirebbe una generazione)")]
+    public string whisperPrompt = DefaultWhisperPrompt;
+    // Vecchio valore predefinito (frasi-comando): se è ancora salvato nella scena viene sostituito in Awake
+    private const string OldWhisperPrompt = "Genera una sedia di legno. Genera un vaso di ceramica. Crea una lampada da tavolo.";
+    private const string DefaultWhisperPrompt = "Sedia, vaso, lampada, tavolo, cubo, libro, bicchiere.";   // solo nomi: senza verbo non può diventare un comando
     [Tooltip("Indirizzo di ComfyUI come lo vede il VISORE (con adb reverse: http://127.0.0.1:8188). Vuoto = usa il glb_url così com'è")]
     public string comfyUrl = "http://127.0.0.1:8188";
     [Tooltip("Interrompe DIRETTAMENTE ComfyUI all'annullamento. Ferma qualunque job in corso, anche di altri utenti: " +
@@ -164,6 +175,47 @@ public class QuestObjectGenerator : MonoBehaviour
     public string LastTranscript { get; private set; } = "";
     public string LastObjectName { get; private set; } = "";
     public float MicLevel { get; private set; }
+
+    // ── Diagnostica microfono (Impostazioni → VOCE → Microfono) ───────
+
+    /// <summary>Cosa sta facendo l'ascolto continuo: serve a capire perché il microfono non risponde.</summary>
+    private string _micNote = "";
+
+    public bool MicPermissionGranted
+    {
+        get
+        {
+#if UNITY_ANDROID && !UNITY_EDITOR
+            return Permission.HasUserAuthorizedPermission(Permission.Microphone);
+#else
+            return true;
+#endif
+        }
+    }
+
+    public string MicDiagnostic
+    {
+        get
+        {
+            if (!MicPermissionGranted) return "permesso NEGATO: premi Richiedi";
+            int n = Microphone.devices.Length;
+            if (n == 0) return "nessun microfono trovato";
+            if (!handsFreeMode) return $"permesso ok · {n} dispositivi · mani libere spente";
+            if (!IsListening) return "permesso ok · ascolto non attivo";
+            if (_micNote.Length > 0) return _micNote;
+            return $"permesso ok · ascolto attivo · livello {MicLevel:0.00}";
+        }
+    }
+
+    /// <summary>Rifà la richiesta del permesso (se era stato negato) e riavvia l'ascolto.</summary>
+    public void RequestMicPermission()
+    {
+#if UNITY_ANDROID && !UNITY_EDITOR
+        if (!Permission.HasUserAuthorizedPermission(Permission.Microphone))
+            Permission.RequestUserPermission(Permission.Microphone);
+#endif
+        if (handsFreeMode) { StopListening(); StartListening(); }
+    }
     public bool IsListening { get; private set; }
     /// <summary>Durata media della generazione 3D (0 se non ancora disponibile).</summary>
     public float EstimatedGenerationSeconds => PlayerPrefs.GetFloat(PREF_AVG_GEN, 0f);
@@ -244,6 +296,7 @@ public class QuestObjectGenerator : MonoBehaviour
         _audioSource = gameObject.AddComponent<AudioSource>();
         if (library == null) library = FindAnyObjectByType<AssetLibrary>();
         _sessionId = Guid.NewGuid().ToString("N").Substring(0, 8);
+        if (whisperPrompt == OldWhisperPrompt) whisperPrompt = DefaultWhisperPrompt;   // il valore salvato nella scena ha la precedenza sul codice
 
 #if UNITY_ANDROID && !UNITY_EDITOR
         if (!Permission.HasUserAuthorizedPermission(Permission.Microphone))
@@ -412,8 +465,24 @@ public class QuestObjectGenerator : MonoBehaviour
     private void OnRecordButtonPressed(InputAction.CallbackContext context)
     {
         // Se stai puntando l'interfaccia (es. "Prosegui"), la pressione serve a cliccare, non a registrare
-        if (IsPointingAtUI() || IsDictating) return;
+        if (IsPointingAtUI() || IsDictating || _textEntry) return;
 
+        // con la tastiera attiva lo stick la apre (se stai già registrando, invece, chiude e invia)
+        if (keyboardInput && !_isRecording) { RequestInput(); return; }
+        StartVoiceRequest();
+    }
+
+    /// <summary>Stick / pulsante della barra: apre la tastiera se è attiva, altrimenti registra a voce.</summary>
+    public void RequestInput()
+    {
+        if (State == PipelineState.Preview) { CorrectionInput(); return; }
+        if (keyboardInput) OpenRequestKeyboard(); else StartVoiceRequest();
+    }
+
+    /// <summary>Registra a voce (o chiude la registrazione e invia). Vale sempre, anche con la tastiera attiva (pulsante microfono).</summary>
+    public void StartVoiceRequest()
+    {
+        if (IsDictating || _textEntry) return;
         if (State == PipelineState.Preview)
         {
             if (!_isRecording) StartCorrectionRecording();
@@ -429,6 +498,78 @@ public class QuestObjectGenerator : MonoBehaviour
             StartRecording();
         }
         else StopRecordingAndSend();
+    }
+
+    // ── Tastiera a schermo (alternativa alla voce) ────────────────────
+
+    private bool _textEntry;
+    private KeyboardUI _keyboard;
+
+    public bool IsTextEntryOpen => _textEntry;
+
+    private KeyboardUI GetKeyboardUI()
+    {
+        if (_keyboard == null) _keyboard = FindAnyObjectByType<KeyboardUI>();
+        if (_keyboard == null) _keyboard = KeyboardUI.EnsureExists(gameObject);
+        _keyboard.generator = this;
+        return _keyboard;
+    }
+
+    /// <summary>Chiamato dalla tastiera: mentre si scrive l'ascolto continuo è sospeso, così le parole dette non diventano comandi.</summary>
+    public void SetTextEntryActive(bool on)
+    {
+        _textEntry = on;
+        if (on) StopListening();
+        else if (handsFreeMode && (!_isGenerating || State == PipelineState.Preview)) StartListening();
+    }
+
+    private bool IsRestingState =>
+        State == PipelineState.Idle || State == PipelineState.Done || State == PipelineState.Error || State == PipelineState.Cancelled;
+
+    /// <summary>Chiede un testo: con la tastiera attiva la apre (col microfono accanto), altrimenti lo detta a voce.</summary>
+    public IEnumerator AskText(string title, string initial, Action<string> callback)
+    {
+        if (!keyboardInput)
+        {
+            yield return StartCoroutine(Dictate(callback));
+            yield break;
+        }
+        bool done = false;
+        string result = null;
+        GetKeyboardUI().Open(title, initial, r => { result = r; done = true; });
+        while (!done) yield return null;
+        callback(string.IsNullOrWhiteSpace(result) ? null : result.Trim());
+    }
+
+    /// <summary>Nuova richiesta scritta: stessa strada della voce (con o senza parola di attivazione davanti).</summary>
+    public void OpenRequestKeyboard()
+    {
+        if (_isGenerating || _isRecording || IsDictating || _textEntry || !IsRestingState) return;
+        _awaitingCommand = false;
+        GetKeyboardUI().Open("Cosa vuoi generare?", "", text =>
+        {
+            if (string.IsNullOrWhiteSpace(text) || _isGenerating) return;
+            string prompt = TryExtractCommand(text, out string cmd) && !string.IsNullOrEmpty(cmd) ? cmd : CleanCommand(text);
+            if (prompt.Length < 2) { Fail("Non ho capito: riprova"); return; }
+            TriggerGeneration(prompt);
+        });
+    }
+
+    /// <summary>Anteprima: correzione scritta (come "Correggi" a voce).</summary>
+    public void OpenCorrectionKeyboard()
+    {
+        if (State != PipelineState.Preview || _isRecording || IsDictating || _textEntry) return;
+        GetKeyboardUI().Open("Cosa vuoi cambiare nell'immagine?", "", text =>
+        {
+            if (State != PipelineState.Preview || string.IsNullOrWhiteSpace(text)) return;
+            HandlePreviewSpeech(text.Trim(), fromButton: true);
+        });
+    }
+
+    /// <summary>Pulsante "Correggi": tastiera se è attiva, altrimenti registrazione a voce.</summary>
+    public void CorrectionInput()
+    {
+        if (keyboardInput) OpenCorrectionKeyboard(); else StartCorrectionRecording();
     }
 
     // Vero se un raggio di controller o mano sta puntando un elemento dell'interfaccia
@@ -448,7 +589,7 @@ public class QuestObjectGenerator : MonoBehaviour
 
     private void StartListening()
     {
-        if (!handsFreeMode || IsListening || _isRecording) return;
+        if (!handsFreeMode || IsListening || _isRecording || _textEntry) return;
         IsListening = true;
         _listenRoutine = StartCoroutine(ListenLoop());
     }
@@ -467,11 +608,32 @@ public class QuestObjectGenerator : MonoBehaviour
     {
 #if UNITY_ANDROID && !UNITY_EDITOR
         while (!Permission.HasUserAuthorizedPermission(Permission.Microphone))
+        {
+            _micNote = "in attesa del permesso microfono";
             yield return new WaitForSeconds(0.5f);
+        }
 #endif
         _micDevice = Microphone.devices.Length > 0 ? Microphone.devices[0] : null;
+        _micNote = "avvio del microfono...";
         _listenClip = Microphone.Start(_micDevice, true, LISTEN_BUFFER_SECONDS, SAMPLE_RATE);
-        while (Microphone.GetPosition(_micDevice) <= 0) yield return null;
+
+        // se il sistema non consegna audio entro 4 s lo si segnala e si riprova (prima restava in attesa per sempre)
+        float waitStart = Time.realtimeSinceStartup;
+        while (Microphone.GetPosition(_micDevice) <= 0)
+        {
+            if (Time.realtimeSinceStartup - waitStart > 4f)
+            {
+                _micNote = "il sistema non fornisce audio dal microfono";
+                Debug.LogWarning($"[QuestObjectGenerator] Il microfono \"{_micDevice}\" non consegna audio: riprovo");
+                if (Microphone.IsRecording(_micDevice)) Microphone.End(_micDevice);
+                yield return new WaitForSeconds(2f);
+                _micDevice = Microphone.devices.Length > 0 ? Microphone.devices[0] : null;
+                _listenClip = Microphone.Start(_micDevice, true, LISTEN_BUFFER_SECONDS, SAMPLE_RATE);
+                waitStart = Time.realtimeSinceStartup;
+            }
+            yield return null;
+        }
+        _micNote = "";
         Debug.Log("[QuestObjectGenerator] Ascolto continuo attivo: di' \"" + string.Join("\" o \"", wakeWords) + "\" seguito dall'oggetto");
 
         int total = _listenClip.samples;
@@ -482,7 +644,8 @@ public class QuestObjectGenerator : MonoBehaviour
 
         bool inSpeech = false;
         int speechStart = 0;
-        float silence = 0f, speechTime = 0f;
+        float silence = 0f, speechTime = 0f, loudTime = 0f;
+        bool feedbackShown = false;
 
         while (IsListening)
         {
@@ -504,12 +667,23 @@ public class QuestObjectGenerator : MonoBehaviour
                     if (speechStart < 0) speechStart += total;
                     silence = 0f;
                     speechTime = 0f;
+                    loudTime = 0f;
+                    feedbackShown = false;
                 }
             }
             else
             {
                 speechTime += 0.1f;
+                if (max >= voiceThreshold) loudTime += 0.1f;
                 silence = max < SILENCE_THRESHOLD ? silence + 0.1f : 0f;
+
+                // l'interfaccia reagisce appena c'è abbastanza voce, senza aspettare Whisper
+                if (!feedbackShown && loudTime >= minSpeechSeconds && CanShowListenFeedback())
+                {
+                    feedbackShown = true;
+                    _listenFeedback = true;
+                    SetState(PipelineState.Recording, "Ti ascolto...");
+                }
 
                 if (silence >= utteranceSilence || speechTime >= LISTEN_BUFFER_SECONDS - 2)
                 {
@@ -517,16 +691,40 @@ public class QuestObjectGenerator : MonoBehaviour
                     int len = pos - speechStart;
                     if (len < 0) len += total;
 
-                    if (len >= SAMPLE_RATE * 6 / 10)
+                    // rumori brevi (soffi, colpi) non sono parlato: niente invio a Whisper
+                    if (len >= SAMPLE_RATE * 6 / 10 && loudTime >= minSpeechSeconds)
                     {
                         float[] samples = new float[len];
                         _listenClip.GetData(samples, speechStart);
+                        if (_listenFeedback && State == PipelineState.Recording)
+                            SetState(PipelineState.Transcribing, $"{len / (float)SAMPLE_RATE:F1} s di audio inviati a Whisper");
                         yield return StartCoroutine(HandleUtterance(samples));
                     }
+                    EndListenFeedback();
                 }
             }
             yield return wait;
         }
+    }
+
+    // ── Feedback immediato in mani libere ─────────────────────────────
+
+    private bool _listenFeedback;
+
+    // Si può mostrare "Ti ascolto" solo a riposo: mai sopra anteprima, generazione o altre richieste
+    private bool CanShowListenFeedback()
+    {
+        if (!instantListenFeedback || _isGenerating || _isRecording || _awaitingCommand) return false;
+        return IsRestingState;
+    }
+
+    // Finita la frase: se non era un comando (rumore, conversazione, trascrizione scartata) l'interfaccia torna a riposo
+    private void EndListenFeedback()
+    {
+        if (!_listenFeedback) return;
+        _listenFeedback = false;
+        if (_awaitingCommand || _isGenerating) return;
+        if (State == PipelineState.Recording || State == PipelineState.Transcribing) SetState(PipelineState.Idle);
     }
 
     private IEnumerator HandleUtterance(float[] samples)
@@ -608,11 +806,50 @@ public class QuestObjectGenerator : MonoBehaviour
     private static readonly string[] HallucinationMarkers =
         { "amara.org", "amara org", "sottotitoli", "sottotitolato", "grazie per la visione", "iscriviti al canale" };
 
-    private static bool IsHallucination(string text)
+    private bool IsHallucination(string text)
     {
         string t = text.ToLowerInvariant();
         foreach (var m in HallucinationMarkers) if (t.Contains(m)) return true;
+        return IsPromptEcho(t);
+    }
+
+    // Con audio vuoto Whisper tende a ripetere il prompt che gli abbiamo dato: quel testo non è mai un comando vero.
+    private bool IsPromptEcho(string lowerText)
+    {
+        if (string.IsNullOrWhiteSpace(whisperPrompt)) return false;
+        string heard = NormalizeForCompare(lowerText);
+        if (heard.Length == 0) return false;
+
+        string prompt = NormalizeForCompare(whisperPrompt.ToLowerInvariant());
+        if (heard == prompt || heard.Contains(prompt)) return true;
+        var heardWords = heard.Split(' ');
+        if (heardWords.Length >= 3 && prompt.Contains(heard)) return true;      // un pezzo del prompt (3+ parole)
+
+        // prompt di soli nomi: un elenco di parole prese tutte dal prompt è un'eco ("sedia vaso lampada")
+        bool promptHasWake = false;
+        foreach (var w in wakeWords) if (!string.IsNullOrEmpty(w) && prompt.Contains(w.ToLowerInvariant())) promptHasWake = true;
+        if (!promptHasWake && heardWords.Length >= 2)
+        {
+            var set = new HashSet<string>(prompt.Split(' '));
+            bool all = true;
+            foreach (var w in heardWords) if (!set.Contains(w)) { all = false; break; }
+            if (all) return true;
+        }
+
+        // anche una singola frase del prompt, identica (es. "crea una lampada da tavolo")
+        foreach (var part in whisperPrompt.Split(new[] { '.', '\n', ';' }, StringSplitOptions.RemoveEmptyEntries))
+        {
+            string seg = NormalizeForCompare(part.ToLowerInvariant());
+            if (seg.Length > 0 && heard == seg) return true;
+        }
         return false;
+    }
+
+    private static string NormalizeForCompare(string text)
+    {
+        var sb = new StringBuilder(text.Length);
+        foreach (char c in text) sb.Append(char.IsLetterOrDigit(c) ? c : ' ');
+        return string.Join(" ", sb.ToString().Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries));
     }
 
     // ── Registrazione con pulsante ────────────────────────────────────
@@ -1251,7 +1488,7 @@ public class QuestObjectGenerator : MonoBehaviour
         try { return new Uri(url).PathAndQuery; } catch { return url; }
     }
 
-    private static string Truncate(string s, int max) => s.Length <= max ? s : s.Substring(0, max) + "…";
+    private static string Truncate(string s, int max) => s.Length <= max ? s : s.Substring(0, max) + "...";
 
     private string RewriteToComfyHost(string url)
     {

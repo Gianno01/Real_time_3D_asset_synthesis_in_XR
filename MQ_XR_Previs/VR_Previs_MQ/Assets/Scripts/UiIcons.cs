@@ -8,7 +8,7 @@ using UnityEngine;
 public static class UiIcons
 {
     const int Size = 96;
-    static Texture2D s_minimize, s_gear, s_book;
+    static Texture2D s_minimize, s_gear, s_book, s_keyboard, s_mic;
 
     /// <summary>"_" : riduci a icona.</summary>
     public static Texture2D Minimize => s_minimize ??= Make((x, y) => RoundRect(x, y, 0.22f, 0.20f, 0.78f, 0.31f, 0.055f));
@@ -40,6 +40,32 @@ public static class UiIcons
         foreach (float line in new[] { 0.40f, 0.52f, 0.64f })
             if (Mathf.Abs(yy - line - 0.07f) < 0.022f) return false;
         return true;
+    });
+
+    /// <summary>Tastiera: scrivere al posto di parlare.</summary>
+    public static Texture2D Keyboard => s_keyboard ??= Make((x, y) =>
+    {
+        if (!RoundRect(x, y, 0.05f, 0.25f, 0.95f, 0.75f, 0.07f)) return false;
+        // tasti ritagliati nel corpo: due file da 6 e la barra spaziatrice
+        foreach (float row in new[] { 0.62f, 0.50f })
+            for (int i = 0; i < 6; i++)
+            {
+                float cx = 0.17f + 0.132f * i;
+                if (Mathf.Abs(x - cx) < 0.04f && Mathf.Abs(y - row) < 0.035f) return false;
+            }
+        if (x > 0.26f && x < 0.74f && Mathf.Abs(y - 0.37f) < 0.035f) return false;
+        return true;
+    });
+
+    /// <summary>Microfono: dettatura.</summary>
+    public static Texture2D Mic => s_mic ??= Make((x, y) =>
+    {
+        if (RoundRect(x, y, 0.39f, 0.42f, 0.61f, 0.86f, 0.11f)) return true;                 // capsula
+        float dx = x - 0.5f, dy = y - 0.52f;
+        float r = Mathf.Sqrt(dx * dx + dy * dy);
+        if (y <= 0.52f && r > 0.22f && r < 0.285f) return true;                              // staffa a U
+        if (x > 0.485f && x < 0.515f && y > 0.14f && y < 0.27f) return true;                 // asta
+        return RoundRect(x, y, 0.34f, 0.11f, 0.66f, 0.17f, 0.025f);                          // base
     });
 
     // ── Disegno ──────────────────────────────────────────────────────

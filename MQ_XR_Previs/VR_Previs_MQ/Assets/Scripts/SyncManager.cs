@@ -351,7 +351,7 @@ public class SyncManager : MonoBehaviour
 
             if (Role == SyncRole.Host)
             {
-                if (_fan == null) return "Rete: avvio…";
+                if (_fan == null) return "Rete: avvio...";
                 int relay = _relayViewers;
                 int visori = 0;
 #if NETCODE_ENABLED
@@ -361,15 +361,15 @@ public class SyncManager : MonoBehaviour
                 string s = net ? $"Host · {visori} visori · {relay} browser" : $"Host · {relay} spettatori";
                 if (!relayUp) s += net ? " (web non raggiungibile)" : "";
                 if (!relayUp && !net) return "Rete: server non raggiungibile";
-                if (net && _fan.State != SyncLink.Status.Connected) return string.IsNullOrEmpty(_error) ? "Rete: avvio host…" : "Netcode: avvio non riuscito";
+                if (net && _fan.State != SyncLink.Status.Connected) return string.IsNullOrEmpty(_error) ? "Rete: avvio host..." : "Netcode: avvio non riuscito";
                 return s;
             }
 
-            if (_link == null) return "Rete: avvio…";
-            if (_link.State == SyncLink.Status.Connecting) return "Rete: connessione…";
+            if (_link == null) return "Rete: avvio...";
+            if (_link.State == SyncLink.Status.Connecting) return "Rete: connessione...";
             if (_link.State == SyncLink.Status.Disconnected)
             {
-                if (net) return _searchNote.Length > 0 ? $"Spettatore · cerco l'host ({_searchNote})" : "Spettatore · cerco l'host…";
+                if (net) return _searchNote.Length > 0 ? $"Spettatore · cerco l'host ({_searchNote})" : "Spettatore · cerco l'host...";
                 return string.IsNullOrEmpty(_link.LastError) ? "Rete: non connesso" : "Rete: server non raggiungibile";
             }
             return _viewer != null && _viewer.HostOnline ? $"Spettatore · {_viewer.ObjectCount} oggetti" : "Spettatore · host non connesso";

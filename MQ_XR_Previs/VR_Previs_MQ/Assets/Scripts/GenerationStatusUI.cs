@@ -38,6 +38,7 @@ public class GenerationStatusUI : MonoBehaviour
 
     [Header("Testi")]
     [TextArea] public string idleHint = "<b>Premi lo stick destro</b> e di' il nome di un oggetto";
+    [TextArea] public string keyboardHint = "Tocca la <b>tastiera</b> per scrivere il nome di un oggetto, o il <b>microfono</b> per dettarlo";
     [TextArea] public string handsFreeHint = "Di' <b>\"Genera...\"</b> seguito dall'oggetto, ad esempio <i>\"Genera una sedia di legno\"</i>";
     [TextArea] public string previewHintHandsFree = "Di' <b>\"modifica...\"</b> o <b>\"aggiungi...\"</b> per correggerla · <b>\"genera...\"</b> per un altro oggetto";
     [TextArea] public string previewHintButton = "Premi <b>Correggi</b> (o lo stick) e di' cosa cambiare";
@@ -86,7 +87,7 @@ public class GenerationStatusUI : MonoBehaviour
 
     RectTransform _toolbarRt;
     CanvasGroup _toolbarGroup;
-    Image _tbMinimize, _tbSettings, _tbLibrary;
+    Image _tbMinimize, _tbSettings, _tbLibrary, _tbKeyboard, _tbMic;
     LibraryUI _libraryUI;
     SettingsUI _settingsUI;
     float _nextPanelCheck;
@@ -776,7 +777,7 @@ public class GenerationStatusUI : MonoBehaviour
         Place(_pvHint.rectTransform, 28, 384, 584, 30);
 
         var correct = MakeButton(pvRt, "CorrectButton", "Correggi", 28, 420, 136, 36,
-                                 () => { if (generator != null) generator.StartCorrectionRecording(); });
+                                 () => { if (generator != null) generator.CorrectionInput(); });
         _pvCorrectLabel = correct.GetComponentInChildren<TextMeshProUGUI>();
         MakeButton(pvRt, "RetryButton", "Ripeti", 176, 420, 136, 36,
                    () => { if (generator != null) generator.RetryImage(); });
@@ -812,12 +813,16 @@ public class GenerationStatusUI : MonoBehaviour
         var tbGo = new GameObject("Toolbar", typeof(RectTransform), typeof(CanvasGroup));
         tbGo.transform.SetParent(root, false);
         _toolbarRt = (RectTransform)tbGo.transform;
-        _toolbarRt.sizeDelta = new Vector2(3 * ToolBtn + 2 * ToolGap, ToolBtn);
+        _toolbarRt.sizeDelta = new Vector2(5 * ToolBtn + 4 * ToolGap, ToolBtn);   // tastiera e microfono stanno a sinistra e compaiono solo se la tastiera è attiva
         _toolbarRt.anchoredPosition = new Vector2(PillW / 2f - _toolbarRt.sizeDelta.x / 2f, PillH / 2f + ToolBtn / 2f + 10f);
         _toolbarGroup = tbGo.GetComponent<CanvasGroup>();
-        _tbMinimize = MakeIconButton(_toolbarRt, "Minimize", UiIcons.Minimize, 0, ToggleMinimized);
-        _tbSettings = MakeIconButton(_toolbarRt, "Settings", UiIcons.Gear, ToolBtn + ToolGap, () => { FindPanels(); if (_settingsUI != null) _settingsUI.Toggle(); });
-        _tbLibrary  = MakeIconButton(_toolbarRt, "Library", UiIcons.Book, 2 * (ToolBtn + ToolGap), () => { FindPanels(); if (_libraryUI != null) _libraryUI.Toggle(); });
+        _tbKeyboard = MakeIconButton(_toolbarRt, "Keyboard", UiIcons.Keyboard, 0, () => { if (generator != null) generator.RequestInput(); });
+        _tbMic      = MakeIconButton(_toolbarRt, "Mic", UiIcons.Mic, ToolBtn + ToolGap, () => { if (generator != null) generator.StartVoiceRequest(); });
+        _tbKeyboard.gameObject.SetActive(false);
+        _tbMic.gameObject.SetActive(false);
+        _tbMinimize = MakeIconButton(_toolbarRt, "Minimize", UiIcons.Minimize, 2 * (ToolBtn + ToolGap), ToggleMinimized);
+        _tbSettings = MakeIconButton(_toolbarRt, "Settings", UiIcons.Gear, 3 * (ToolBtn + ToolGap), () => { FindPanels(); if (_settingsUI != null) _settingsUI.Toggle(); });
+        _tbLibrary  = MakeIconButton(_toolbarRt, "Library", UiIcons.Book, 4 * (ToolBtn + ToolGap), () => { FindPanels(); if (_libraryUI != null) _libraryUI.Toggle(); });
     }
 
     Image MakeIconButton(RectTransform parent, string name, Texture2D icon, float x, System.Action onClick)
@@ -848,6 +853,17 @@ public class GenerationStatusUI : MonoBehaviour
     void UpdateToolbar(float dt)
     {
         if (_toolbarRt == null) return;
+
+        // tastiera attiva: compaiono i pulsanti tastiera e microfono, e il suggerimento cambia
+        bool kb = generator != null && generator.keyboardInput;
+        if (_tbKeyboard.gameObject.activeSelf != kb) { _tbKeyboard.gameObject.SetActive(kb); _tbMic.gameObject.SetActive(kb); }
+        if (generator != null && _hint != null)
+        {
+            string want = kb ? keyboardHint : (generator.handsFreeMode ? handsFreeHint : idleHint);
+            if (_hint.text != want) _hint.text = want;
+        }
+        if (kb) _tbKeyboard.color = generator.IsTextEntryOpen ? ActiveBtn : CardBg;
+
         _toolbarGroup.alpha = Mathf.MoveTowards(_toolbarGroup.alpha, _minimized ? 0f : 1f, dt * 6f);
         bool interactive = _toolbarGroup.alpha > 0.5f;
         _toolbarGroup.interactable = _toolbarGroup.blocksRaycasts = interactive;
@@ -952,7 +968,7 @@ public class GenerationStatusUI : MonoBehaviour
         t.color = color;
         t.alignment = align;
         t.textWrappingMode = TextWrappingModes.Normal;
-        t.overflowMode = TextOverflowModes.Ellipsis;
+        t.overflowMode = TextOverflowModes.Truncate;
         t.richText = true;
         t.raycastTarget = false;
         return t;
