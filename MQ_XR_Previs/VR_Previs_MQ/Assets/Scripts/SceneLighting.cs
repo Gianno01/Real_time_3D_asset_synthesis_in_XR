@@ -999,7 +999,10 @@ public class SceneLighting : MonoBehaviour
     static readonly Color BtnBg    = new Color(1f, 1f, 1f, 0.11f);
     static readonly Color TextMain = new Color(0.95f, 0.96f, 0.98f);
     static readonly Color TextDim  = new Color(0.60f, 0.64f, 0.72f);
-    static readonly Color Accent   = new Color(0.40f, 0.64f, 1.00f);
+    static readonly Color Accent   = new Color(0.20f, 0.45f, 1.00f);
+    // i bottoni moltiplicano il colore x2 (colorMultiplier): qui la metà del colore voluto
+    static readonly Color OnBlue   = new Color(0.05f, 0.13f, 0.43f, 0.50f);   // → blu scuro
+    static readonly Color DelRed   = new Color(0.48f, 0.04f, 0.04f, 0.50f);   // → rosso acceso
     static readonly Color OkCol    = new Color(0.33f, 0.86f, 0.56f);
     static readonly Color BadCol   = new Color(1.00f, 0.43f, 0.41f);
 
@@ -1086,7 +1089,7 @@ public class SceneLighting : MonoBehaviour
     void SetToggle(Image bg, TextMeshProUGUI label, bool on, string onText, string offText)
     {
         if (bg == null || label == null) return;
-        bg.color = on ? new Color(OkCol.r, OkCol.g, OkCol.b, 0.45f) : BtnBg;
+        bg.color = on ? OnBlue : BtnBg;
         label.text = on ? onText : offText;
     }
 
@@ -1174,7 +1177,7 @@ public class SceneLighting : MonoBehaviour
             () => ChangeLight(l => { if (l.d.kind == 1) l.d.angle -= 10f; }), () => ChangeLight(l => { if (l.d.kind == 1) l.d.angle += 10f; }));
         ly += Pitch;
         var del1 = Btn(gl, "Elimina luce", 24, ly, W - 48, RowH, DeleteSelected, 22);
-        del1.GetComponent<Image>().color = new Color(BadCol.r, BadCol.g, BadCol.b, 0.45f);
+        del1.GetComponent<Image>().color = DelRed;
 
         // gruppo blocco
         _groupBlock = Group("GroupBlock", gy, blockGroupH);
@@ -1201,7 +1204,7 @@ public class SceneLighting : MonoBehaviour
         Btn(gb, "Duplica", 24, by, third, RowH, DuplicateBlock, 22);
         Btn(gb, "Rifai a 4 punti", 24 + third + 10f, by, third, RowH, () => { if (_selBlock == null) return; bool cyl = _selBlock.d.shape == 1; DeleteSelected(); BeginCapture(cyl); }, 18);
         var del2 = Btn(gb, "Elimina", 24 + 2f * (third + 10f), by, third, RowH, DeleteSelected, 22);
-        del2.GetComponent<Image>().color = new Color(BadCol.r, BadCol.g, BadCol.b, 0.45f);
+        del2.GetComponent<Image>().color = DelRed;
 
         _hint = Txt(_panel, "Hint", 16, FontStyles.Normal, TextDim, TextAlignmentOptions.Center);
         Place(_hint.rectTransform, 24, H - 62f, W - 48f, 54f);

@@ -1,10 +1,12 @@
 // SyncProtocol.cs
-// Messaggi del multiplayer in sola visione (JSON, campo "t" = tipo). Il relay è server/sync/server.js.
+// Messaggi del multiplayer: host, co-host e spettatori (JSON, campo "t" = tipo).
+// pose = testa/mani dell'host · pose2 = testa/mani del co-host · cohost = il co-host è entrato/uscito · denied = ruolo non disponibile. Il relay è server/sync/server.js.
 // Le pose sono nello spazio dell'ancora di scena (la stanza calibrata): uguali per tutti i visori calibrati sugli stessi due punti.
 
 using System;
 
-public enum SyncRole { Off = 0, Host = 1, Viewer = 2 }
+/// <summary>Host = trasmette la scena (uno solo) · Viewer = guarda · CoHost = collabora alla scena dell'host: vede, crea, sposta ed elimina oggetti in tempo reale.</summary>
+public enum SyncRole { Off = 0, Host = 1, Viewer = 2, CoHost = 3 }
 
 /// <summary>Come i visori si parlano: Relay = tramite il server sul PC; Netcode = direttamente in LAN (Netcode for GameObjects).</summary>
 public enum SyncLinkMode { Relay = 0, Netcode = 1 }
@@ -34,5 +36,8 @@ public class SyncMsg
     public bool hostOnline;
     public string hostName = "";
     public string addr = "";           // hello dell'host: indirizzo LAN ip:porta dove i visori si collegano via Netcode
+    public bool cohostOnline;          // c'è un co-host collegato
+    public string cohostName = "";
+    public string reason = "";         // denied: host (c'è già un host) · cohost (c'è già un co-host) · viewers (troppi spettatori)
     public int n;
 }

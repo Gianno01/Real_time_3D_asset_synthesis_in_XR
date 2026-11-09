@@ -1,6 +1,8 @@
 // SyncManager.cs
 // Multiplayer: sceglie ruolo e collegamento di questo dispositivo.
-//   Ruolo       Spento · Host (questo visore genera e pubblica la scena) · Spettatore (guarda la scena dell'host; generazione e libreria bloccate)
+//   Ruolo       Spento · Host (questo visore genera e pubblica la scena) · Co-host (entra nella scena dell'host e la modifica insieme a lui)
+//               · Spettatore (guarda la scena dell'host; generazione e libreria bloccate)
+//               Un solo host e un solo co-host alla volta; chi arriva dopo viene rifiutato dal server con un messaggio.
 //   Collegamento
 //     Relay     i visori passano dal server sul PC (WebSocket, server/sync). Funziona anche tra reti diverse.
 //     Netcode   i visori si collegano direttamente in LAN con Netcode for GameObjects (serve il pacchetto, vedi LEGGIMI).
@@ -57,7 +59,15 @@ public class SyncManager : MonoBehaviour
         }
     }
 
-    public bool HostOnline => _viewer != null ? _viewer.HostOnline : Role == SyncRole.Host && _link != null && _link.State == SyncLink.Status.Connected;
+    public bool HostOnline => _viewer != null ? _viewer.HostOnline
+        : Role == SyncRole.CoHost ? _host != null && _host.PeerOnline
+        : Role == SyncRole.Host && _link != null && _link.State == SyncLink.Status.Connected;
+
+    /// <summary>Host: c'è un co-host collegato.</summary>
+    public bool CoHostOnline => Role == SyncRole.Host && _host != null && _host.PeerOnline;
+
+    /// <summary>Motivo per cui il server ha rifiutato il ruolo richiesto (vuoto se nessuno).</summary>
+    public string DenyNote => _denyNote;
 
     AssetLibrary _library;
     QuestObjectGenerator _gen;
@@ -71,7 +81,8 @@ public class SyncManager : MonoBehaviour
 #endif
     int _epoch, _relayViewers;
     bool _started, _readOnly, _prevHandsFree, _prevGenEnabled;
-    string _error = "", _searchNote = "";
+    string _error = "", _searchNote = "", _denyNote = "";
+    SyncLink _watched;
 
     [Serializable] class StateInfo { public bool hostOnline; public string hostAddr = ""; }
 
@@ -96,6 +107,7 @@ public class SyncManager : MonoBehaviour
     public void SetRole(SyncRole role)
     {
         if (role == Role && _started) return;
+        _denyNote = "";
         Role = role;
         if (_started) Apply();
     }
@@ -107,7 +119,7 @@ public class SyncManager : MonoBehaviour
         if (_started && Role != SyncRole.Off) Apply();
     }
 
-    public void Reconnect() { if (_started) Apply(); }
+    public void Reconnect() { if (_started) { _denyNote = ""; Apply(); } }
 
     string ResolveUrl()
     {
@@ -135,6 +147,7 @@ public class SyncManager : MonoBehaviour
     {
         _epoch++;
         StopAllCoroutines();
+        if (_watched != null) { _watched.Message -= OnLinkMessage; _watched = null; }
         if (_host != null) Destroy(_host);
         if (_viewer != null) Destroy(_viewer);
         _host = null; _viewer = null; _link = null;
@@ -198,6 +211,7 @@ public class SyncManager : MonoBehaviour
             }
 #endif
             _link = _fan;
+            Watch(_fan);
             _host = gameObject.AddComponent<SyncHost>();
             _host.advertiseAddr = advertise;
             _host.Begin(_fan, _library, _gen);
@@ -205,22 +219,63 @@ public class SyncManager : MonoBehaviour
             yield break;
         }
 
-        // Spettatore
+        // Spettatore o co-host
+        bool co = Role == SyncRole.CoHost;
         if (!useNet)
         {
             _link = _client;
-            _viewer = gameObject.AddComponent<SyncViewer>();
-            _viewer.Begin(_client, _library, _gen);
-            if (!string.IsNullOrEmpty(url)) { Debug.Log($"[Sync] Spettatore → relay {url}"); _client.Connect(url); }
+            Watch(_client);
+            StartPeer(_client, co);
+            if (!string.IsNullOrEmpty(url)) { Debug.Log($"[Sync] {(co ? "Co-host" : "Spettatore")} → relay {url}"); _client.Connect(url); }
             yield break;
         }
 #if NETCODE_ENABLED
         _net = gameObject.AddComponent<NetcodeLink>();
         _link = _net;
-        _viewer = gameObject.AddComponent<SyncViewer>();
-        _viewer.Begin(_net, _library, _gen);
+        Watch(_net);
+        StartPeer(_net, co);
         yield return NetClientLoop(epoch);
 #endif
+    }
+
+    void StartPeer(SyncLink link, bool coHost)
+    {
+        if (coHost)
+        {
+            _host = gameObject.AddComponent<SyncHost>();
+            _host.isCoHost = true;
+            _host.Begin(link, _library, _gen);
+        }
+        else
+        {
+            _viewer = gameObject.AddComponent<SyncViewer>();
+            _viewer.Begin(link, _library, _gen);
+        }
+    }
+
+    void Watch(SyncLink link)
+    {
+        if (_watched != null) _watched.Message -= OnLinkMessage;
+        _watched = link;
+        link.Message += OnLinkMessage;
+    }
+
+    // Il server (o l'host Netcode) rifiuta il ruolo: c'è già un host / un co-host
+    void OnLinkMessage(SyncMsg m)
+    {
+        if (m.t != "denied") return;
+        string note = m.reason == "host" ? "C'è già un host: entra come co-host o spettatore"
+                    : m.reason == "cohost" ? "C'è già un co-host: entra come spettatore"
+                    : "Ruolo rifiutato dal server";
+        StartCoroutine(Deny(note));
+    }
+
+    IEnumerator Deny(string note)
+    {
+        yield return null;   // fuori dal callback di rete
+        Role = SyncRole.Off;
+        Apply();
+        _denyNote = note;
     }
 
 #if NETCODE_ENABLED
@@ -229,7 +284,7 @@ public class SyncManager : MonoBehaviour
     // Cerca l'host (indirizzo manuale o chiesto al relay), si collega, e se cade riprova.
     IEnumerator NetClientLoop(int epoch)
     {
-        while (epoch == _epoch && Role == SyncRole.Viewer && _net != null)
+        while (epoch == _epoch && (Role == SyncRole.Viewer || Role == SyncRole.CoHost) && _net != null)
         {
             string addr = hostAddress != null ? hostAddress.Trim() : "";
             if (addr.Length == 0)
@@ -345,7 +400,7 @@ public class SyncManager : MonoBehaviour
     {
         get
         {
-            if (Role == SyncRole.Off) return "Rete: spenta";
+            if (Role == SyncRole.Off) return _denyNote.Length > 0 ? _denyNote : "Rete: spenta";
             if (LinkMode == SyncLinkMode.Netcode && !NetcodeAvailable) { if (Role == SyncRole.Host) return "Netcode non installato · uso il relay"; }
             bool net = EffectiveMode == SyncLinkMode.Netcode;
 
@@ -359,19 +414,23 @@ public class SyncManager : MonoBehaviour
 #endif
                 bool relayUp = _client != null && _client.State == SyncLink.Status.Connected;
                 string s = net ? $"Host · {visori} visori · {relay} browser" : $"Host · {relay} spettatori";
+                if (CoHostOnline) s += " · co-host presente";
                 if (!relayUp) s += net ? " (web non raggiungibile)" : "";
                 if (!relayUp && !net) return "Rete: server non raggiungibile";
                 if (net && _fan.State != SyncLink.Status.Connected) return string.IsNullOrEmpty(_error) ? "Rete: avvio host..." : "Netcode: avvio non riuscito";
                 return s;
             }
 
+            string who = Role == SyncRole.CoHost ? "Co-host" : "Spettatore";
             if (_link == null) return "Rete: avvio...";
             if (_link.State == SyncLink.Status.Connecting) return "Rete: connessione...";
             if (_link.State == SyncLink.Status.Disconnected)
             {
-                if (net) return _searchNote.Length > 0 ? $"Spettatore · cerco l'host ({_searchNote})" : "Spettatore · cerco l'host...";
+                if (net) return _searchNote.Length > 0 ? $"{who} · cerco l'host ({_searchNote})" : $"{who} · cerco l'host...";
                 return string.IsNullOrEmpty(_link.LastError) ? "Rete: non connesso" : "Rete: server non raggiungibile";
             }
+            if (Role == SyncRole.CoHost)
+                return _host == null || !_host.PeerOnline ? "Co-host · host non connesso" : _host.Synced ? $"Co-host · con {(_host.PeerName.Length > 0 ? _host.PeerName : "l'host")}" : "Co-host · ricevo la scena...";
             return _viewer != null && _viewer.HostOnline ? $"Spettatore · {_viewer.ObjectCount} oggetti" : "Spettatore · host non connesso";
         }
     }

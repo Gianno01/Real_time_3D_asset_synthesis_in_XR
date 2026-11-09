@@ -299,6 +299,13 @@ public class AssetLibrary : MonoBehaviour
         return so;
     }
 
+    /// <summary>Imposta la scena corrente (usato dal multiplayer: host e co-host lavorano sulla stessa scena).</summary>
+    public void SetCurrentScene(string id, string name)
+    {
+        CurrentSceneId = id ?? "";
+        CurrentSceneName = name ?? "";
+    }
+
     /// <summary>Rimuove tutti gli oggetti dalla scena e inizia una scena nuova.</summary>
     public void ClearScene()
     {

@@ -41,7 +41,11 @@ public class KeyboardUI : MonoBehaviour
     static readonly Color KeyBg    = new Color(1f, 1f, 1f, 0.11f);
     static readonly Color TextMain = new Color(0.95f, 0.96f, 0.98f);
     static readonly Color TextDim  = new Color(0.60f, 0.64f, 0.72f);
-    static readonly Color Accent   = new Color(0.40f, 0.64f, 1.00f);
+    // i tasti (Button) moltiplicano il colore x2: qui la metà del colore voluto
+    static readonly Color OnBlue   = new Color(0.05f, 0.13f, 0.43f, 0.50f);   // → blu scuro
+    static readonly Color OnBlue2  = new Color(0.07f, 0.19f, 0.55f, 0.50f);   // → blu un po' più vivo (Maiusc bloccato)
+    static readonly Color RedBtn   = new Color(0.48f, 0.04f, 0.04f, 0.50f);   // → rosso acceso
+    static readonly Color Accent   = new Color(0.20f, 0.45f, 1.00f);
     static readonly Color Ok       = new Color(0.33f, 0.86f, 0.56f);
     static readonly Color Bad      = new Color(1.00f, 0.43f, 0.41f);
 
@@ -171,7 +175,7 @@ public class KeyboardUI : MonoBehaviour
     {
         foreach (var (label, baseChar) in _letterKeys)
             label.text = _shift == Shift.Off ? baseChar : baseChar.ToUpperInvariant();
-        if (_shiftBg != null) _shiftBg.color = _shift == Shift.Off ? KeyBg : new Color(Accent.r, Accent.g, Accent.b, _shift == Shift.Lock ? 0.75f : 0.45f);
+        if (_shiftBg != null) _shiftBg.color = _shift == Shift.Off ? KeyBg : (_shift == Shift.Lock ? OnBlue2 : OnBlue);
         if (_shiftLabel != null) _shiftLabel.text = _shift == Shift.Lock ? "MAIUSC" : "Maiusc";
     }
 
@@ -188,7 +192,7 @@ public class KeyboardUI : MonoBehaviour
     IEnumerator DictateRoutine()
     {
         _dictating = true;
-        _micBg.color = new Color(Bad.r, Bad.g, Bad.b, 0.6f);
+        _micBg.color = RedBtn;
         _micLabel.text = "Ascolto";
         _status.text = "Parla ora: la dettatura finisce con una pausa";
 
@@ -302,7 +306,7 @@ public class KeyboardUI : MonoBehaviour
         _status = Txt(_root, "Status", 16, FontStyles.Normal, TextDim, TextAlignmentOptions.Center);
         Place(_status.rectTransform, 240, ay, 420, 52);
         var send = MakeButton(_root, "Send", "Invia", W - 24 - 200, ay, 200, 52, () => Close(true), 24);
-        send.GetComponent<Image>().color = new Color(Ok.r, Ok.g, Ok.b, 0.55f);
+        send.GetComponent<Image>().color = OnBlue;
     }
 
     class KeyDef

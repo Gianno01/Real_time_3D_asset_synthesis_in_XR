@@ -58,8 +58,8 @@ public class SettingsUI : MonoBehaviour
     static readonly Color CardBg   = new Color(0.07f, 0.08f, 0.11f, 0.94f);
     static readonly Color TextMain = new Color(0.95f, 0.96f, 0.98f);
     static readonly Color TextDim  = new Color(0.60f, 0.64f, 0.72f);
-    static readonly Color Accent   = new Color(0.40f, 0.64f, 1.00f);
-    static readonly Color On       = new Color(0.33f, 0.86f, 0.56f, 0.45f);
+    static readonly Color Accent   = new Color(0.20f, 0.45f, 1.00f);
+    static readonly Color On       = new Color(0.05f, 0.13f, 0.43f, 0.50f);   // sui bottoni il colore è moltiplicato x2 (colorMultiplier): qui è la metà del blu voluto
     static readonly Color BtnBg    = new Color(1f, 1f, 1f, 0.10f);
     static readonly Color Warn     = new Color(1.00f, 0.55f, 0.20f, 0.55f);
 
@@ -224,9 +224,9 @@ public class SettingsUI : MonoBehaviour
 
         if (sync != null)
             Add(_right, "MULTIPLAYER",
-                Step("sync_role", "Questo dispositivo", new[] { 0f, 1f, 2f },
+                Step("sync_role", "Questo dispositivo", new[] { 0f, 1f, 3f, 2f },
                      () => (float)(int)sync.Role, v => sync.SetRole((SyncRole)Mathf.RoundToInt(v)),
-                     v => new[] { "Spento", "Host", "Spettatore" }[Mathf.Clamp(Mathf.RoundToInt(v), 0, 2)]),
+                     v => new[] { "Spento", "Host", "Spettatore", "Co-host" }[Mathf.Clamp(Mathf.RoundToInt(v), 0, 3)]),
                 Step("sync_link", "Collegamento visori", new[] { 0f, 1f },
                      () => (float)(int)sync.LinkMode, v => sync.SetLinkMode((SyncLinkMode)Mathf.RoundToInt(v)),
                      v => Mathf.RoundToInt(v) == 1 ? (sync.NetcodeAvailable ? "Netcode (LAN)" : "Netcode (non installato)") : "Relay (server)"),

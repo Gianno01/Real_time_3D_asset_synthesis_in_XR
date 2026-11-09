@@ -25,6 +25,7 @@ public class SyncViewer : MonoBehaviour
     }
 
     SyncLink _client;
+    SyncAvatar _co;   // co-host (se c'è)
     AssetLibrary _library;
     QuestObjectGenerator _gen;
     XROrigin _xr;
@@ -46,6 +47,7 @@ public class SyncViewer : MonoBehaviour
         _client.Connected += OnConnected;
         _client.Message += OnMessage;
         BuildAvatar();
+        _co = new SyncAvatar("SyncAvatarCoHost", new Color(1f, 0.52f, 0.18f, 1f), new Color(0.95f, 0.35f, 0.75f, 1f), new Color(0.95f, 0.85f, 0.25f, 1f));
         if (_client.State == SyncLink.Status.Connected) OnConnected();
     }
 
@@ -53,6 +55,7 @@ public class SyncViewer : MonoBehaviour
     {
         if (_client != null) { _client.Connected -= OnConnected; _client.Message -= OnMessage; }
         ClearAll();
+        if (_co != null) _co.Destroy();
         if (_avatar != null) Destroy(_avatar);
         foreach (var m in new[] { _matHead, _matNose, _matL, _matR }) if (m != null) Destroy(m);
     }
@@ -75,6 +78,7 @@ public class SyncViewer : MonoBehaviour
                 SceneName = m.sceneName ?? "";
                 SetAll(m.objs);
                 SetPose(m);
+                _co.SetOnline(m.cohostOnline);
                 AskCalibrationOnce();
                 break;
             case "obj": if (m.o != null) Upsert(m.o); break;
@@ -82,6 +86,8 @@ public class SyncViewer : MonoBehaviour
             case "clear": ClearAll(); break;
             case "scene": SceneName = m.sceneName ?? ""; break;
             case "pose": SetPose(m); break;
+            case "pose2": _co.SetPose(m.hp, m.lp, m.rp); break;
+            case "cohost": _co.SetOnline(m.cohostOnline); break;
             case "host": HostOnline = m.hostOnline; if (!HostOnline && _avatar != null) _avatar.SetActive(false); break;
         }
     }
@@ -202,6 +208,7 @@ public class SyncViewer : MonoBehaviour
         float k = 1f - Mathf.Exp(-smoothing * Time.deltaTime);
         foreach (var r in _rep.Values) if (r.go != null) Pose(r, false, k);
         UpdateAvatar(k);
+        _co?.Tick(k, Anchor);
     }
 
     void Pose(Replica r, bool snap, float k = 1f)
@@ -233,7 +240,7 @@ public class SyncViewer : MonoBehaviour
     {
         var sh = Shader.Find("Sprites/Default");   // sempre incluso nella build, senza luci
         Material Mat(Color c) => new Material(sh) { color = c };
-        _matHead = Mat(new Color(0.42f, 0.64f, 1f, 1f)); _matNose = Mat(Color.white);
+        _matHead = Mat(new Color(0.22f, 0.47f, 1f, 1f)); _matNose = Mat(Color.white);
         _matL = Mat(new Color(0.2f, 0.86f, 0.56f, 1f)); _matR = Mat(new Color(1f, 0.71f, 0.30f, 1f));
 
         _avatar = new GameObject("SyncAvatar");

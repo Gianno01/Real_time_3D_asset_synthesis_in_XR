@@ -284,7 +284,7 @@ void InitIl2CppDefaults()
 	const Il2CppType* Nullable_1_tCC12E6AC31BF7E862A033EBEFF48D5000D6291E6_0_0_0_var = il2cpp::vm::GlobalMetadata::GetIl2CppTypeFromIndex(28794);
 	Nullable_1_tCC12E6AC31BF7E862A033EBEFF48D5000D6291E6_il2cpp_TypeInfo_var = il2cpp::vm::GlobalMetadata::GetTypeInfoFromType(Nullable_1_tCC12E6AC31BF7E862A033EBEFF48D5000D6291E6_0_0_0_var);;
 	il2cpp_defaults.generic_nullable_class = Nullable_1_tCC12E6AC31BF7E862A033EBEFF48D5000D6291E6_il2cpp_TypeInfo_var;;
-	const Il2CppType* Il2CppComObject_0_0_0_var = il2cpp::vm::GlobalMetadata::GetIl2CppTypeFromIndex(34924);
+	const Il2CppType* Il2CppComObject_0_0_0_var = il2cpp::vm::GlobalMetadata::GetIl2CppTypeFromIndex(34925);
 	Il2CppComObject_il2cpp_TypeInfo_var = il2cpp::vm::GlobalMetadata::GetTypeInfoFromType(Il2CppComObject_0_0_0_var);;
 	il2cpp_defaults.il2cpp_com_object_class = Il2CppComObject_il2cpp_TypeInfo_var;;
 	const Il2CppType* Attribute_tFDA8EFEFB0711976D22474794576DAF28F7440AA_0_0_0_var = il2cpp::vm::GlobalMetadata::GetIl2CppTypeFromIndex(21673);
@@ -335,7 +335,7 @@ void InitIl2CppDefaults()
 	const Il2CppType* Stream_tF844051B786E8F7F4244DBD218D74E8617B9A2DE_0_0_0_var = il2cpp::vm::GlobalMetadata::GetIl2CppTypeFromIndex(31656);
 	Stream_tF844051B786E8F7F4244DBD218D74E8617B9A2DE_il2cpp_TypeInfo_var = il2cpp::vm::GlobalMetadata::GetTypeInfoFromType(Stream_tF844051B786E8F7F4244DBD218D74E8617B9A2DE_0_0_0_var);;
 	il2cpp_defaults.stream_class = Stream_tF844051B786E8F7F4244DBD218D74E8617B9A2DE_il2cpp_TypeInfo_var;;
-	const Il2CppType* _ThreadPoolWaitCallback_t45FCDF538D93A6F6B71058ABCD12E5BDE2474EB7_0_0_0_var = il2cpp::vm::GlobalMetadata::GetIl2CppTypeFromIndex(34914);
+	const Il2CppType* _ThreadPoolWaitCallback_t45FCDF538D93A6F6B71058ABCD12E5BDE2474EB7_0_0_0_var = il2cpp::vm::GlobalMetadata::GetIl2CppTypeFromIndex(34915);
 	_ThreadPoolWaitCallback_t45FCDF538D93A6F6B71058ABCD12E5BDE2474EB7_il2cpp_TypeInfo_var = il2cpp::vm::GlobalMetadata::GetTypeInfoFromType(_ThreadPoolWaitCallback_t45FCDF538D93A6F6B71058ABCD12E5BDE2474EB7_0_0_0_var);;
 	il2cpp_defaults.threadpool_wait_callback_class = _ThreadPoolWaitCallback_t45FCDF538D93A6F6B71058ABCD12E5BDE2474EB7_il2cpp_TypeInfo_var;;
 	const Il2CppType* MonoMethodMessage_t0A062C5351332ED078EDDF6FA38A87B0A7B5A601_0_0_0_var = il2cpp::vm::GlobalMetadata::GetIl2CppTypeFromIndex(28169);
@@ -347,37 +347,37 @@ void InitIl2CppDefaults()
 	const Il2CppType* Guid_t_0_0_0_var = il2cpp::vm::GlobalMetadata::GetIl2CppTypeFromIndex(25324);
 	Guid_t_il2cpp_TypeInfo_var = il2cpp::vm::GlobalMetadata::GetTypeInfoFromType(Guid_t_0_0_0_var);;
 	il2cpp_defaults.system_guid_class = Guid_t_il2cpp_TypeInfo_var;;
-	const Il2CppType* __Il2CppSByteEnum_t0E82FB96D75E68A0D751E4D746DB84908DE2C1C0_0_0_0_var = il2cpp::vm::GlobalMetadata::GetIl2CppTypeFromIndex(34930);
+	const Il2CppType* __Il2CppSByteEnum_t0E82FB96D75E68A0D751E4D746DB84908DE2C1C0_0_0_0_var = il2cpp::vm::GlobalMetadata::GetIl2CppTypeFromIndex(34931);
 	__Il2CppSByteEnum_t0E82FB96D75E68A0D751E4D746DB84908DE2C1C0_il2cpp_TypeInfo_var = il2cpp::vm::GlobalMetadata::GetTypeInfoFromType(__Il2CppSByteEnum_t0E82FB96D75E68A0D751E4D746DB84908DE2C1C0_0_0_0_var);;
 	il2cpp_defaults.sbyte_shared_enum = __Il2CppSByteEnum_t0E82FB96D75E68A0D751E4D746DB84908DE2C1C0_il2cpp_TypeInfo_var;;
-	const Il2CppType* __Il2CppInt16Enum_t5F2344D652FE6E1156C697C9B7ECD76C07794977_0_0_0_var = il2cpp::vm::GlobalMetadata::GetIl2CppTypeFromIndex(34927);
+	const Il2CppType* __Il2CppInt16Enum_t5F2344D652FE6E1156C697C9B7ECD76C07794977_0_0_0_var = il2cpp::vm::GlobalMetadata::GetIl2CppTypeFromIndex(34928);
 	__Il2CppInt16Enum_t5F2344D652FE6E1156C697C9B7ECD76C07794977_il2cpp_TypeInfo_var = il2cpp::vm::GlobalMetadata::GetTypeInfoFromType(__Il2CppInt16Enum_t5F2344D652FE6E1156C697C9B7ECD76C07794977_0_0_0_var);;
 	il2cpp_defaults.int16_shared_enum = __Il2CppInt16Enum_t5F2344D652FE6E1156C697C9B7ECD76C07794977_il2cpp_TypeInfo_var;;
-	const Il2CppType* __Il2CppInt32Enum_tE5E90BB5D60D5281C33DB29D9DCBD70D5E2E1F7B_0_0_0_var = il2cpp::vm::GlobalMetadata::GetIl2CppTypeFromIndex(34928);
+	const Il2CppType* __Il2CppInt32Enum_tE5E90BB5D60D5281C33DB29D9DCBD70D5E2E1F7B_0_0_0_var = il2cpp::vm::GlobalMetadata::GetIl2CppTypeFromIndex(34929);
 	__Il2CppInt32Enum_tE5E90BB5D60D5281C33DB29D9DCBD70D5E2E1F7B_il2cpp_TypeInfo_var = il2cpp::vm::GlobalMetadata::GetTypeInfoFromType(__Il2CppInt32Enum_tE5E90BB5D60D5281C33DB29D9DCBD70D5E2E1F7B_0_0_0_var);;
 	il2cpp_defaults.int32_shared_enum = __Il2CppInt32Enum_tE5E90BB5D60D5281C33DB29D9DCBD70D5E2E1F7B_il2cpp_TypeInfo_var;;
-	const Il2CppType* __Il2CppInt64Enum_t9CDD96B05BB77900F008EA482090C5179922009A_0_0_0_var = il2cpp::vm::GlobalMetadata::GetIl2CppTypeFromIndex(34929);
+	const Il2CppType* __Il2CppInt64Enum_t9CDD96B05BB77900F008EA482090C5179922009A_0_0_0_var = il2cpp::vm::GlobalMetadata::GetIl2CppTypeFromIndex(34930);
 	__Il2CppInt64Enum_t9CDD96B05BB77900F008EA482090C5179922009A_il2cpp_TypeInfo_var = il2cpp::vm::GlobalMetadata::GetTypeInfoFromType(__Il2CppInt64Enum_t9CDD96B05BB77900F008EA482090C5179922009A_0_0_0_var);;
 	il2cpp_defaults.int64_shared_enum = __Il2CppInt64Enum_t9CDD96B05BB77900F008EA482090C5179922009A_il2cpp_TypeInfo_var;;
-	const Il2CppType* __Il2CppByteEnum_t68E018163828EBAE5DA154A7FDE684D7ADCFA809_0_0_0_var = il2cpp::vm::GlobalMetadata::GetIl2CppTypeFromIndex(34922);
+	const Il2CppType* __Il2CppByteEnum_t68E018163828EBAE5DA154A7FDE684D7ADCFA809_0_0_0_var = il2cpp::vm::GlobalMetadata::GetIl2CppTypeFromIndex(34923);
 	__Il2CppByteEnum_t68E018163828EBAE5DA154A7FDE684D7ADCFA809_il2cpp_TypeInfo_var = il2cpp::vm::GlobalMetadata::GetTypeInfoFromType(__Il2CppByteEnum_t68E018163828EBAE5DA154A7FDE684D7ADCFA809_0_0_0_var);;
 	il2cpp_defaults.byte_shared_enum = __Il2CppByteEnum_t68E018163828EBAE5DA154A7FDE684D7ADCFA809_il2cpp_TypeInfo_var;;
-	const Il2CppType* __Il2CppUInt16Enum_t952C1A107C8EDA0C3F0A40A658CD32B7DEFAE3F7_0_0_0_var = il2cpp::vm::GlobalMetadata::GetIl2CppTypeFromIndex(34931);
+	const Il2CppType* __Il2CppUInt16Enum_t952C1A107C8EDA0C3F0A40A658CD32B7DEFAE3F7_0_0_0_var = il2cpp::vm::GlobalMetadata::GetIl2CppTypeFromIndex(34932);
 	__Il2CppUInt16Enum_t952C1A107C8EDA0C3F0A40A658CD32B7DEFAE3F7_il2cpp_TypeInfo_var = il2cpp::vm::GlobalMetadata::GetTypeInfoFromType(__Il2CppUInt16Enum_t952C1A107C8EDA0C3F0A40A658CD32B7DEFAE3F7_0_0_0_var);;
 	il2cpp_defaults.uint16_shared_enum = __Il2CppUInt16Enum_t952C1A107C8EDA0C3F0A40A658CD32B7DEFAE3F7_il2cpp_TypeInfo_var;;
-	const Il2CppType* __Il2CppUInt32Enum_t030A7AC35A8339F4C1125239BA7E0DF352914770_0_0_0_var = il2cpp::vm::GlobalMetadata::GetIl2CppTypeFromIndex(34932);
+	const Il2CppType* __Il2CppUInt32Enum_t030A7AC35A8339F4C1125239BA7E0DF352914770_0_0_0_var = il2cpp::vm::GlobalMetadata::GetIl2CppTypeFromIndex(34933);
 	__Il2CppUInt32Enum_t030A7AC35A8339F4C1125239BA7E0DF352914770_il2cpp_TypeInfo_var = il2cpp::vm::GlobalMetadata::GetTypeInfoFromType(__Il2CppUInt32Enum_t030A7AC35A8339F4C1125239BA7E0DF352914770_0_0_0_var);;
 	il2cpp_defaults.uint32_shared_enum = __Il2CppUInt32Enum_t030A7AC35A8339F4C1125239BA7E0DF352914770_il2cpp_TypeInfo_var;;
-	const Il2CppType* __Il2CppUInt64Enum_tC9395309B06F7AB1E670A7E4884464EC4BD71C6E_0_0_0_var = il2cpp::vm::GlobalMetadata::GetIl2CppTypeFromIndex(34933);
+	const Il2CppType* __Il2CppUInt64Enum_tC9395309B06F7AB1E670A7E4884464EC4BD71C6E_0_0_0_var = il2cpp::vm::GlobalMetadata::GetIl2CppTypeFromIndex(34934);
 	__Il2CppUInt64Enum_tC9395309B06F7AB1E670A7E4884464EC4BD71C6E_il2cpp_TypeInfo_var = il2cpp::vm::GlobalMetadata::GetTypeInfoFromType(__Il2CppUInt64Enum_tC9395309B06F7AB1E670A7E4884464EC4BD71C6E_0_0_0_var);;
 	il2cpp_defaults.uint64_shared_enum = __Il2CppUInt64Enum_tC9395309B06F7AB1E670A7E4884464EC4BD71C6E_il2cpp_TypeInfo_var;;
-	const Il2CppType* Il2CppSharedGenericObject_0_0_0_var = il2cpp::vm::GlobalMetadata::GetIl2CppTypeFromIndex(34918);
+	const Il2CppType* Il2CppSharedGenericObject_0_0_0_var = il2cpp::vm::GlobalMetadata::GetIl2CppTypeFromIndex(34919);
 	Il2CppSharedGenericObject_il2cpp_TypeInfo_var = il2cpp::vm::GlobalMetadata::GetTypeInfoFromType(Il2CppSharedGenericObject_0_0_0_var);;
 	il2cpp_defaults.il2cpp_shared_object_type = Il2CppSharedGenericObject_il2cpp_TypeInfo_var;;
-	const Il2CppType* Il2CppFullySharedGenericAny_0_0_0_var = il2cpp::vm::GlobalMetadata::GetIl2CppTypeFromIndex(34926);
+	const Il2CppType* Il2CppFullySharedGenericAny_0_0_0_var = il2cpp::vm::GlobalMetadata::GetIl2CppTypeFromIndex(34927);
 	Il2CppFullySharedGenericAny_il2cpp_TypeInfo_var = il2cpp::vm::GlobalMetadata::GetTypeInfoFromType(Il2CppFullySharedGenericAny_0_0_0_var);;
 	il2cpp_defaults.il2cpp_fully_shared_type = Il2CppFullySharedGenericAny_il2cpp_TypeInfo_var;;
-	const Il2CppType* Il2CppFullySharedGenericStruct_0_0_0_var = il2cpp::vm::GlobalMetadata::GetIl2CppTypeFromIndex(34925);
+	const Il2CppType* Il2CppFullySharedGenericStruct_0_0_0_var = il2cpp::vm::GlobalMetadata::GetIl2CppTypeFromIndex(34926);
 	Il2CppFullySharedGenericStruct_il2cpp_TypeInfo_var = il2cpp::vm::GlobalMetadata::GetTypeInfoFromType(Il2CppFullySharedGenericStruct_0_0_0_var);;
 	il2cpp_defaults.il2cpp_fully_shared_struct_type = Il2CppFullySharedGenericStruct_il2cpp_TypeInfo_var;;
 	il2cpp::vm::GlobalMetadata::InitializeRuntimeMetadata((uintptr_t*)&VoidU2A_t104EAEFBD2D237A8C29618913DA9B4D99355E965_il2cpp_TypeInfo_var, false);
@@ -518,7 +518,7 @@ const Il2CppMetadataRegistration g_MetadataRegistration =
 	g_Il2CppGenericTypes,
 	11607,
 	g_Il2CppGenericInstTable,
-	45886,
+	45887,
 	g_Il2CppTypeTable,
 	13215,
 	g_FieldOffsetTable,

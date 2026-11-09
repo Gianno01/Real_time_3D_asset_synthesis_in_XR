@@ -75,7 +75,7 @@ public class GenerationStatusUI : MonoBehaviour
     static readonly Color TextMain = new Color(0.95f, 0.96f, 0.98f);
     static readonly Color TextDim  = new Color(0.60f, 0.64f, 0.72f);
     static readonly Color Pending  = new Color(1f, 1f, 1f, 0.16f);
-    static readonly Color Accent   = new Color(0.40f, 0.64f, 1.00f);
+    static readonly Color Accent   = new Color(0.20f, 0.45f, 1.00f);
     static readonly Color Ok       = new Color(0.33f, 0.86f, 0.56f);
     static readonly Color Bad      = new Color(1.00f, 0.43f, 0.41f);
 
@@ -83,7 +83,7 @@ public class GenerationStatusUI : MonoBehaviour
 
     const float CardW = 640f, CardH = 304f, PillW = 620f, PillH = 72f, IconSize = 76f, PreviewW = 640f, PreviewH = 470f;
     const float ToolBtn = 48f, ToolGap = 10f;
-    static readonly Color ActiveBtn = new Color(0.40f, 0.64f, 1.00f, 0.55f);
+    static readonly Color ActiveBtn = new Color(0.05f, 0.13f, 0.43f, 0.50f);   // x2 dal Button
 
     RectTransform _toolbarRt;
     CanvasGroup _toolbarGroup;
@@ -785,7 +785,7 @@ public class GenerationStatusUI : MonoBehaviour
                    () => { if (generator != null) generator.CancelRequest(); });
         var proceed = MakeButton(pvRt, "ProceedButton", "Prosegui", 472, 420, 140, 36,
                                  () => { if (generator != null) generator.ProceedToModel(); });
-        proceed.GetComponent<Image>().color = new Color(Ok.r, Ok.g, Ok.b, 0.55f);
+        proceed.GetComponent<Image>().color = ActiveBtn;   // blu scuro (il Button raddoppia il colore)
 
         // ── Icona (pannello ridotto) ──
         var iconRt = Panel(root, "Icon", IconSize, IconSize, CardBg, out _icon, 1f);

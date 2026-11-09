@@ -33,19 +33,37 @@ public abstract class SyncLink : MonoBehaviour
 public class SyncFanout : SyncLink
 {
     readonly List<SyncLink> _links = new List<SyncLink>();
+    readonly Dictionary<SyncLink, Action<SyncMsg>> _handlers = new Dictionary<SyncLink, Action<SyncMsg>>();
+
+    // Modifiche del co-host (oggetti, scena, posa): se arrivano da un canale vanno girate anche agli altri canali,
+    // così chi è collegato altrove (browser sul relay, visori Netcode) le vede.
+    static bool IsPeerEdit(string t) => t == "obj" || t == "del" || t == "clear" || t == "scene" || t == "pose2";
 
     public void Add(SyncLink l)
     {
         if (l == null || _links.Contains(l)) return;
         _links.Add(l);
         l.Connected += OnChildConnected;
-        l.Message += RaiseMessage;
+        Action<SyncMsg> h = m =>
+        {
+            RaiseMessage(m);
+            if (m != null && IsPeerEdit(m.t))
+                foreach (var other in _links) if (other != null && other != l) other.Send(m);
+        };
+        _handlers[l] = h;
+        l.Message += h;
         Refresh();
     }
 
     public void Clear()
     {
-        foreach (var l in _links) if (l != null) { l.Connected -= OnChildConnected; l.Message -= RaiseMessage; }
+        foreach (var l in _links)
+            if (l != null)
+            {
+                l.Connected -= OnChildConnected;
+                if (_handlers.TryGetValue(l, out var h)) l.Message -= h;
+            }
+        _handlers.Clear();
         _links.Clear();
         State = Status.Disconnected;
     }

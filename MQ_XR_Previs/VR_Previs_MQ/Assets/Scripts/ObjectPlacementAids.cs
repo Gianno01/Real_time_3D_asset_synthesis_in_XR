@@ -54,6 +54,8 @@ public class ObjectPlacementAids : MonoBehaviour
     RectTransform _gridRt;
     RawImage _gridImg;
     CanvasGroup _gridGroup;
+    [Tooltip("Entro questa distanza (m) l'etichetta delle misure ha dimensione normale; oltre cresce per restare leggibile")]
+    public float labelNearDistance = 1.5f;
     RectTransform _labelRt;
     CanvasGroup _labelGroup;
     TextMeshProUGUI _label;
@@ -140,7 +142,11 @@ public class ObjectPlacementAids : MonoBehaviour
         // Misure: sopra l'oggetto, rivolte verso di te
         if (_labelRt != null)
         {
-            _labelRt.position = new Vector3(b.center.x, b.max.y + 0.06f, b.center.z);
+            // dimensione apparente costante: oltre ~1,5 m l'etichetta cresce con la distanza (max 10x) così resta leggibile anche per oggetti lontani
+            float k = 1f;
+            if (head != null) k = Mathf.Clamp(Vector3.Distance(head.position, b.center) / labelNearDistance, 1f, 10f);
+            _labelRt.localScale = Vector3.one * (0.0008f * k);
+            _labelRt.position = new Vector3(b.center.x, b.max.y + 0.06f * k, b.center.z);
             if (head != null)
             {
                 Vector3 look = _labelRt.position - head.position;
@@ -325,7 +331,7 @@ public class ObjectPlacementAids : MonoBehaviour
         var bgGo = new GameObject("Bg", typeof(RectTransform), typeof(Image));
         bgGo.transform.SetParent(_labelRt, false);
         var bg = bgGo.GetComponent<Image>();
-        bg.color = new Color(0.07f, 0.08f, 0.11f, 0.85f);
+        bg.color = new Color(1f, 0.87f, 0.10f, 1f);   // giallo pieno + testo nero: leggibile su qualsiasi sfondo
         bg.raycastTarget = false;
         var brt = bg.rectTransform;
         brt.anchorMin = Vector2.zero; brt.anchorMax = Vector2.one;
@@ -334,9 +340,10 @@ public class ObjectPlacementAids : MonoBehaviour
         var txtGo = new GameObject("Text", typeof(RectTransform), typeof(TextMeshProUGUI));
         txtGo.transform.SetParent(_labelRt, false);
         _label = txtGo.GetComponent<TextMeshProUGUI>();
-        _label.fontSize = 26;
+        _label.fontSize = 28;
+        _label.fontStyle = FontStyles.Bold;
         _label.alignment = TextAlignmentOptions.Center;
-        _label.color = new Color(0.95f, 0.96f, 0.98f);
+        _label.color = new Color(0.02f, 0.02f, 0.04f);
         _label.raycastTarget = false;
         _label.richText = true;
         var trt = _label.rectTransform;

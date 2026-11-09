@@ -1,16 +1,23 @@
 'use strict';
-// Relay in tempo reale della scena XR (sola visione).
+// Relay in tempo reale della scena XR.
 //
 //  • UN solo "host" (il visore che genera) pubblica lo stato: oggetti, posizioni, testa/mani, stato della generazione.
 //  • N "spettatori" (secondo visore, telefono/tablet nel browser) ricevono tutto in tempo reale.
 //  • Lo stato vive in memoria: chi entra dopo riceve subito la fotografia attuale (snapshot).
+//  • Un solo "co-host" (secondo visore) collabora alla stessa scena: crea, sposta ed elimina oggetti come l'host.
+//    Le sue modifiche passano dal server, che le applica allo stato, le gira all'host e agli spettatori.
+//  • Se c'è già un host, un secondo host viene RIFIUTATO (denied{reason:"host"}); se c'è già un co-host, un secondo co-host
+//    pure (denied{reason:"cohost"}). Restano liberi i posti da spettatore. Un host "morto" (non risponde al ping) o lo
+//    stesso dispositivo che si ricollega (stesso nome) sostituisce quello vecchio.
 //  • Gli spettatori NON possono modificare niente: i loro messaggi di scrittura sono ignorati.
 //
 // Protocollo: messaggi JSON di testo, campo "t" = tipo. Vedi LEGGIMI.md (sezione Multiplayer).
 //   host → server: hello{role:"host",name,addr?} · full{objs,sceneId,sceneName} · obj{o} · del{id} · clear · scene{sceneId,sceneName}
 //                  · pose{hp,lp,rp} · gen{genState,genText}
+//   co-host → server: hello{role:"cohost",name} · obj{o} · del{id} · clear · scene{...} · pose2{hp,lp,rp}
 //   spettatore → server: hello{role:"viewer",name}
-//   server → spettatori: snapshot{...} · obj · del · clear · scene · pose · gen · host{hostOnline,hostName} · viewers{n}
+//   server → tutti: snapshot{... cohostOnline,cohostName} · obj · del · clear · scene · pose · pose2 · gen · host{hostOnline,hostName}
+//                   · cohost{cohostOnline,cohostName} · viewers{n}      server → chi è rifiutato: denied{reason} e chiusura (4003)
 //
 // Gratuito: Node + libreria "ws" (MIT). Nessun cloud.
 
@@ -25,9 +32,10 @@ const HELLO_TIMEOUT_MS = 5000;
 
 function createRelay() {
   const state = {
-    objs: new Map(), sceneId: '', sceneName: '', pose: null, genState: '', genText: '', hostName: '', hostAddr: '',
+    objs: new Map(), sceneId: '', sceneName: '', pose: null, genState: '', genText: '', hostName: '', hostAddr: '', pose2: null, cohostName: '',
   };
   let host = null;
+  let cohost = null;
   const viewers = new Set();
 
   const OPEN = WebSocket.OPEN;
@@ -63,6 +71,7 @@ function createRelay() {
     sceneId: state.sceneId, sceneName: state.sceneName,
     hostOnline: !!host, hostName: state.hostName, hostAddr: host ? state.hostAddr : '',
     n: viewers.size,
+    cohostOnline: !!cohost, cohostName: cohost ? state.cohostName : '',
     genState: state.genState, genText: state.genText,
     ...(state.pose || {}),
   });
@@ -72,50 +81,75 @@ function createRelay() {
     const data = JSON.stringify(msg);
     for (const v of viewers) if (v.readyState === OPEN) v.send(data);
   }
+  // modifiche di scena: agli spettatori e all'altro redattore (host ↔ co-host)
+  function toAll(msg, from) {
+    toViewers(msg);
+    const other = from === host ? cohost : host;
+    if (other && other !== from) send(other, msg);
+  }
   function announceViewers() {
     const m = { t: 'viewers', n: viewers.size };
     toViewers(m); send(host, m);
   }
-  function announceHost() { toViewers({ t: 'host', hostOnline: !!host, hostName: state.hostName }); }
+  function announceHost() {
+    const m = { t: 'host', hostOnline: !!host, hostName: state.hostName };
+    toViewers(m); send(cohost, m);
+  }
+  function announceCoHost() {
+    const m = { t: 'cohost', cohostOnline: !!cohost, cohostName: cohost ? state.cohostName : '' };
+    toViewers(m); send(host, m);
+    if (!cohost) state.pose2 = null;
+  }
 
-  function onHostMessage(ws, m) {
+  function onEditorMessage(ws, m) {
+    const isHost = ws === host;
     switch (m.t) {
       case 'full': {
+        if (!isHost) return;
         state.objs.clear();
         for (const o of Array.isArray(m.objs) ? m.objs.slice(0, MAX_OBJECTS) : []) {
           const c = cleanObj(o); if (c) state.objs.set(c.id, c);
         }
         state.sceneId = str(m.sceneId, 64); state.sceneName = str(m.sceneName, 120);
-        toViewers(snapshot());
+        toAll(snapshot(), ws);
         break;
       }
       case 'obj': {
         const c = cleanObj(m.o); if (!c) return;
         if (!state.objs.has(c.id) && state.objs.size >= MAX_OBJECTS) return;
         state.objs.set(c.id, c);
-        toViewers({ t: 'obj', o: c });
+        toAll({ t: 'obj', o: c }, ws);
         break;
       }
       case 'del': {
         const id = str(m.id, 64);
-        if (state.objs.delete(id)) toViewers({ t: 'del', id });
+        if (state.objs.delete(id)) toAll({ t: 'del', id }, ws);
         break;
       }
       case 'clear':
         state.objs.clear();
-        toViewers({ t: 'clear' });
+        toAll({ t: 'clear' }, ws);
         break;
       case 'scene':
         state.sceneId = str(m.sceneId, 64); state.sceneName = str(m.sceneName, 120);
-        toViewers({ t: 'scene', sceneId: state.sceneId, sceneName: state.sceneName });
+        toAll({ t: 'scene', sceneId: state.sceneId, sceneName: state.sceneName }, ws);
         break;
       case 'pose': {
+        if (!isHost) return;
         const hp = nums(m.hp, 7), lp = nums(m.lp, 7), rp = nums(m.rp, 7);
         state.pose = { hp: hp || [], lp: lp || [], rp: rp || [] };
-        toViewers({ t: 'pose', ...state.pose });
+        toAll({ t: 'pose', ...state.pose }, ws);
+        break;
+      }
+      case 'pose2': {
+        if (isHost) return;
+        const hp = nums(m.hp, 7), lp = nums(m.lp, 7), rp = nums(m.rp, 7);
+        state.pose2 = { hp: hp || [], lp: lp || [], rp: rp || [] };
+        toViewers({ t: 'pose2', ...state.pose2 }); send(host, { t: 'pose2', ...state.pose2 });
         break;
       }
       case 'gen':
+        if (!isHost) return;
         state.genState = str(m.genState, 40); state.genText = str(m.genText, 240);
         toViewers({ t: 'gen', genState: state.genState, genText: state.genText });
         break;
@@ -137,14 +171,25 @@ function createRelay() {
       if (!role) {
         if (m.t !== 'hello') return;
         clearTimeout(helloTimer);
+        const deny = reason => { send(ws, { t: 'denied', reason }); role = 'denied'; setTimeout(() => { try { ws.close(4003, 'ruolo rifiutato: ' + reason); } catch {} }, 300); };
         if (m.role === 'host') {
+          if (host && host !== ws && host.readyState === OPEN && host.isAlive !== false && state.hostName !== str(m.name, 60)) { deny('host'); return; }
           role = 'host';
-          if (host && host !== ws) { try { host.close(4001, 'sostituito da un altro host'); } catch {} }   // vince l'ultimo
+          if (host && host !== ws) { try { host.close(4001, 'sostituito da un altro host'); } catch {} }
           host = ws;
           state.hostName = str(m.name, 60);
           state.hostAddr = typeof m.addr === 'string' && HOST_ADDR.test(m.addr) ? m.addr : '';
           announceHost();
           send(ws, { t: 'welcome', role, n: viewers.size });
+          if (cohost) send(ws, { t: 'cohost', cohostOnline: true, cohostName: state.cohostName });
+        } else if (m.role === 'cohost') {
+          if (cohost && cohost !== ws && cohost.readyState === OPEN && cohost.isAlive !== false && state.cohostName !== str(m.name, 60)) { deny('cohost'); return; }
+          role = 'cohost';
+          if (cohost && cohost !== ws) { try { cohost.close(4001, 'sostituito'); } catch {} }
+          cohost = ws;
+          state.cohostName = str(m.name, 60);
+          send(ws, snapshot());
+          announceCoHost();
         } else {
           if (viewers.size >= MAX_VIEWERS) { ws.close(4002, 'troppi spettatori'); return; }
           role = 'viewer';
@@ -154,19 +199,20 @@ function createRelay() {
         }
         return;
       }
-      if (role === 'host' && host === ws) onHostMessage(ws, m);
+      if ((role === 'host' && host === ws) || (role === 'cohost' && cohost === ws)) onEditorMessage(ws, m);
       // gli spettatori non scrivono: tutto il resto è ignorato
     });
 
     ws.on('close', () => {
       clearTimeout(helloTimer);
       if (role === 'host' && host === ws) { host = null; announceHost(); }
+      if (role === 'cohost' && cohost === ws) { cohost = null; announceCoHost(); }
       if (role === 'viewer') { viewers.delete(ws); announceViewers(); }
     });
     ws.on('error', () => {});
   }
 
-  const info = () => ({ host: !!host, hostName: state.hostName, hostAddr: host ? state.hostAddr : '', viewers: viewers.size, objects: state.objs.size, sceneName: state.sceneName });
+  const info = () => ({ cohost: !!cohost, cohostName: cohost ? state.cohostName : '', host: !!host, hostName: state.hostName, hostAddr: host ? state.hostAddr : '', viewers: viewers.size, objects: state.objs.size, sceneName: state.sceneName });
   return { attach, info, state, snapshot };
 }
 

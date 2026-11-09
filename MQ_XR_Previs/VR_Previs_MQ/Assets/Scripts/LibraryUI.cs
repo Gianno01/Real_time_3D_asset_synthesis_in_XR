@@ -47,11 +47,12 @@ public class LibraryUI : MonoBehaviour
 
     static readonly Color CardBg   = new Color(0.07f, 0.08f, 0.11f, 0.94f);
     static readonly Color TileBg   = new Color(1f, 1f, 1f, 0.06f);
-    static readonly Color TileSel  = new Color(0.40f, 0.64f, 1.00f, 0.35f);
+    static readonly Color TileSel  = new Color(0.05f, 0.13f, 0.43f, 0.50f);   // x2 dal Button → blu scuro
     static readonly Color TextMain = new Color(0.95f, 0.96f, 0.98f);
     static readonly Color TextDim  = new Color(0.60f, 0.64f, 0.72f);
-    static readonly Color Accent   = new Color(0.40f, 0.64f, 1.00f);
+    static readonly Color Accent   = new Color(0.20f, 0.45f, 1.00f);
     static readonly Color Ok       = new Color(0.33f, 0.86f, 0.56f);
+    static readonly Color DelRed   = new Color(0.48f, 0.04f, 0.04f, 0.50f);   // x2 dal Button → rosso acceso
     static readonly Color Bad      = new Color(1.00f, 0.43f, 0.41f);
     static readonly Color BtnBg    = new Color(1f, 1f, 1f, 0.10f);
 
@@ -98,6 +99,8 @@ public class LibraryUI : MonoBehaviour
     TextMeshProUGUI _suggestQuery;
 
     // Barra oggetto
+    [Tooltip("Entro questa distanza (m) la barra Salva/Duplica/Elimina ha dimensione normale; oltre cresce per restare leggibile")]
+    public float toolbarNearDistance = 1.5f;
     Transform _toolbar;
     CanvasGroup _toolbarGroup;
     TextMeshProUGUI _tbSaveLabel, _tbDeleteLabel;
@@ -617,8 +620,11 @@ public class LibraryUI : MonoBehaviour
         if (_tbTarget == null || _toolbarGroup.alpha <= 0f) return;
 
         Bounds b = WorldBounds(_tbTarget.gameObject);
-        _toolbar.position = new Vector3(b.center.x, b.max.y + 0.15f, b.center.z);
         var head = generator.Head;
+        // dimensione apparente costante: oltre toolbarNearDistance la barra cresce con la distanza (max 10x), come l'etichetta delle misure
+        float k = head != null ? Mathf.Clamp(Vector3.Distance(head.position, b.center) / toolbarNearDistance, 1f, 10f) : 1f;
+        _toolbar.localScale = Vector3.one * (0.001f * k);
+        _toolbar.position = new Vector3(b.center.x, b.max.y + 0.15f * k, b.center.z);
         if (head != null)
         {
             Vector3 look = _toolbar.position - head.position;
@@ -751,7 +757,7 @@ public class LibraryUI : MonoBehaviour
             Place(c.info.rectTransform, 10, 202, 196, 44);
             var card = c;
             var use = MakeButton(bg.rectTransform, "Use", "Usa", 10, 260, 196, 44, () => UseSuggestion(card), out _);
-            use.color = new Color(Ok.r, Ok.g, Ok.b, 0.5f);
+            use.color = TileSel;
             _cards.Add(c);
         }
 
@@ -759,7 +765,7 @@ public class LibraryUI : MonoBehaviour
         Place(hint.rectTransform, 24, 484, 400, 40);
         hint.text = "Nessuno va bene? Genera un oggetto nuovo.";
         var gen = MakeButton(v, "GenerateNew", "Genera nuovo", 476, 484, 220, 40, GenerateNew, out _);
-        gen.color = new Color(Accent.r, Accent.g, Accent.b, 0.45f);
+        gen.color = TileSel;
     }
 
     void BuildInventoryView(RectTransform root)
@@ -806,8 +812,8 @@ public class LibraryUI : MonoBehaviour
         MakeButton(v, "Next", ">", 184, 484, 52, 40, () => Page(1), out _);
 
         _insertBtn = MakeButton(v, "Insert", "Inserisci", 420, 484, 136, 40, InsertSelected, out _).gameObject;
-        _insertBtn.GetComponent<Image>().color = new Color(Ok.r, Ok.g, Ok.b, 0.5f);
-        _deleteAssetBtn = MakeButton(v, "DeleteAsset", "Elimina", 564, 484, 132, 40, DeleteSelected, out _deleteAssetLabel).gameObject;
+        _insertBtn.GetComponent<Image>().color = TileSel;
+        { var dImg = MakeButton(v, "DeleteAsset", "Elimina", 564, 484, 132, 40, DeleteSelected, out _deleteAssetLabel); dImg.color = DelRed; _deleteAssetBtn = dImg.gameObject; }
     }
 
     void BuildScenesView(RectTransform root)
@@ -819,7 +825,7 @@ public class LibraryUI : MonoBehaviour
         Place(_currentSceneLabel.rectTransform, 24, 70, 672, 34);
 
         var save = MakeButton(v, "Save", "Salva", 24, 110, 140, 40, () => SaveScene(false), out _);
-        save.color = new Color(Ok.r, Ok.g, Ok.b, 0.5f);
+        save.color = TileSel;
         MakeButton(v, "SaveAsNew", "Salva come nuova", 172, 110, 196, 40, () => SaveScene(true), out _);
         MakeButton(v, "VoiceName", "Nome a voce", 376, 110, 160, 40, VoiceSceneName, out _sceneVoiceLabel);
         MakeButton(v, "Clear", "Svuota", 544, 110, 152, 40, ClearScene, out _clearLabel);
@@ -840,7 +846,7 @@ public class LibraryUI : MonoBehaviour
             Place(row.info.rectTransform, 12, 28, 400, 20);
             var r = row;
             MakeButton(bg.rectTransform, "Load", "Carica", 428, 8, 112, 36, () => LoadScene(r), out _);
-            MakeButton(bg.rectTransform, "Delete", "Elimina", 548, 8, 112, 36, () => DeleteScene(r), out row.deleteLabel);
+            MakeButton(bg.rectTransform, "Delete", "Elimina", 548, 8, 112, 36, () => DeleteScene(r), out row.deleteLabel).color = DelRed;
             _rows.Add(row);
         }
 
@@ -897,7 +903,7 @@ public class LibraryUI : MonoBehaviour
 
         MakeButton(v, "Cancel", "Annulla", 420, 484, 136, 40, () => ShowView(View.Inventory), out _);
         var ok = MakeButton(v, "Confirm", "Salva", 564, 484, 132, 40, ConfirmSave, out _);
-        ok.color = new Color(Ok.r, Ok.g, Ok.b, 0.55f);
+        ok.color = TileSel;
     }
 
     void BuildDock()
@@ -926,7 +932,7 @@ public class LibraryUI : MonoBehaviour
         MakeButton(root, "Save", "Salva", 8, 8, 94, 40, ToolbarSave, out _tbSaveLabel);   // "Salva" se nuovo, "Blocca/Sblocca" se già nell'inventario
         MakeButton(root, "Duplicate", "Duplica", 109, 8, 94, 40, ToolbarDuplicate, out _);
         var del = MakeButton(root, "Delete", "Elimina", 210, 8, 94, 40, ToolbarDelete, out _tbDeleteLabel);
-        del.color = new Color(Bad.r, Bad.g, Bad.b, 0.35f);
+        del.color = DelRed;
     }
 
     // ── Utilità UI ────────────────────────────────────────────────────
