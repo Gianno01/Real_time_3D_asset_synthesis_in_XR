@@ -45,10 +45,20 @@ public class BlockData
     public int shape;                        // 0 = scatola, 1 = cilindro
 }
 
+/// <summary>Raddrizzamento automatico di un oggetto della scena ("Allineamento"): serve all'esportazione in Blender per avere le rotazioni esatte.
+/// Una voce per oggetto, nello stesso ordine in cui la scena li salva.</summary>
+[Serializable]
+public class AlignData
+{
+    public string asset_id = "";
+    public float[] al = new float[0];   // centro x,y,z + rotazione x,y,z,w (spazio locale dell'oggetto); vuoto = nessuna correzione
+}
+
 [Serializable]
 public class LightingData
 {
     public int version = 1;
+    public List<AlignData> align = new List<AlignData>();
     public bool dimOn;
     public float dim = 0.85f;
     public List<LightData> lights = new List<LightData>();

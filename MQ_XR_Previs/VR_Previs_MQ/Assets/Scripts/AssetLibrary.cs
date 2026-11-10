@@ -300,6 +300,39 @@ public class AssetLibrary : MonoBehaviour
     }
 
     /// <summary>Imposta la scena corrente (usato dal multiplayer: host e co-host lavorano sulla stessa scena).</summary>
+    // true se il JSON contiene davvero luci, blocchi o oscuramento (i soli raddrizzamenti non contano)
+    static bool HasLighting(string extras)
+    {
+        if (string.IsNullOrEmpty(extras)) return false;
+        try { var d = JsonUtility.FromJson<LightingData>(extras); return d != null && (d.dimOn || d.lights.Count > 0 || d.blocks.Count > 0); }
+        catch { return false; }
+    }
+
+    // Correzione di raddrizzamento applicata al modello (figlio "Allineamento" creato da ModelAlignment)
+    static AlignData AlignOf(SceneObject o)
+    {
+        var d = new AlignData { asset_id = o.assetId ?? "" };
+        var al = o.transform.Find("Allineamento");
+        if (al != null)
+        {
+            Vector3 c = al.localPosition; Quaternion r = al.localRotation;
+            d.al = new[] { c.x, c.y, c.z, r.x, r.y, r.z, r.w };
+        }
+        return d;
+    }
+
+    // Aggiunge i raddrizzamenti al JSON delle luci (le luci/blocchi già presenti restano com'erano)
+    static string MergeAlign(string extras, List<AlignData> aligns)
+    {
+        try
+        {
+            var data = string.IsNullOrEmpty(extras) ? new LightingData() : (JsonUtility.FromJson<LightingData>(extras) ?? new LightingData());
+            data.align = aligns;
+            return JsonUtility.ToJson(data);
+        }
+        catch (Exception e) { Debug.LogWarning("[Library] Raddrizzamenti non salvati: " + e.Message); return extras ?? ""; }
+    }
+
     public void SetCurrentScene(string id, string name)
     {
         CurrentSceneId = id ?? "";
@@ -356,9 +389,11 @@ public class AssetLibrary : MonoBehaviour
                 name = string.IsNullOrWhiteSpace(name) ? (asNew || string.IsNullOrEmpty(CurrentSceneName) ? DefaultSceneName() : CurrentSceneName) : name.Trim(),
                 extras = SceneExtrasProvider != null ? (SceneExtrasProvider() ?? "") : "",
             };
+            var aligns = new List<AlignData>();
             foreach (var o in objects)
             {
                 if (o == null || !o.IsSaved) continue;
+                aligns.Add(AlignOf(o));
                 Vector3 p = sceneAnchor != null ? sceneAnchor.InverseTransformPoint(o.transform.position) : o.transform.position;
                 Quaternion q = sceneAnchor != null ? Quaternion.Inverse(sceneAnchor.rotation) * o.transform.rotation : o.transform.rotation;
                 req.objects.Add(new ObjOut
@@ -368,6 +403,8 @@ public class AssetLibrary : MonoBehaviour
                     scale = o.transform.localScale.x
                 });
             }
+
+            req.extras = MergeAlign(req.extras, aligns);   // raddrizzamenti dei modelli: servono all'esportazione in Blender
 
             string body = null, error = null;
             yield return StartCoroutine(Post(req, (b, e) => { body = b; error = e; }));
@@ -431,7 +468,7 @@ public class AssetLibrary : MonoBehaviour
                 so.category = rec.category; so.style = rec.style; so.placedBy = rec.placed_by;
             }
 
-            if (SceneExtrasApplier != null && (replace || !string.IsNullOrEmpty(r.scene.extras)))
+            if (SceneExtrasApplier != null && (replace || HasLighting(r.scene.extras)))
                 SceneExtrasApplier(r.scene.extras ?? "");
 
             CurrentSceneId = r.scene.id;

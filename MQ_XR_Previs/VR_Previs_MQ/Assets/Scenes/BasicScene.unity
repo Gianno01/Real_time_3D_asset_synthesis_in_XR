@@ -1222,11 +1222,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::QuestObjectGenerator
   recordButton: {fileID: 0}
   recordBindingPath: <XRController>{RightHand}/{Primary2DAxisClick}
+  keyboardInput: 0
   handsFreeMode: 1
   wakeWords:
   - genera
   - crea
   voiceThreshold: 0.04
+  minSpeechSeconds: 0.3
+  instantListenFeedback: 1
   utteranceSilence: 1
   awaitCommandSeconds: 8
   n8nWebhookUrl: http://192.168.50.133:5678/webhook/quest-generate
@@ -1250,10 +1253,12 @@ MonoBehaviour:
   snapOnRelease: 1
   snapGridStep: 0.05
   snapYawStep: 15
+  snapToNearestAxis: 1
   autoAlignModels: 1
   alignTilt: 1
   maxTiltCorrection: 12
   objectCollisions: 1
+  objectGravity: 0
   contactShadows: 1
   shadowOpacity: 0.55
   surfaceSnapDistance: 0.15
@@ -2543,6 +2548,7 @@ MonoBehaviour:
   toggleButton: {fileID: 0}
   startMinimized: 0
   idleHint: Premi il <b>grilletto destro</b> e di' il nome di un oggetto
+  keyboardHint: Tocca la <b>tastiera</b> per scrivere il nome di un oggetto, o il <b>microfono</b> per dettarlo
   handsFreeHint: Di' <b>"Genera..."</b> seguito dall'oggetto, ad esempio <i>"Genera una sedia di legno"</i>
   previewHintHandsFree: "Di' <b>\"modifica...\"</b> o <b>\"aggiungi...\"</b> per correggerla \xB7 <b>\"genera...\"</b> per un altro oggetto"
   previewHintButton: Premi <b>Correggi</b>  e di' cosa cambiare
@@ -3618,6 +3624,7 @@ MonoBehaviour:
   panelTilt: -30
   dockOffset: {x: 0.4, y: 0, z: 0}
   toolbarSeconds: 8
+  toolbarNearDistance: 1.5
 --- !u!114 &1524779516
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3634,6 +3641,8 @@ MonoBehaviour:
   statusUI: {fileID: 0}
   library: {fileID: 0}
   roomCalibration: {fileID: 0}
+  sync: {fileID: 0}
+  lighting: {fileID: 0}
   dockOffset: {x: 0.4, y: -0.065, z: 0}
   panelOffset: {x: 0, y: 0.5, z: 0.1}
   panelTilt: -30

@@ -4,6 +4,7 @@
 // direttamente nello storage (/upload/assets/<id>/...). I file si leggono da /assets/... come fanno i visori.
 
 import { loadGlb, GlbViewer, makeThumbnail, isGlb } from './glb.js';
+import { buildSceneGlb } from './blender_export.js';
 
 const API = '/api/library';
 const CATEGORIES = ['Personaggio', 'Environment', 'Decorazione', 'Props'];   // come in LibraryUI.cs
@@ -608,8 +609,34 @@ async function deleteScene(s, btn) {
   } catch (e) { toast('Non eliminata: ' + e.message, 'bad'); }
 }
 
+// Esporta la scena in un unico .glb per Blender (oggetti nelle posizioni salvate + luci; niente blocchi di occlusione né oscuramento)
+async function exportBlender(s) {
+  const note = $('scBlenderNote'), btn = $('scBlender');
+  note.textContent = ''; btn.disabled = true;
+  try {
+    const r = await api('load_scene', { scene_id: s.id });
+    const res = await buildSceneGlb(r.scene || s, r.objects || [],
+      async key => {
+        const resp = await fetch(fileUrl(key));
+        if (!resp.ok) throw new Error(`file non scaricabile (HTTP ${resp.status})`);
+        return new Uint8Array(await resp.arrayBuffer());
+      },
+      msg => { note.textContent = msg; });
+    const safe = (s.name || 'scena').replace(/[^A-Za-z0-9_-]+/g, '_').slice(0, 40) || 'scena';
+    const url = URL.createObjectURL(res.blob);
+    const a = el('a', { href: url, download: `scena_${safe}.glb` });
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+    note.textContent = `${res.objects} oggetti, ${res.lights} luci. In Blender: File → Importa → glTF 2.0 (o trascina il file nella finestra).`;
+    if (res.warnings.length) toast(res.warnings.join('\n'), 'bad');
+  } catch (e) { note.textContent = ''; toast('Esportazione non riuscita: ' + e.message, 'bad'); }
+  finally { btn.disabled = false; }
+}
+
 async function openScene(s) {
   sc.open = s.id;
+  $('scBlender').onclick = () => exportBlender(s);
+  $('scBlenderNote').textContent = '';
   renderScenes();
   $('scDetail').hidden = false;
   $('scTitle').textContent = s.name;
@@ -655,7 +682,7 @@ function drawMap(objs) {
   g.font = '600 12px system-ui, sans-serif';
   for (const o of objs) {
     const x = X(o.px), y = Y(o.pz);
-    g.fillStyle = o.in_inventory ? '#66a3ff' : '#ffc15e';
+    g.fillStyle = o.in_inventory ? '#3a78ff' : '#ffc15e';
     g.beginPath(); g.arc(x, y, 6, 0, Math.PI * 2); g.fill();
     // direzione dell'oggetto (rotazione attorno a Y)
     const yaw = Math.atan2(2 * (o.rw * o.ry + o.rx * o.rz), 1 - 2 * (o.ry * o.ry + o.rx * o.rx));

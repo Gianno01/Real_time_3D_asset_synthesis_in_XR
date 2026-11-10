@@ -18314,7 +18314,7 @@ IL_0079:
 		return;
 	}
 }
-// Method Definition Index: 81812
+// Method Definition Index: 81816
 IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR bool TypeTraits_CanBeNull_mC536F3FB49A36A263D61EC75BB688052E8BF5A5E_inline (Type_t* ___0_type, const RuntimeMethod* method) 
 {
 	CHECKED_LOCAL(Type_t_StaticInit);
