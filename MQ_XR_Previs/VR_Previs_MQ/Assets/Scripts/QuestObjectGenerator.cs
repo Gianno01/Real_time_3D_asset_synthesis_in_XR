@@ -54,6 +54,8 @@ public class QuestObjectGenerator : MonoBehaviour
     public bool keyboardInput = false;
 
     [Header("Mani libere (parola di attivazione)")]
+    [Tooltip("Modello 3D usato da n8n: 0 = predefinito del workflow, 1 = IDOL (splat → mesh), 2 = Pixal3D, 3 = Trellis2")]
+    public int model3D = 0;
     public bool handsFreeMode = true;
     [Tooltip("Parole di attivazione (minuscolo). Vale anche l'inizio della parola: 'genera' riconosce 'generami'")]
     public string[] wakeWords = { "genera", "crea" };
@@ -1145,7 +1147,8 @@ public class QuestObjectGenerator : MonoBehaviour
             {
                 action = "model", session_id = _sessionId, prompt = _workingPrompt,
                 image_path = image.image_path, object_name = image.object_name,
-                flux_prompt = image.flux_prompt, seed = image.seed
+                flux_prompt = image.flux_prompt, seed = image.seed,
+                model3d = Model3DName()
             },
             "ready", r => result = r, e => error = e));
         if (myId != _requestId) yield break; // annullata
@@ -1324,6 +1327,8 @@ public class QuestObjectGenerator : MonoBehaviour
     }
 
     /// <summary>Anteprima: l'immagine va bene, genera il modello 3D.</summary>
+    string Model3DName() => model3D == 1 ? "idol" : model3D == 2 ? "pixal" : model3D == 3 ? "trellis" : "";
+
     public void ProceedToModel()
     {
         if (State != PipelineState.Preview) return;
@@ -1606,6 +1611,35 @@ public class QuestObjectGenerator : MonoBehaviour
         return headTransform;
     }
 
+    private static Material _vcLit;
+
+    /// <summary>Le mesh con solo colori di vertice e materiale unlit (SaveGLB di ComfyUI) non reagiscono alle luci e non hanno normali:
+    /// si ricalcolano le normali e si usa lo shader Libreria/VertexColorLit.</summary>
+    private static void FixUnlitVertexColorMeshes(GameObject obj)
+    {
+        foreach (var mf in obj.GetComponentsInChildren<MeshFilter>())
+        {
+            var mr = mf.GetComponent<MeshRenderer>();
+            var mesh = mf.sharedMesh;
+            if (mr == null || mesh == null) continue;
+            bool unlit = false;
+            foreach (var m in mr.sharedMaterials)
+                if (m != null && m.shader != null && m.shader.name.ToLowerInvariant().Contains("unlit")) unlit = true;
+            if (!unlit || mesh.colors32 == null || mesh.colors32.Length == 0) continue;
+            if (_vcLit == null)
+            {
+                var sh = Shader.Find("Libreria/VertexColorLit");
+                if (sh == null) return;
+                _vcLit = new Material(sh);
+            }
+            if (!mesh.isReadable) continue;
+            mesh.RecalculateNormals();
+            var mats = new Material[mr.sharedMaterials.Length];
+            for (int i = 0; i < mats.Length; i++) mats[i] = _vcLit;
+            mr.sharedMaterials = mats;
+        }
+    }
+
     private void PlaceInScene(GameObject obj, bool animate = true)
     {
         if (autoAlignModels) ModelAlignment.Align(obj, alignTilt, maxTiltCorrection);   // prima di misurare: griglia e misure sui lati veri
@@ -1639,6 +1673,8 @@ public class QuestObjectGenerator : MonoBehaviour
         if (fallbackMaterial != null)
             foreach (var r in obj.GetComponentsInChildren<Renderer>())
                 r.sharedMaterial = fallbackMaterial;
+
+        FixUnlitVertexColorMeshes(obj);   // mesh da splat (IDOL): unlit e senza normali → lit, con normali, reagisce alle luci
 
         Rigidbody rb = obj.GetComponent<Rigidbody>();
         if (rb == null) rb = obj.AddComponent<Rigidbody>();
@@ -1764,6 +1800,7 @@ public class QuestObjectGenerator : MonoBehaviour
         public string object_name;
         public string flux_prompt;
         public string seed;
+        public string model3d;       // solo "model": "idol" | "pixal" | "trellis" (vuoto = quello predefinito nel workflow n8n)
     }
     [Serializable] private class N8NResponse
     {

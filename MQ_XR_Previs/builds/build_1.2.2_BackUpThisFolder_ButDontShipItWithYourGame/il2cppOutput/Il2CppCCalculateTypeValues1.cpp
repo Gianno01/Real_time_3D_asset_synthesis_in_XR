@@ -2148,15 +2148,15 @@ struct MouseState_tCCE70861DE1EEECF949AFE8E2A922541D4E08A09;
 struct ShaderResources_t5CFF4C7697343EC59BAE5094B637F9EC23CE6D59;
 struct TextureResources_t9220AC464374C6AA55163CD0AC71C62B85E6C122;
 struct QualityLevelRemovalScope_tF52F73C24E93D1E6A70C4D312A0763F5872B5161;
-struct U3CU3Ec__DisplayClass190_0_t2290DB43406F7546688F28A5AAA87D06D9A32297;
-struct U3CU3Ec__DisplayClass201_0_t4C71A4BB18FCE8A4785782A9F33EA151C2D35042;
-struct U3CU3Ec__DisplayClass213_0_t9CDDA4A03F427CCE0FF51DBB6D8EB101C009A46A;
-struct U3CU3Ec__DisplayClass217_0_tD5BDE651DE6E2483D108556C2AAE0C3C89EC1352;
-struct U3CU3Ec__DisplayClass217_1_tA8EA8DD960C2055F103246119FD2C7BECD319BF2;
-struct U3CU3Ec__DisplayClass217_2_tE805BC69A6A3CE1E54A4CA3FB986339E0537E2C4;
-struct U3CU3Ec__DisplayClass221_0_t54FDAA844952A23AC6B028045D43B72C63F90CE1;
-struct U3CU3Ec__DisplayClass229_0_tCC6B409167EA2AE05A47AD2AD027C382B8D1E486;
-struct U3CU3Ec__DisplayClass236_0_t0D521045EBB40868AE3D26AE447499A4A2C78FAB;
+struct U3CU3Ec__DisplayClass191_0_tBBC06116FF6CB0CCDDBD48496A701B7A1F5B8841;
+struct U3CU3Ec__DisplayClass202_0_tE271812F52D9473A8F4EB2198C2B118DC885BA1C;
+struct U3CU3Ec__DisplayClass214_0_t1DD31B6E3AAA11477F3BA6D02AD78A95C29F3F5D;
+struct U3CU3Ec__DisplayClass218_0_t284CB7F8640F4BB26A7F9D0706C48725FF3D5FC1;
+struct U3CU3Ec__DisplayClass218_1_t6C8508B366D7E36804B685EEC827D4A05A764241;
+struct U3CU3Ec__DisplayClass218_2_t3CABCD422E51D7204193662BD4EB6838BA025C25;
+struct U3CU3Ec__DisplayClass222_0_t1530967A03234B1E858AA21B94EAB5CDE2098467;
+struct U3CU3Ec__DisplayClass231_0_tF791813261C1C1A11AB272C25EC7ABEDEF7AE6C6;
+struct U3CU3Ec__DisplayClass238_0_t78204EB06671EE132AF2C516907EF61F5115AE9A;
 struct N8NRequest_t590E938F3056C3E6E8178006D7EB0F68695B9FA5;
 struct N8NResponse_t2E34B15237FD1E0442D7FC8D70F106CE07E913FD;
 struct ReapplyDrivenProperties_t3482EA130A01FF7EE2EEFE37F66A5215D08CFE24;
@@ -7032,22 +7032,22 @@ struct QualityLevelRemovalScope_tF52F73C24E93D1E6A70C4D312A0763F5872B5161  : pub
 {
 	int32_t ___U3CqualityLevelIndexBeingRemovedU3Ek__BackingField;
 };
-struct U3CU3Ec__DisplayClass190_0_t2290DB43406F7546688F28A5AAA87D06D9A32297  : public RuntimeObject
+struct U3CU3Ec__DisplayClass191_0_tBBC06116FF6CB0CCDDBD48496A701B7A1F5B8841  : public RuntimeObject
 {
 	String_t* ___result;
 	bool ___done;
 };
-struct U3CU3Ec__DisplayClass201_0_t4C71A4BB18FCE8A4785782A9F33EA151C2D35042  : public RuntimeObject
+struct U3CU3Ec__DisplayClass202_0_tE271812F52D9473A8F4EB2198C2B118DC885BA1C  : public RuntimeObject
 {
 	String_t* ___text;
 	String_t* ___error;
 };
-struct U3CU3Ec__DisplayClass213_0_t9CDDA4A03F427CCE0FF51DBB6D8EB101C009A46A  : public RuntimeObject
+struct U3CU3Ec__DisplayClass214_0_t1DD31B6E3AAA11477F3BA6D02AD78A95C29F3F5D  : public RuntimeObject
 {
 	String_t* ___text;
 	String_t* ___error;
 };
-struct U3CU3Ec__DisplayClass217_0_tD5BDE651DE6E2483D108556C2AAE0C3C89EC1352  : public RuntimeObject
+struct U3CU3Ec__DisplayClass218_0_t284CB7F8640F4BB26A7F9D0706C48725FF3D5FC1  : public RuntimeObject
 {
 	N8NResponse_t2E34B15237FD1E0442D7FC8D70F106CE07E913FD* ___image;
 	N8NResponse_t2E34B15237FD1E0442D7FC8D70F106CE07E913FD* ___result;
@@ -7055,30 +7055,30 @@ struct U3CU3Ec__DisplayClass217_0_tD5BDE651DE6E2483D108556C2AAE0C3C89EC1352  : p
 	GameObject_t76FEDD663AB33C991A9C9A23129337651094216F* ___loadedObject;
 	Action_1_t48BB3D7F2F19A583827D466398296E90CD1A0AF2* ___U3CU3E9__4;
 };
-struct U3CU3Ec__DisplayClass217_1_tA8EA8DD960C2055F103246119FD2C7BECD319BF2  : public RuntimeObject
+struct U3CU3Ec__DisplayClass218_1_t6C8508B366D7E36804B685EEC827D4A05A764241  : public RuntimeObject
 {
 	List_1_tEC38052DD5F728820FB44707AB0CEE4F0B888A49* ___matches;
 };
-struct U3CU3Ec__DisplayClass217_2_tE805BC69A6A3CE1E54A4CA3FB986339E0537E2C4  : public RuntimeObject
+struct U3CU3Ec__DisplayClass218_2_t3CABCD422E51D7204193662BD4EB6838BA025C25  : public RuntimeObject
 {
 	String_t* ___imgError;
 	Texture2D_tE6505BC111DD8A424A9DBE8E05D7D09E11FFFCF4* ___tex;
 };
-struct U3CU3Ec__DisplayClass221_0_t54FDAA844952A23AC6B028045D43B72C63F90CE1  : public RuntimeObject
+struct U3CU3Ec__DisplayClass222_0_t1530967A03234B1E858AA21B94EAB5CDE2098467  : public RuntimeObject
 {
 	String_t* ___text;
 };
-struct U3CU3Ec__DisplayClass229_0_tCC6B409167EA2AE05A47AD2AD027C382B8D1E486  : public RuntimeObject
+struct U3CU3Ec__DisplayClass231_0_tF791813261C1C1A11AB272C25EC7ABEDEF7AE6C6  : public RuntimeObject
 {
 	String_t* ___text;
 	String_t* ___error;
 };
-struct U3CU3Ec__DisplayClass236_0_t0D521045EBB40868AE3D26AE447499A4A2C78FAB  : public RuntimeObject
+struct U3CU3Ec__DisplayClass238_0_t78204EB06671EE132AF2C516907EF61F5115AE9A  : public RuntimeObject
 {
 	SceneObject_t56D81DE7AFA7CCC53C7A967B8DCCA14CE54EA41A* ___so;
 	String_t* ___error;
 };
-struct U3CAskTextU3Ed__190_t1D4532C2B24E8052CF594FEBBEB69297DB14E3A8  : public RuntimeObject
+struct U3CAskTextU3Ed__191_tAA2E564CC4562E37C2F8E2326714909508A99A58  : public RuntimeObject
 {
 	int32_t ___U3CU3E1__state;
 	RuntimeObject* ___U3CU3E2__current;
@@ -7086,16 +7086,16 @@ struct U3CAskTextU3Ed__190_t1D4532C2B24E8052CF594FEBBEB69297DB14E3A8  : public R
 	Action_1_t3CB5D1A819C3ED3F99E9E39F890F18633253949A* ___callback;
 	String_t* ___title;
 	String_t* ___initial;
-	U3CU3Ec__DisplayClass190_0_t2290DB43406F7546688F28A5AAA87D06D9A32297* ___U3CU3E8__1;
+	U3CU3Ec__DisplayClass191_0_tBBC06116FF6CB0CCDDBD48496A701B7A1F5B8841* ___U3CU3E8__1;
 };
-struct U3CAwaitCommandTimeoutU3Ed__202_t45B7B1E4CFC64FB490E3E07A7FBA9CC534A79B4A  : public RuntimeObject
+struct U3CAwaitCommandTimeoutU3Ed__203_t86F17E742F2EF879D4931CDA8B019418A963ABC8  : public RuntimeObject
 {
 	int32_t ___U3CU3E1__state;
 	RuntimeObject* ___U3CU3E2__current;
 	QuestObjectGenerator_tC921632287A200F3925CA3526184E7F7B738894C* ___U3CU3E4__this;
 	float ___U3Ct0U3E5__2;
 };
-struct U3CCallN8NU3Ed__241_t52D715139B6F9E4FD4ECFBC44DA09D6CE8EBE775  : public RuntimeObject
+struct U3CCallN8NU3Ed__243_t6A8590643DC7AE9FFB942E45C83FB7FAC487C50F  : public RuntimeObject
 {
 	int32_t ___U3CU3E1__state;
 	RuntimeObject* ___U3CU3E2__current;
@@ -7106,14 +7106,14 @@ struct U3CCallN8NU3Ed__241_t52D715139B6F9E4FD4ECFBC44DA09D6CE8EBE775  : public R
 	Action_1_t48BB3D7F2F19A583827D466398296E90CD1A0AF2* ___onOk;
 	UnityWebRequest_t6233B8E22992FC2364A831C1ACB033EF3260C39F* ___U3CrequestU3E5__2;
 };
-struct U3CDictateU3Ed__221_tB6E3F5DB5B2E552142C091108377A9828AC51D1E  : public RuntimeObject
+struct U3CDictateU3Ed__222_t7120A662772742461DD53AA257ED2788B1D42FC3  : public RuntimeObject
 {
 	int32_t ___U3CU3E1__state;
 	RuntimeObject* ___U3CU3E2__current;
 	QuestObjectGenerator_tC921632287A200F3925CA3526184E7F7B738894C* ___U3CU3E4__this;
 	Action_1_t3CB5D1A819C3ED3F99E9E39F890F18633253949A* ___callback;
 	float ___maxSeconds;
-	U3CU3Ec__DisplayClass221_0_t54FDAA844952A23AC6B028045D43B72C63F90CE1* ___U3CU3E8__1;
+	U3CU3Ec__DisplayClass222_0_t1530967A03234B1E858AA21B94EAB5CDE2098467* ___U3CU3E8__1;
 	bool ___U3CresumeListeningU3E5__2;
 	String_t* ___U3CdevU3E5__3;
 	AudioClip_t5D272C4EB4F2D3ED49F1C346DEA373CF6D585F20* ___U3CclipU3E5__4;
@@ -7122,15 +7122,15 @@ struct U3CDictateU3Ed__221_tB6E3F5DB5B2E552142C091108377A9828AC51D1E  : public R
 	float ___U3CsilenceU3E5__7;
 	WaitForSeconds_tF179DF251655B8DF044952E70A60DF4B358A3DD3* ___U3CwaitU3E5__8;
 };
-struct U3CHandleUtteranceU3Ed__201_t3A068D2A2AFE58C423903A71505D821663A9FF30  : public RuntimeObject
+struct U3CHandleUtteranceU3Ed__202_tA6C3199CB47C9BD9FDA4F57EF70400122666CFE7  : public RuntimeObject
 {
 	int32_t ___U3CU3E1__state;
 	RuntimeObject* ___U3CU3E2__current;
 	QuestObjectGenerator_tC921632287A200F3925CA3526184E7F7B738894C* ___U3CU3E4__this;
 	SingleU5BU5D_t89DEFE97BCEDB5857010E79ECE0F52CF6E93B87C* ___samples;
-	U3CU3Ec__DisplayClass201_0_t4C71A4BB18FCE8A4785782A9F33EA151C2D35042* ___U3CU3E8__1;
+	U3CU3Ec__DisplayClass202_0_tE271812F52D9473A8F4EB2198C2B118DC885BA1C* ___U3CU3E8__1;
 };
-struct U3CInstantiateGlbU3Ed__220_t5D6392D32B078C0E9723EC0AF3DA3E1EFFF45E8D  : public RuntimeObject
+struct U3CInstantiateGlbU3Ed__221_t59C70385EF1051AD5C8514B11D479E3A9C53D0A4  : public RuntimeObject
 {
 	int32_t ___U3CU3E1__state;
 	RuntimeObject* ___U3CU3E2__current;
@@ -7143,14 +7143,14 @@ struct U3CInstantiateGlbU3Ed__220_t5D6392D32B078C0E9723EC0AF3DA3E1EFFF45E8D  : p
 	GameObject_t76FEDD663AB33C991A9C9A23129337651094216F* ___U3CcontainerU3E5__4;
 	Task_1_t824317F4B958F7512E8F7300511752937A6C6043* ___U3CinstantiateTaskU3E5__5;
 };
-struct U3CInterruptComfyU3Ed__178_t63F683458F24893E8C8561A6C2734A5E5BB464C7  : public RuntimeObject
+struct U3CInterruptComfyU3Ed__179_tB95C2239B149B4CE3EBB7694663D048037A9FDC8  : public RuntimeObject
 {
 	int32_t ___U3CU3E1__state;
 	RuntimeObject* ___U3CU3E2__current;
 	QuestObjectGenerator_tC921632287A200F3925CA3526184E7F7B738894C* ___U3CU3E4__this;
 	UnityWebRequest_t6233B8E22992FC2364A831C1ACB033EF3260C39F* ___U3CrU3E5__2;
 };
-struct U3CListenLoopU3Ed__197_t563FEBBEB88584FEC1A8DCF47AE704C906FB0E88  : public RuntimeObject
+struct U3CListenLoopU3Ed__198_t070454BDA793C30B0DC1A7E248EB3E8C9D370BEE  : public RuntimeObject
 {
 	int32_t ___U3CU3E1__state;
 	RuntimeObject* ___U3CU3E2__current;
@@ -7168,7 +7168,7 @@ struct U3CListenLoopU3Ed__197_t563FEBBEB88584FEC1A8DCF47AE704C906FB0E88  : publi
 	float ___U3CloudTimeU3E5__12;
 	bool ___U3CfeedbackShownU3E5__13;
 };
-struct U3CLoadGLBU3Ed__242_tC0752C3950F2956895C83F9D29E0723F97CAC1B5  : public RuntimeObject
+struct U3CLoadGLBU3Ed__244_t0C40E42776911A089C695A2495487EE39E998D13  : public RuntimeObject
 {
 	int32_t ___U3CU3E1__state;
 	RuntimeObject* ___U3CU3E2__current;
@@ -7183,7 +7183,7 @@ struct U3CLoadGLBU3Ed__242_tC0752C3950F2956895C83F9D29E0723F97CAC1B5  : public R
 	GameObject_t76FEDD663AB33C991A9C9A23129337651094216F* ___U3CcontainerU3E5__6;
 	Task_1_t824317F4B958F7512E8F7300511752937A6C6043* ___U3CinstantiateTaskU3E5__7;
 };
-struct U3CLoadTextureU3Ed__233_t843E5B27E9608E1647A02E23104A6D5CCE1CCE3E  : public RuntimeObject
+struct U3CLoadTextureU3Ed__235_t64C6AB9D1A533C0F2CB2FEC224BB6206961A2E09  : public RuntimeObject
 {
 	int32_t ___U3CU3E1__state;
 	RuntimeObject* ___U3CU3E2__current;
@@ -7192,7 +7192,7 @@ struct U3CLoadTextureU3Ed__233_t843E5B27E9608E1647A02E23104A6D5CCE1CCE3E  : publ
 	Action_1_tD7F74291FAA5A362F4A5F48D4E1CF3ED51FA6A33* ___callback;
 	UnityWebRequest_t6233B8E22992FC2364A831C1ACB033EF3260C39F* ___U3CrU3E5__2;
 };
-struct U3CNotifyN8NCancelU3Ed__177_t3010E52A1D3D0DABA785ECEF8E47E5223BF275D1  : public RuntimeObject
+struct U3CNotifyN8NCancelU3Ed__178_tC914B56264EA194C9E811492F4C8C5FC1486C37E  : public RuntimeObject
 {
 	int32_t ___U3CU3E1__state;
 	RuntimeObject* ___U3CU3E2__current;
@@ -7200,20 +7200,20 @@ struct U3CNotifyN8NCancelU3Ed__177_t3010E52A1D3D0DABA785ECEF8E47E5223BF275D1  : 
 	String_t* ___sessionId;
 	UnityWebRequest_t6233B8E22992FC2364A831C1ACB033EF3260C39F* ___U3CrU3E5__2;
 };
-struct U3CRunPipelineU3Ed__217_t9EC678BA8E597BB64060F0C14C860701AB303871  : public RuntimeObject
+struct U3CRunPipelineU3Ed__218_tBDFCD0987C70CDFF8035C5DC1B9F871152D3BE13  : public RuntimeObject
 {
 	int32_t ___U3CU3E1__state;
 	RuntimeObject* ___U3CU3E2__current;
 	QuestObjectGenerator_tC921632287A200F3925CA3526184E7F7B738894C* ___U3CU3E4__this;
 	String_t* ___prompt;
-	U3CU3Ec__DisplayClass217_1_tA8EA8DD960C2055F103246119FD2C7BECD319BF2* ___U3CU3E8__1;
-	U3CU3Ec__DisplayClass217_0_tD5BDE651DE6E2483D108556C2AAE0C3C89EC1352* ___U3CU3E8__2;
-	U3CU3Ec__DisplayClass217_2_tE805BC69A6A3CE1E54A4CA3FB986339E0537E2C4* ___U3CU3E8__3;
+	U3CU3Ec__DisplayClass218_1_t6C8508B366D7E36804B685EEC827D4A05A764241* ___U3CU3E8__1;
+	U3CU3Ec__DisplayClass218_0_t284CB7F8640F4BB26A7F9D0706C48725FF3D5FC1* ___U3CU3E8__2;
+	U3CU3Ec__DisplayClass218_2_t3CABCD422E51D7204193662BD4EB6838BA025C25* ___U3CU3E8__3;
 	int32_t ___U3CmyIdU3E5__2;
 	float ___U3Ct0U3E5__3;
 	float ___U3CtiU3E5__4;
 };
-struct U3CSilenceDetectionU3Ed__211_tE6E87DB863537E0CC9E054620DEF273F7979BAAE  : public RuntimeObject
+struct U3CSilenceDetectionU3Ed__212_t2078B0412B5EFD54B54D7422742765235D0A595C  : public RuntimeObject
 {
 	int32_t ___U3CU3E1__state;
 	RuntimeObject* ___U3CU3E2__current;
@@ -7223,17 +7223,17 @@ struct U3CSilenceDetectionU3Ed__211_tE6E87DB863537E0CC9E054620DEF273F7979BAAE  :
 	SingleU5BU5D_t89DEFE97BCEDB5857010E79ECE0F52CF6E93B87C* ___U3CwindowU3E5__4;
 	WaitForSeconds_tF179DF251655B8DF044952E70A60DF4B358A3DD3* ___U3CwaitU3E5__5;
 };
-struct U3CSpawnSuggestionRoutineU3Ed__236_tEA399CF5081BACC16523EF5B1673609B2C148077  : public RuntimeObject
+struct U3CSpawnSuggestionRoutineU3Ed__238_tF398725AD13F22DE078503E6FD00D22FC85A2766  : public RuntimeObject
 {
 	int32_t ___U3CU3E1__state;
 	RuntimeObject* ___U3CU3E2__current;
 	QuestObjectGenerator_tC921632287A200F3925CA3526184E7F7B738894C* ___U3CU3E4__this;
 	AssetRecord_t4AE2CB05B5834C122419BF04699CBFD9572164C4* ___item;
 	int32_t ___myId;
-	U3CU3Ec__DisplayClass236_0_t0D521045EBB40868AE3D26AE447499A4A2C78FAB* ___U3CU3E8__1;
+	U3CU3Ec__DisplayClass238_0_t78204EB06671EE132AF2C516907EF61F5115AE9A* ___U3CU3E8__1;
 	float ___U3Ct0U3E5__2;
 };
-struct U3CTranscribeU3Ed__215_t6208D7504AE8018B90E3DAB9B5571F3DE9C780DE  : public RuntimeObject
+struct U3CTranscribeU3Ed__216_tA16DC352288AE6A7FBBD244B4E15578F85429851  : public RuntimeObject
 {
 	int32_t ___U3CU3E1__state;
 	RuntimeObject* ___U3CU3E2__current;
@@ -7244,22 +7244,22 @@ struct U3CTranscribeU3Ed__215_t6208D7504AE8018B90E3DAB9B5571F3DE9C780DE  : publi
 	UnityWebRequest_t6233B8E22992FC2364A831C1ACB033EF3260C39F* ___U3CrequestU3E5__2;
 	float ___U3Ct0U3E5__3;
 };
-struct U3CTranscribeAndGenerateU3Ed__213_t04A259EADFB25735A4172D63F720FF4346D11F0F  : public RuntimeObject
+struct U3CTranscribeAndGenerateU3Ed__214_t03728D71588CC89E15B67E79A5AFF6CDF33965D8  : public RuntimeObject
 {
 	int32_t ___U3CU3E1__state;
 	RuntimeObject* ___U3CU3E2__current;
 	QuestObjectGenerator_tC921632287A200F3925CA3526184E7F7B738894C* ___U3CU3E4__this;
 	ByteU5BU5D_tA6237BF417AE52AD70CFB4EF24A7A82613DF9031* ___wav;
-	U3CU3Ec__DisplayClass213_0_t9CDDA4A03F427CCE0FF51DBB6D8EB101C009A46A* ___U3CU3E8__1;
+	U3CU3Ec__DisplayClass214_0_t1DD31B6E3AAA11477F3BA6D02AD78A95C29F3F5D* ___U3CU3E8__1;
 	int32_t ___U3CmyIdU3E5__2;
 };
-struct U3CTranscribeCorrectionU3Ed__229_t20F64930583B9F7BABFABCE892FD1A5310E0D6E4  : public RuntimeObject
+struct U3CTranscribeCorrectionU3Ed__231_t3947AD51DE31612A6B97F7E598ED91307A6F8CF9  : public RuntimeObject
 {
 	int32_t ___U3CU3E1__state;
 	RuntimeObject* ___U3CU3E2__current;
 	QuestObjectGenerator_tC921632287A200F3925CA3526184E7F7B738894C* ___U3CU3E4__this;
 	ByteU5BU5D_tA6237BF417AE52AD70CFB4EF24A7A82613DF9031* ___wav;
-	U3CU3Ec__DisplayClass229_0_tCC6B409167EA2AE05A47AD2AD027C382B8D1E486* ___U3CU3E8__1;
+	U3CU3Ec__DisplayClass231_0_tF791813261C1C1A11AB272C25EC7ABEDEF7AE6C6* ___U3CU3E8__1;
 };
 struct N8NRequest_t590E938F3056C3E6E8178006D7EB0F68695B9FA5  : public RuntimeObject
 {
@@ -7270,6 +7270,7 @@ struct N8NRequest_t590E938F3056C3E6E8178006D7EB0F68695B9FA5  : public RuntimeObj
 	String_t* ___object_name;
 	String_t* ___flux_prompt;
 	String_t* ___seed;
+	String_t* ___model3d;
 };
 struct N8NResponse_t2E34B15237FD1E0442D7FC8D70F106CE07E913FD  : public RuntimeObject
 {
@@ -17852,7 +17853,7 @@ struct WindUpdate_t62BB75F87B0E35ADAE8ED7A801F6EB044D22143B
 		uint8_t WindUpdate_t62BB75F87B0E35ADAE8ED7A801F6EB044D22143B__padding[1];
 	};
 };
-struct U3CU3Ec__DisplayClass215_0_t8046A268523BE7E9CF285E059039410D00F8BF54 
+struct U3CU3Ec__DisplayClass216_0_t88391BDC860B81F31D0527C0F93800FBA93577A7 
 {
 	BinaryWriter_tFB94D67EDFA3F6A34744A163BDABE287FDF2ED1E* ___bodyWriter;
 	String_t* ___boundary;
@@ -54378,6 +54379,7 @@ struct QuestObjectGenerator_tC921632287A200F3925CA3526184E7F7B738894C  : public 
 	InputActionReference_t64730C6B41271E0983FC21BFB416169F5D6BC4A1* ___recordButton;
 	String_t* ___recordBindingPath;
 	bool ___keyboardInput;
+	int32_t ___model3D;
 	bool ___handsFreeMode;
 	StringU5BU5D_t7674CD946EC0CE7B3AE0BE70E6EE85F2ECD9F248* ___wakeWords;
 	float ___voiceThreshold;
@@ -62267,6 +62269,7 @@ struct OpenXRRestarter_t59BB3482FA6ED413E66F91ABE39820D83AAE8AA1_StaticFields
 struct QuestObjectGenerator_tC921632287A200F3925CA3526184E7F7B738894C_StaticFields
 {
 	StringU5BU5D_t7674CD946EC0CE7B3AE0BE70E6EE85F2ECD9F248* ___HallucinationMarkers;
+	Material_t18053F08F347D0DCA5E1140EC7EC4533DD8A14E3* ____vcLit;
 };
 struct RendererListDesc_t5C51B75B4D539F99345A077545015B8FB99FE78E_StaticFields
 {
@@ -69574,59 +69577,59 @@ const Il2CppTypeDefinitionSizes g_typeDefinitionSize8902 = { sizeof(N8NRequest_t
 IL2CPP_EXTERN_C_CONST Il2CppTypeDefinitionSizes g_typeDefinitionSize8903;
 const Il2CppTypeDefinitionSizes g_typeDefinitionSize8903 = { sizeof(N8NResponse_t2E34B15237FD1E0442D7FC8D70F106CE07E913FD), -1, 0, 0 };
 IL2CPP_EXTERN_C_CONST Il2CppTypeDefinitionSizes g_typeDefinitionSize8904;
-const Il2CppTypeDefinitionSizes g_typeDefinitionSize8904 = { sizeof(U3CU3Ec__DisplayClass190_0_t2290DB43406F7546688F28A5AAA87D06D9A32297), -1, 0, 0 };
+const Il2CppTypeDefinitionSizes g_typeDefinitionSize8904 = { sizeof(U3CU3Ec__DisplayClass191_0_tBBC06116FF6CB0CCDDBD48496A701B7A1F5B8841), -1, 0, 0 };
 IL2CPP_EXTERN_C_CONST Il2CppTypeDefinitionSizes g_typeDefinitionSize8905;
-const Il2CppTypeDefinitionSizes g_typeDefinitionSize8905 = { sizeof(U3CU3Ec__DisplayClass201_0_t4C71A4BB18FCE8A4785782A9F33EA151C2D35042), -1, 0, 0 };
+const Il2CppTypeDefinitionSizes g_typeDefinitionSize8905 = { sizeof(U3CU3Ec__DisplayClass202_0_tE271812F52D9473A8F4EB2198C2B118DC885BA1C), -1, 0, 0 };
 IL2CPP_EXTERN_C_CONST Il2CppTypeDefinitionSizes g_typeDefinitionSize8906;
-const Il2CppTypeDefinitionSizes g_typeDefinitionSize8906 = { sizeof(U3CU3Ec__DisplayClass213_0_t9CDDA4A03F427CCE0FF51DBB6D8EB101C009A46A), -1, 0, 0 };
+const Il2CppTypeDefinitionSizes g_typeDefinitionSize8906 = { sizeof(U3CU3Ec__DisplayClass214_0_t1DD31B6E3AAA11477F3BA6D02AD78A95C29F3F5D), -1, 0, 0 };
 IL2CPP_EXTERN_C_CONST Il2CppTypeDefinitionSizes g_typeDefinitionSize8907;
-const Il2CppTypeDefinitionSizes g_typeDefinitionSize8907 = { sizeof(U3CU3Ec__DisplayClass215_0_t8046A268523BE7E9CF285E059039410D00F8BF54)+ sizeof(RuntimeObject), -1, 0, 0 };
+const Il2CppTypeDefinitionSizes g_typeDefinitionSize8907 = { sizeof(U3CU3Ec__DisplayClass216_0_t88391BDC860B81F31D0527C0F93800FBA93577A7)+ sizeof(RuntimeObject), -1, 0, 0 };
 IL2CPP_EXTERN_C_CONST Il2CppTypeDefinitionSizes g_typeDefinitionSize8908;
-const Il2CppTypeDefinitionSizes g_typeDefinitionSize8908 = { sizeof(U3CU3Ec__DisplayClass217_0_tD5BDE651DE6E2483D108556C2AAE0C3C89EC1352), -1, 0, 0 };
+const Il2CppTypeDefinitionSizes g_typeDefinitionSize8908 = { sizeof(U3CU3Ec__DisplayClass218_0_t284CB7F8640F4BB26A7F9D0706C48725FF3D5FC1), -1, 0, 0 };
 IL2CPP_EXTERN_C_CONST Il2CppTypeDefinitionSizes g_typeDefinitionSize8909;
-const Il2CppTypeDefinitionSizes g_typeDefinitionSize8909 = { sizeof(U3CU3Ec__DisplayClass217_1_tA8EA8DD960C2055F103246119FD2C7BECD319BF2), -1, 0, 0 };
+const Il2CppTypeDefinitionSizes g_typeDefinitionSize8909 = { sizeof(U3CU3Ec__DisplayClass218_1_t6C8508B366D7E36804B685EEC827D4A05A764241), -1, 0, 0 };
 IL2CPP_EXTERN_C_CONST Il2CppTypeDefinitionSizes g_typeDefinitionSize8910;
-const Il2CppTypeDefinitionSizes g_typeDefinitionSize8910 = { sizeof(U3CU3Ec__DisplayClass217_2_tE805BC69A6A3CE1E54A4CA3FB986339E0537E2C4), -1, 0, 0 };
+const Il2CppTypeDefinitionSizes g_typeDefinitionSize8910 = { sizeof(U3CU3Ec__DisplayClass218_2_t3CABCD422E51D7204193662BD4EB6838BA025C25), -1, 0, 0 };
 IL2CPP_EXTERN_C_CONST Il2CppTypeDefinitionSizes g_typeDefinitionSize8911;
-const Il2CppTypeDefinitionSizes g_typeDefinitionSize8911 = { sizeof(U3CU3Ec__DisplayClass221_0_t54FDAA844952A23AC6B028045D43B72C63F90CE1), -1, 0, 0 };
+const Il2CppTypeDefinitionSizes g_typeDefinitionSize8911 = { sizeof(U3CU3Ec__DisplayClass222_0_t1530967A03234B1E858AA21B94EAB5CDE2098467), -1, 0, 0 };
 IL2CPP_EXTERN_C_CONST Il2CppTypeDefinitionSizes g_typeDefinitionSize8912;
-const Il2CppTypeDefinitionSizes g_typeDefinitionSize8912 = { sizeof(U3CU3Ec__DisplayClass229_0_tCC6B409167EA2AE05A47AD2AD027C382B8D1E486), -1, 0, 0 };
+const Il2CppTypeDefinitionSizes g_typeDefinitionSize8912 = { sizeof(U3CU3Ec__DisplayClass231_0_tF791813261C1C1A11AB272C25EC7ABEDEF7AE6C6), -1, 0, 0 };
 IL2CPP_EXTERN_C_CONST Il2CppTypeDefinitionSizes g_typeDefinitionSize8913;
-const Il2CppTypeDefinitionSizes g_typeDefinitionSize8913 = { sizeof(U3CU3Ec__DisplayClass236_0_t0D521045EBB40868AE3D26AE447499A4A2C78FAB), -1, 0, 0 };
+const Il2CppTypeDefinitionSizes g_typeDefinitionSize8913 = { sizeof(U3CU3Ec__DisplayClass238_0_t78204EB06671EE132AF2C516907EF61F5115AE9A), -1, 0, 0 };
 IL2CPP_EXTERN_C_CONST Il2CppTypeDefinitionSizes g_typeDefinitionSize8914;
-const Il2CppTypeDefinitionSizes g_typeDefinitionSize8914 = { sizeof(U3CAskTextU3Ed__190_t1D4532C2B24E8052CF594FEBBEB69297DB14E3A8), -1, 0, 0 };
+const Il2CppTypeDefinitionSizes g_typeDefinitionSize8914 = { sizeof(U3CAskTextU3Ed__191_tAA2E564CC4562E37C2F8E2326714909508A99A58), -1, 0, 0 };
 IL2CPP_EXTERN_C_CONST Il2CppTypeDefinitionSizes g_typeDefinitionSize8915;
-const Il2CppTypeDefinitionSizes g_typeDefinitionSize8915 = { sizeof(U3CAwaitCommandTimeoutU3Ed__202_t45B7B1E4CFC64FB490E3E07A7FBA9CC534A79B4A), -1, 0, 0 };
+const Il2CppTypeDefinitionSizes g_typeDefinitionSize8915 = { sizeof(U3CAwaitCommandTimeoutU3Ed__203_t86F17E742F2EF879D4931CDA8B019418A963ABC8), -1, 0, 0 };
 IL2CPP_EXTERN_C_CONST Il2CppTypeDefinitionSizes g_typeDefinitionSize8916;
-const Il2CppTypeDefinitionSizes g_typeDefinitionSize8916 = { sizeof(U3CCallN8NU3Ed__241_t52D715139B6F9E4FD4ECFBC44DA09D6CE8EBE775), -1, 0, 0 };
+const Il2CppTypeDefinitionSizes g_typeDefinitionSize8916 = { sizeof(U3CCallN8NU3Ed__243_t6A8590643DC7AE9FFB942E45C83FB7FAC487C50F), -1, 0, 0 };
 IL2CPP_EXTERN_C_CONST Il2CppTypeDefinitionSizes g_typeDefinitionSize8917;
-const Il2CppTypeDefinitionSizes g_typeDefinitionSize8917 = { sizeof(U3CDictateU3Ed__221_tB6E3F5DB5B2E552142C091108377A9828AC51D1E), -1, 0, 0 };
+const Il2CppTypeDefinitionSizes g_typeDefinitionSize8917 = { sizeof(U3CDictateU3Ed__222_t7120A662772742461DD53AA257ED2788B1D42FC3), -1, 0, 0 };
 IL2CPP_EXTERN_C_CONST Il2CppTypeDefinitionSizes g_typeDefinitionSize8918;
-const Il2CppTypeDefinitionSizes g_typeDefinitionSize8918 = { sizeof(U3CHandleUtteranceU3Ed__201_t3A068D2A2AFE58C423903A71505D821663A9FF30), -1, 0, 0 };
+const Il2CppTypeDefinitionSizes g_typeDefinitionSize8918 = { sizeof(U3CHandleUtteranceU3Ed__202_tA6C3199CB47C9BD9FDA4F57EF70400122666CFE7), -1, 0, 0 };
 IL2CPP_EXTERN_C_CONST Il2CppTypeDefinitionSizes g_typeDefinitionSize8919;
-const Il2CppTypeDefinitionSizes g_typeDefinitionSize8919 = { sizeof(U3CInstantiateGlbU3Ed__220_t5D6392D32B078C0E9723EC0AF3DA3E1EFFF45E8D), -1, 0, 0 };
+const Il2CppTypeDefinitionSizes g_typeDefinitionSize8919 = { sizeof(U3CInstantiateGlbU3Ed__221_t59C70385EF1051AD5C8514B11D479E3A9C53D0A4), -1, 0, 0 };
 IL2CPP_EXTERN_C_CONST Il2CppTypeDefinitionSizes g_typeDefinitionSize8920;
-const Il2CppTypeDefinitionSizes g_typeDefinitionSize8920 = { sizeof(U3CInterruptComfyU3Ed__178_t63F683458F24893E8C8561A6C2734A5E5BB464C7), -1, 0, 0 };
+const Il2CppTypeDefinitionSizes g_typeDefinitionSize8920 = { sizeof(U3CInterruptComfyU3Ed__179_tB95C2239B149B4CE3EBB7694663D048037A9FDC8), -1, 0, 0 };
 IL2CPP_EXTERN_C_CONST Il2CppTypeDefinitionSizes g_typeDefinitionSize8921;
-const Il2CppTypeDefinitionSizes g_typeDefinitionSize8921 = { sizeof(U3CListenLoopU3Ed__197_t563FEBBEB88584FEC1A8DCF47AE704C906FB0E88), -1, 0, 0 };
+const Il2CppTypeDefinitionSizes g_typeDefinitionSize8921 = { sizeof(U3CListenLoopU3Ed__198_t070454BDA793C30B0DC1A7E248EB3E8C9D370BEE), -1, 0, 0 };
 IL2CPP_EXTERN_C_CONST Il2CppTypeDefinitionSizes g_typeDefinitionSize8922;
-const Il2CppTypeDefinitionSizes g_typeDefinitionSize8922 = { sizeof(U3CLoadGLBU3Ed__242_tC0752C3950F2956895C83F9D29E0723F97CAC1B5), -1, 0, 0 };
+const Il2CppTypeDefinitionSizes g_typeDefinitionSize8922 = { sizeof(U3CLoadGLBU3Ed__244_t0C40E42776911A089C695A2495487EE39E998D13), -1, 0, 0 };
 IL2CPP_EXTERN_C_CONST Il2CppTypeDefinitionSizes g_typeDefinitionSize8923;
-const Il2CppTypeDefinitionSizes g_typeDefinitionSize8923 = { sizeof(U3CLoadTextureU3Ed__233_t843E5B27E9608E1647A02E23104A6D5CCE1CCE3E), -1, 0, 0 };
+const Il2CppTypeDefinitionSizes g_typeDefinitionSize8923 = { sizeof(U3CLoadTextureU3Ed__235_t64C6AB9D1A533C0F2CB2FEC224BB6206961A2E09), -1, 0, 0 };
 IL2CPP_EXTERN_C_CONST Il2CppTypeDefinitionSizes g_typeDefinitionSize8924;
-const Il2CppTypeDefinitionSizes g_typeDefinitionSize8924 = { sizeof(U3CNotifyN8NCancelU3Ed__177_t3010E52A1D3D0DABA785ECEF8E47E5223BF275D1), -1, 0, 0 };
+const Il2CppTypeDefinitionSizes g_typeDefinitionSize8924 = { sizeof(U3CNotifyN8NCancelU3Ed__178_tC914B56264EA194C9E811492F4C8C5FC1486C37E), -1, 0, 0 };
 IL2CPP_EXTERN_C_CONST Il2CppTypeDefinitionSizes g_typeDefinitionSize8925;
-const Il2CppTypeDefinitionSizes g_typeDefinitionSize8925 = { sizeof(U3CRunPipelineU3Ed__217_t9EC678BA8E597BB64060F0C14C860701AB303871), -1, 0, 0 };
+const Il2CppTypeDefinitionSizes g_typeDefinitionSize8925 = { sizeof(U3CRunPipelineU3Ed__218_tBDFCD0987C70CDFF8035C5DC1B9F871152D3BE13), -1, 0, 0 };
 IL2CPP_EXTERN_C_CONST Il2CppTypeDefinitionSizes g_typeDefinitionSize8926;
-const Il2CppTypeDefinitionSizes g_typeDefinitionSize8926 = { sizeof(U3CSilenceDetectionU3Ed__211_tE6E87DB863537E0CC9E054620DEF273F7979BAAE), -1, 0, 0 };
+const Il2CppTypeDefinitionSizes g_typeDefinitionSize8926 = { sizeof(U3CSilenceDetectionU3Ed__212_t2078B0412B5EFD54B54D7422742765235D0A595C), -1, 0, 0 };
 IL2CPP_EXTERN_C_CONST Il2CppTypeDefinitionSizes g_typeDefinitionSize8927;
-const Il2CppTypeDefinitionSizes g_typeDefinitionSize8927 = { sizeof(U3CSpawnSuggestionRoutineU3Ed__236_tEA399CF5081BACC16523EF5B1673609B2C148077), -1, 0, 0 };
+const Il2CppTypeDefinitionSizes g_typeDefinitionSize8927 = { sizeof(U3CSpawnSuggestionRoutineU3Ed__238_tF398725AD13F22DE078503E6FD00D22FC85A2766), -1, 0, 0 };
 IL2CPP_EXTERN_C_CONST Il2CppTypeDefinitionSizes g_typeDefinitionSize8928;
-const Il2CppTypeDefinitionSizes g_typeDefinitionSize8928 = { sizeof(U3CTranscribeU3Ed__215_t6208D7504AE8018B90E3DAB9B5571F3DE9C780DE), -1, 0, 0 };
+const Il2CppTypeDefinitionSizes g_typeDefinitionSize8928 = { sizeof(U3CTranscribeU3Ed__216_tA16DC352288AE6A7FBBD244B4E15578F85429851), -1, 0, 0 };
 IL2CPP_EXTERN_C_CONST Il2CppTypeDefinitionSizes g_typeDefinitionSize8929;
-const Il2CppTypeDefinitionSizes g_typeDefinitionSize8929 = { sizeof(U3CTranscribeAndGenerateU3Ed__213_t04A259EADFB25735A4172D63F720FF4346D11F0F), -1, 0, 0 };
+const Il2CppTypeDefinitionSizes g_typeDefinitionSize8929 = { sizeof(U3CTranscribeAndGenerateU3Ed__214_t03728D71588CC89E15B67E79A5AFF6CDF33965D8), -1, 0, 0 };
 IL2CPP_EXTERN_C_CONST Il2CppTypeDefinitionSizes g_typeDefinitionSize8930;
-const Il2CppTypeDefinitionSizes g_typeDefinitionSize8930 = { sizeof(U3CTranscribeCorrectionU3Ed__229_t20F64930583B9F7BABFABCE892FD1A5310E0D6E4), -1, 0, 0 };
+const Il2CppTypeDefinitionSizes g_typeDefinitionSize8930 = { sizeof(U3CTranscribeCorrectionU3Ed__231_t3947AD51DE31612A6B97F7E598ED91307A6F8CF9), -1, 0, 0 };
 IL2CPP_EXTERN_C_CONST Il2CppTypeDefinitionSizes g_typeDefinitionSize8931;
 const Il2CppTypeDefinitionSizes g_typeDefinitionSize8931 = { sizeof(QuestObjectGenerator_tC921632287A200F3925CA3526184E7F7B738894C), -1, sizeof(QuestObjectGenerator_tC921632287A200F3925CA3526184E7F7B738894C_StaticFields), 0 };
 IL2CPP_EXTERN_C_CONST Il2CppTypeDefinitionSizes g_typeDefinitionSize8932;
