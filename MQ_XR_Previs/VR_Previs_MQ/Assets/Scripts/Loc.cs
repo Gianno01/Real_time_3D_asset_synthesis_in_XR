@@ -246,6 +246,13 @@ public static class Loc
         A("Proponi oggetti simili", "Suggest similar objects");
         A("Somiglianza minima", "Minimum similarity");
         A("Predefinito", "Default");
+        A("Modalità 3D", "3D mode");
+        A("Rapido", "Fast");
+        A("Dettagliato", "Detailed");
+        A("Multivista", "Multiview");
+        A("FRONTE", "FRONT");
+        A("DESTRA", "RIGHT");
+        A("RETRO", "BACK");
         A("Raddrizza i modelli", "Straighten models");
         A("Dimensione iniziale", "Initial size");
         A("Allinea all'asse più vicino", "Snap to nearest axis");

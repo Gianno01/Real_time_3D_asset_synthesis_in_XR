@@ -61,8 +61,10 @@ public class QuestObjectGenerator : MonoBehaviour
     public void NotifyRequestBegan() => RequestBegan?.Invoke();
 
     [Header("Mani libere (parola di attivazione)")]
-    [Tooltip("Modello 3D usato da n8n: 0 = predefinito del workflow, 1 = IDOL (splat → mesh), 2 = Pixal3D, 3 = Trellis2")]
-    public int model3D = 0;
+    [Tooltip("Modalità di generazione: 0 = Rapido (IDOL, predefinito), 1 = Dettagliato (Pixal3D), 2 = Multivista (Pixal3D multiview, 3 immagini: fronte, destra, retro)")]
+    public int generationMode = 0;
+    public const int ModeFast = 0, ModeDetailed = 1, ModeMultiview = 2;
+    public bool IsMultiview => generationMode == ModeMultiview;
     public bool handsFreeMode = true;
     [Tooltip("Parole di attivazione (minuscolo). Vale anche l'inizio della parola: 'genera' riconosce 'generami'")]
     public string[] wakeWords = { "genera", "generate" };   // le uniche parole che avviano una richiesta o una modifica (forzate in Awake)
@@ -233,6 +235,9 @@ public class QuestObjectGenerator : MonoBehaviour
 
     /// <summary>Immagine dell'anteprima corrente (stato Preview).</summary>
     public Texture2D PreviewTexture { get; private set; }
+    /// <summary>Multivista: le 3 immagini dell'anteprima (fronte, destra, retro). Nelle altre modalità è null.</summary>
+    public Texture2D[] PreviewTextures { get; private set; }
+    public string[] LastImagePaths { get; private set; }
     /// <summary>Prompt (inglese) usato dall'LLM per l'immagine corrente.</summary>
     public string PreviewPrompt { get; private set; } = "";
     /// <summary>Ultima correzione applicata a voce.</summary>
@@ -1116,7 +1121,7 @@ public class QuestObjectGenerator : MonoBehaviour
             string imgError = null;
             image = null;
             yield return StartCoroutine(CallN8N(
-                new N8NRequest { action = "image", prompt = _workingPrompt, session_id = _sessionId },
+                new N8NRequest { action = "image", prompt = _workingPrompt, session_id = _sessionId, mode = ModeName() },
                 "preview", r => image = r, e => imgError = e));
             if (myId != _requestId) yield break; // annullata
             if (image == null) { Fail(imgError ?? "Generazione dell'immagine fallita"); yield break; }
@@ -1127,10 +1132,30 @@ public class QuestObjectGenerator : MonoBehaviour
             LastImagePath = image.image_path;
             PreviewPrompt = image.flux_prompt ?? "";
 
+            // Multivista: 3 immagini (fronte, destra, retro) da scaricare insieme
+            string[] paths = image.image_paths != null && image.image_paths.Length >= 3 ? image.image_paths : null;
+            if (IsMultiview && paths == null) { Fail("Il workflow n8n non ha restituito le 3 viste: importa la versione aggiornata"); yield break; }
+            LastImagePaths = IsMultiview ? paths : null;
+            if (IsMultiview) LastImagePath = paths[0];
+
             Texture2D tex = null;
-            yield return StartCoroutine(LoadTexture(ComfyFullUrl(image.image_path), t => tex = t));
+            yield return StartCoroutine(LoadTexture(ComfyFullUrl(IsMultiview ? paths[0] : image.image_path), t => tex = t));
             if (myId != _requestId) { if (tex != null) Destroy(tex); yield break; }
             SetPreviewTexture(tex);
+            SetPreviewTextures(null);
+            if (IsMultiview)
+            {
+                var views = new Texture2D[3];
+                views[0] = tex;
+                for (int vi = 1; vi < 3; vi++)
+                {
+                    Texture2D vt = null;
+                    yield return StartCoroutine(LoadTexture(ComfyFullUrl(paths[vi]), t => vt = t));
+                    if (myId != _requestId) { if (vt != null) Destroy(vt); yield break; }
+                    views[vi] = vt;
+                }
+                SetPreviewTextures(views);
+            }
 
             if (!previewBeforeModel) break;   // anteprima disattivata: si prosegue subito
 
@@ -1160,9 +1185,10 @@ public class QuestObjectGenerator : MonoBehaviour
             new N8NRequest
             {
                 action = "model", session_id = _sessionId, prompt = _workingPrompt,
-                image_path = image.image_path, object_name = image.object_name,
+                image_path = IsMultiview ? LastImagePaths[0] : image.image_path, object_name = image.object_name,
                 flux_prompt = image.flux_prompt, seed = image.seed,
-                model3d = Model3DName()
+                mode = ModeName(),
+                image_paths = IsMultiview ? LastImagePaths : null
             },
             "ready", r => result = r, e => error = e));
         if (myId != _requestId) yield break; // annullata
@@ -1204,7 +1230,7 @@ public class QuestObjectGenerator : MonoBehaviour
         so.objectName = LastObjectName;
         so.promptIt = _workingPrompt;
         so.promptEn = PreviewPrompt;
-        so.model = "pixal3d";
+        so.model = generationMode == ModeFast ? "idol" : IsMultiview ? "pixal3d-multiview" : "pixal3d";
         so.genImageSeconds = _imgSeconds;
         so.genModelSeconds = _genSeconds;
         so.placedBy = SystemInfo.deviceName;
@@ -1343,7 +1369,8 @@ public class QuestObjectGenerator : MonoBehaviour
     }
 
     /// <summary>Anteprima: l'immagine va bene, genera il modello 3D.</summary>
-    string Model3DName() => model3D == 1 ? "idol" : model3D == 2 ? "pixal" : model3D == 3 ? "trellis" : "";
+    /// <summary>Modalità inviata a n8n: "fast" (IDOL), "detailed" (Pixal3D), "multiview" (Pixal3D multiview).</summary>
+    string ModeName() => generationMode == ModeDetailed ? "detailed" : generationMode == ModeMultiview ? "multiview" : "fast";
 
     public void ProceedToModel()
     {
@@ -1444,6 +1471,14 @@ public class QuestObjectGenerator : MonoBehaviour
     {
         if (PreviewTexture != null && PreviewTexture != tex) Destroy(PreviewTexture);
         PreviewTexture = tex;
+    }
+
+    private void SetPreviewTextures(Texture2D[] texs)
+    {
+        if (PreviewTextures != null)
+            for (int i = 1; i < PreviewTextures.Length; i++)   // [0] è PreviewTexture, gestita da SetPreviewTexture
+                if (PreviewTextures[i] != null && (texs == null || System.Array.IndexOf(texs, PreviewTextures[i]) < 0)) Destroy(PreviewTextures[i]);
+        PreviewTextures = texs;
     }
 
     private IEnumerator LoadTexture(string url, Action<Texture2D> callback)
@@ -1833,7 +1868,8 @@ public class QuestObjectGenerator : MonoBehaviour
         public string object_name;
         public string flux_prompt;
         public string seed;
-        public string model3d;       // solo "model": "idol" | "pixal" | "trellis" (vuoto = quello predefinito nel workflow n8n)
+        public string mode;          // "fast" (IDOL) | "detailed" (Pixal3D) | "multiview" (Pixal3D multiview, 3 immagini)
+        public string[] image_paths; // solo "model" multivista: fronte, destra, retro
     }
     [Serializable] private class N8NResponse
     {
@@ -1843,5 +1879,6 @@ public class QuestObjectGenerator : MonoBehaviour
         public string object_name;
         public string flux_prompt;
         public string seed;
+        public string[] image_paths; // multivista: fronte, destra, retro (image_path = fronte)
     }
 }

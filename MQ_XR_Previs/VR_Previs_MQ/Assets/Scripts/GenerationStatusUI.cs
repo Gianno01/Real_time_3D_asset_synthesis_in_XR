@@ -105,6 +105,11 @@ public class GenerationStatusUI : MonoBehaviour
 
     // Anteprima
     RawImage _previewImage;
+    // Multivista: 3 immagini affiancate (fronte, destra, retro)
+    Image _pvFrame;
+    readonly Image[] _mvFrames = new Image[3];
+    readonly RawImage[] _mvImages = new RawImage[3];
+    TextMeshProUGUI _pvLblRequest, _pvLblPrompt;
     TextMeshProUGUI _pvTitle, _pvTimer, _pvSub, _pvRequest, _pvPrompt, _pvHint, _pvNoImage, _pvCorrectLabel;
     Image _pvDot;
     readonly Image[] _stepDots = new Image[4];
@@ -504,6 +509,27 @@ public class GenerationStatusUI : MonoBehaviour
     void ShowPreview()
     {
         var tex = generator.PreviewTexture;
+        var views = generator.PreviewTextures;
+        bool mv = generator.IsMultiview && views != null && views.Length >= 3;
+        _pvFrame.gameObject.SetActive(!mv);
+        for (int i = 0; i < 3; i++) _mvFrames[i].gameObject.SetActive(mv);
+        // multivista: la richiesta passa sotto le immagini a tutta larghezza, il prompt inglese si nasconde
+        Place(_pvLblRequest.rectTransform, mv ? 28 : 348, mv ? 276 : 80, mv ? 584 : 264, 24);
+        Place(_pvRequest.rectTransform, mv ? 28 : 348, mv ? 300 : 104, mv ? 584 : 264, mv ? 78 : 110);
+        _pvLblPrompt.gameObject.SetActive(!mv);
+        _pvPrompt.gameObject.SetActive(!mv);
+        if (mv)
+        {
+            for (int i = 0; i < 3; i++)
+            {
+                var vt = views[i];
+                _mvImages[i].texture = vt;
+                _mvImages[i].color = vt != null ? Color.white : new Color(1f, 1f, 1f, 0f);
+                var vr = _mvImages[i].rectTransform;
+                float inner2 = 176f, asp = vt != null && vt.height > 0 ? vt.width / (float)vt.height : 1f;
+                vr.sizeDelta = asp >= 1f ? new Vector2(inner2, inner2 / asp) : new Vector2(inner2 * asp, inner2);
+            }
+        }
         _previewImage.texture = tex;
         _previewImage.color = tex != null ? Color.white : new Color(1f, 1f, 1f, 0f);
         // immagini verticali (personaggi) o orizzontali (animali, veicoli): adatta senza deformare
@@ -760,6 +786,7 @@ public class GenerationStatusUI : MonoBehaviour
         Place(_pvSub.rectTransform, 248, 58, 320, 26);
 
         var frame = Img(pvRt, "ImageFrame", _rounded, Pending, true, 24f / 12f);
+        _pvFrame = frame;
         Place(frame.rectTransform, 28, 80, 300, 300);
         var imgGo = new GameObject("PreviewImage", typeof(RectTransform), typeof(RawImage));
         imgGo.transform.SetParent(frame.rectTransform, false);
@@ -772,7 +799,32 @@ public class GenerationStatusUI : MonoBehaviour
         Stretch(_pvNoImage.rectTransform);
         _pvNoImage.text = "Anteprima non disponibile";
 
+        // Multivista: tre cornici affiancate con l'etichetta della vista
+        string[] viewNames = { "FRONTE", "DESTRA", "RETRO" };
+        for (int vi = 0; vi < 3; vi++)
+        {
+            var mf = Img(pvRt, "ViewFrame" + vi, _rounded, Pending, true, 24f / 12f);
+            Place(mf.rectTransform, 28 + vi * 200, 80, 184, 184);
+            _mvFrames[vi] = mf;
+            var mgo = new GameObject("ViewImage", typeof(RectTransform), typeof(RawImage));
+            mgo.transform.SetParent(mf.rectTransform, false);
+            var mri = mgo.GetComponent<RawImage>();
+            mri.raycastTarget = false;
+            var mrt = mri.rectTransform;
+            mrt.anchorMin = mrt.anchorMax = new Vector2(0.5f, 0.5f);
+            mrt.anchoredPosition = Vector2.zero;
+            mrt.sizeDelta = new Vector2(176, 176);
+            _mvImages[vi] = mri;
+            var ml = Txt(mf.rectTransform, "ViewLabel", 13, FontStyles.Bold, TextMain, TextAlignmentOptions.BottomLeft);
+            ml.characterSpacing = 6f;
+            Stretch(ml.rectTransform);
+            ml.rectTransform.offsetMin = new Vector2(8, 4);
+            ml.text = viewNames[vi];
+            mf.gameObject.SetActive(false);
+        }
+
         var lbl1 = Txt(pvRt, "LabelRequest", 16, FontStyles.Bold, TextDim, TextAlignmentOptions.TopLeft);
+        _pvLblRequest = lbl1;
         lbl1.characterSpacing = 8f;
         Place(lbl1.rectTransform, 348, 80, 264, 24);
         lbl1.text = "HAI CHIESTO";
@@ -780,6 +832,7 @@ public class GenerationStatusUI : MonoBehaviour
         Place(_pvRequest.rectTransform, 348, 104, 264, 110);
 
         var lbl2 = Txt(pvRt, "LabelPrompt", 16, FontStyles.Bold, TextDim, TextAlignmentOptions.TopLeft);
+        _pvLblPrompt = lbl2;
         lbl2.characterSpacing = 8f;
         Place(lbl2.rectTransform, 348, 224, 264, 24);
         lbl2.text = "PROMPT";

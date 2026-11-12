@@ -171,9 +171,9 @@ public class SettingsUI : MonoBehaviour
         if (library != null)
             gen.Add(Step("suggest_score", "Somiglianza minima", new[] { 0.5f, 0.55f, 0.6f, 0.65f, 0.7f, 0.75f, 0.8f, 0.85f },
                          () => library.suggestMinScore, v => library.suggestMinScore = v, v => $"{Mathf.RoundToInt(v * 100f)}%"));
-        gen.Add(Step("model3d", "Modello 3D", new[] { 0f, 1f, 2f, 3f },
-                     () => g.model3D, v => g.model3D = Mathf.RoundToInt(v),
-                     v => new[] { "Predefinito", "IDOL", "Pixal3D", "Trellis2" }[Mathf.Clamp(Mathf.RoundToInt(v), 0, 3)]));
+        gen.Add(Step("gen_mode", "Modalità 3D", new[] { 0f, 1f, 2f },
+                     () => g.generationMode, v => g.generationMode = Mathf.RoundToInt(v),
+                     v => new[] { "Rapido", "Dettagliato", "Multivista" }[Mathf.Clamp(Mathf.RoundToInt(v), 0, 2)]));
         gen.Add(Bool("auto_align", "Raddrizza i modelli", () => g.autoAlignModels, v => g.autoAlignModels = v));
         gen.Add(Step("target_size", "Dimensione iniziale", new[] { 0.15f, 0.2f, 0.3f, 0.5f, 0.75f, 1f, 1.5f },
                      () => g.targetObjectSize, v => g.targetObjectSize = v, Cm));
