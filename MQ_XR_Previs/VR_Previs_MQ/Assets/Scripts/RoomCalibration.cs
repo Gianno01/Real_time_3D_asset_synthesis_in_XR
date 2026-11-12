@@ -42,6 +42,11 @@ public class RoomCalibration : MonoBehaviour
     Step _step = Step.Idle;
 
     public bool IsCalibrated { get; private set; }
+
+    // Finché la stanza non è calibrata l'app è BLOCCATA: nessuna generazione, libreria, impostazioni, tastiera o voce (vedi i controlli
+    // 'RoomCalibration.Blocking' negli altri script). Torna true anche se il Quest viene ricentrato, perché l'origine non vale più.
+    public static RoomCalibration Instance { get; private set; }
+    public static bool Blocking => Instance != null && Instance.isActiveAndEnabled && Instance.required && !Instance.IsCalibrated;
     public bool InProgress => _step != Step.Idle;
     public string StatusLabel => InProgress ? "Calibrazione: in corso" : (IsCalibrated ? "Calibrazione: ok" : "Calibrazione: no");
 
@@ -56,13 +61,29 @@ public class RoomCalibration : MonoBehaviour
     bool _prevTrigger = true, _prevCancel = true;
     float _hideAt;
     Material _markerMat;
+    float _retryAt;
+    bool _wasWorn = true;
+    bool _originChanged;
+    readonly List<XRInputSubsystem> _subsystems = new List<XRInputSubsystem>();
 
     // ── Calibrazione automatica all'apertura ──────────────────────────
+
+    void Awake() { Instance = this; }
 
     void Start()
     {
         if (calibrateOnStart) StartCoroutine(CalibrateOnStartRoutine());
+        SubscribeOriginEvents();
     }
+
+    // Il ricentraggio del Quest (tieni premuto Oculus) o la perdita di tracciamento sposta l'origine: la calibrazione non è più valida.
+    void SubscribeOriginEvents()
+    {
+        SubsystemManager.GetSubsystems(_subsystems);
+        foreach (var s in _subsystems) { s.trackingOriginUpdated -= OnOriginUpdated; s.trackingOriginUpdated += OnOriginUpdated; }
+    }
+
+    void OnOriginUpdated(XRInputSubsystem _) { _originChanged = true; }
 
     IEnumerator CalibrateOnStartRoutine()
     {
@@ -86,6 +107,7 @@ public class RoomCalibration : MonoBehaviour
         if (!required || IsCalibrated || InProgress) yield break;
         Debug.Log("[RoomCalibration] Calibrazione automatica all'apertura.");
         Begin();
+        // se Begin() non è partita (rig non pronto) ci pensa il controllo periodico in Update
     }
 
     // ── Avvio della procedura ─────────────────────────────────────────
@@ -94,7 +116,7 @@ public class RoomCalibration : MonoBehaviour
     {
         if (InProgress) return;
         _xr = FindAnyObjectByType<XROrigin>();
-        if (_xr == null || _xr.Camera == null) { Debug.LogWarning("[RoomCalibration] Serve un XR Origin con camera."); return; }
+        if (_xr == null || _xr.Camera == null) { Debug.LogWarning("[RoomCalibration] Serve un XR Origin con camera."); _retryAt = Time.unscaledTime + 2f; return; }
 
         EnsureUi();
 
@@ -123,6 +145,7 @@ public class RoomCalibration : MonoBehaviour
 
     void End(string message, float showSeconds)
     {
+        _retryAt = Time.unscaledTime + 1f;
         foreach (var ri in _disabled) if (ri != null) ri.enabled = true;
         _disabled.Clear();
         _step = Step.Idle;
@@ -132,8 +155,12 @@ public class RoomCalibration : MonoBehaviour
         _hideAt = Time.unscaledTime + showSeconds;
     }
 
+    void OnDestroyInstance() { if (Instance == this) Instance = null; }
+
     void OnDisable()
     {
+        OnDestroyInstance();
+        foreach (var s in _subsystems) if (s != null) s.trackingOriginUpdated -= OnOriginUpdated;
         foreach (var ri in _disabled) if (ri != null) ri.enabled = true;
         _disabled.Clear();
         _step = Step.Idle;
@@ -141,8 +168,49 @@ public class RoomCalibration : MonoBehaviour
 
     // ── Ciclo ─────────────────────────────────────────────────────────
 
+    void OnEnable() { Instance = this; if (_subsystems.Count > 0) SubscribeOriginEvents(); }
+
+    bool HeadsetWorn()
+    {
+        var head = InputDevices.GetDeviceAtXRNode(XRNode.Head);
+        if (head.isValid && head.TryGetFeatureValue(CommonUsages.userPresence, out bool present)) return present;
+        return true;
+    }
+
     void Update()
     {
+        // ricentraggio: la calibrazione salvata non vale più → si rifà (e nel frattempo l'app resta bloccata)
+        if (_originChanged)
+        {
+            _originChanged = false;
+            if (IsCalibrated && required)
+            {
+                IsCalibrated = false;
+                if (library != null) library.sceneAnchor = null;
+                Debug.Log("[RoomCalibration] Origine del tracciamento cambiata (ricentraggio): calibrazione da rifare.");
+            }
+            if (InProgress) _step = Step.PointA;
+        }
+
+        bool worn = HeadsetWorn();
+        bool justPutOn = worn && !_wasWorn;
+        _wasWorn = worn;
+
+        // watchdog: non calibrato e nessuna procedura attiva → riparte da sola (copre i casi in cui la prima partenza è saltata)
+        if (required && !IsCalibrated && !InProgress && worn && Time.unscaledTime >= _retryAt && Time.unscaledTime > 3f)
+        {
+            _retryAt = Time.unscaledTime + 2f;
+            Begin();
+        }
+
+        if (InProgress)
+        {
+            // i raggi devono restare spenti per tutta la procedura (un altro script potrebbe riaccenderli)
+            foreach (var ri in FindObjectsByType<XRRayInteractor>(FindObjectsSortMode.None))
+                if (ri.enabled) { ri.enabled = false; if (!_disabled.Contains(ri)) _disabled.Add(ri); }
+            if (justPutOn || !worn) { _step = Step.PointA; if (_aMarker != null) _aMarker.SetActive(false); _prevTrigger = true; }
+        }
+
         if (_panel == null) return;
 
         if (_step == Step.Idle)
@@ -165,11 +233,22 @@ public class RoomCalibration : MonoBehaviour
         _prevTrigger = trigger;
         _prevCancel = cancel;
 
-        if (cancelDown) { End("Calibrazione annullata", 2f); return; }
+        bool tracked = true;
+        if (dev.isValid && dev.TryGetFeatureValue(CommonUsages.isTracked, out bool tr)) tracked = tr;
+        if (!dev.isValid) tracked = false;
+        if (!tracked) triggerDown = false;   // controller non tracciato: la posa non è affidabile
+
+        if (cancelDown)
+        {
+            // senza calibrazione l'app non si può usare: B ricomincia dal punto A invece di uscire
+            if (required && !IsCalibrated) { _step = Step.PointA; _aMarker.SetActive(false); Haptic(); return; }
+            End("Calibrazione annullata", 2f);
+            return;
+        }
 
         if (_step == Step.PointA)
         {
-            _text.text = "<b>Calibrazione 1/2</b>\nPoggia la punta del controller destro sul <b>PUNTO A</b>\n(es. un angolo della scrivania) e premi il <b>grilletto</b>\n<size=70%>B = annulla</size>";
+            _text.text = $"<b>Calibrazione 1/2</b>\nPoggia la punta del controller destro sul <b>PUNTO A</b>\n(es. un angolo della scrivania) e premi il <b>grilletto</b>\n<size=70%>{(required && !IsCalibrated ? "Obbligatoria per usare l'app - B = ricomincia" : "B = annulla")}{(tracked ? "" : " - <color=#ffb060>controller non rilevato</color>")}</size>";
             if (triggerDown)
             {
                 _a = tip;
@@ -183,7 +262,7 @@ public class RoomCalibration : MonoBehaviour
         {
             float d = Vector3.ProjectOnPlane(tip - _a, Vector3.up).magnitude;
             string dist = d < minDistance ? $"<color=#ffb060>distanza da A: {d:0.00} m (servono almeno {minDistance:0.0} m)</color>" : $"distanza da A: {d:0.00} m";
-            _text.text = $"<b>Calibrazione 2/2</b>\nOra sul <b>PUNTO B</b>, lontano da A (meglio oltre 1 m)\ne premi il <b>grilletto</b>\n<size=70%>{dist} - B = annulla</size>";
+            _text.text = $"<b>Calibrazione 2/2</b>\nOra sul <b>PUNTO B</b>, lontano da A (meglio oltre 1 m)\ne premi il <b>grilletto</b>\n<size=70%>{dist} - B = {(required && !IsCalibrated ? "ricomincia" : "annulla")}</size>";
             if (triggerDown && d >= minDistance)
             {
                 Apply(_a, tip);

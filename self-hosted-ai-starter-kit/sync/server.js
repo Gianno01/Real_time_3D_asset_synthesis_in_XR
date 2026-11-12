@@ -27,12 +27,13 @@ const path = require('path');
 const { WebSocketServer, WebSocket } = require('ws');
 
 const MAX_OBJECTS = 500;
+const MAX_LIGHTING = 200 * 1024;   // JSON di SceneLighting
 const MAX_VIEWERS = 30;
 const HELLO_TIMEOUT_MS = 5000;
 
 function createRelay() {
   const state = {
-    objs: new Map(), sceneId: '', sceneName: '', pose: null, genState: '', genText: '', hostName: '', hostAddr: '', pose2: null, cohostName: '',
+    objs: new Map(), sceneId: '', sceneName: '', pose: null, lighting: '', genState: '', genText: '', hostName: '', hostAddr: '', pose2: null, cohostName: '',
   };
   let host = null;
   let cohost = null;
@@ -73,6 +74,7 @@ function createRelay() {
     n: viewers.size,
     cohostOnline: !!cohost, cohostName: cohost ? state.cohostName : '',
     genState: state.genState, genText: state.genText,
+    lighting: state.lighting,
     ...(state.pose || {}),
   });
 
@@ -133,6 +135,10 @@ function createRelay() {
       case 'scene':
         state.sceneId = str(m.sceneId, 64); state.sceneName = str(m.sceneName, 120);
         toAll({ t: 'scene', sceneId: state.sceneId, sceneName: state.sceneName }, ws);
+        break;
+      case 'light':   // luci, blocchi di occlusione e oscuramento: host e co-host li modificano, tutti li vedono
+        state.lighting = str(m.lighting, MAX_LIGHTING);
+        toAll({ t: 'light', lighting: state.lighting }, ws);
         break;
       case 'pose': {
         if (!isHost) return;

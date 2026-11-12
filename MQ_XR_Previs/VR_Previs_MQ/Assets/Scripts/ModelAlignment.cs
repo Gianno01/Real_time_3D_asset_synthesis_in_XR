@@ -73,6 +73,23 @@ public static class ModelAlignment
         return corr;
     }
 
+    /// <summary>Riapplica un raddrizzamento SALVATO (centro x,y,z + rotazione x,y,z,w) senza ricalcolarlo. Vuoto/nullo = nessuna correzione.
+    /// Serve a ricaricare le scene: il risultato è identico a quando sono state salvate, anche se nel frattempo è cambiato l'algoritmo
+    /// o l'impostazione "Raddrizza i modelli".</summary>
+    public static void ApplyStored(GameObject root, float[] al)
+    {
+        if (root == null || al == null || al.Length < 7) return;
+        var pivot = new GameObject("Allineamento").transform;
+        pivot.SetParent(root.transform, false);
+        pivot.localPosition = new Vector3(al[0], al[1], al[2]);
+        pivot.localRotation = Quaternion.identity;
+        pivot.localScale = Vector3.one;
+        var children = new List<Transform>();
+        foreach (Transform c in root.transform) if (c != pivot) children.Add(c);
+        foreach (var c in children) c.SetParent(pivot, true);
+        pivot.localRotation = new Quaternion(al[3], al[4], al[5], al[6]);
+    }
+
     // ── Ricerca dell'assetto con il riquadro più piccolo ─────────────
 
     const float SearchTiltDegrees = 30f;   // inclinazione massima cercata (almeno questa, anche se l'impostazione è più bassa)

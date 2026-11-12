@@ -185,6 +185,19 @@ public class SceneLighting : MonoBehaviour
         return JsonUtility.ToJson(data);
     }
 
+    static float Q(float v) => Mathf.Round(v * 1000f) / 1000f;
+
+    /// <summary>Come SerializeExtras, ma con i valori arrotondati al mm: serve a confrontare lo stato tra visori senza falsi cambiamenti (multiplayer).</summary>
+    public string SerializeShared()
+    {
+        if (_lights.Count == 0 && _blocks.Count == 0 && !lightingOn) return "";
+        var data = JsonUtility.FromJson<LightingData>(SerializeExtras());
+        data.dim = Q(data.dim);
+        foreach (var l in data.lights) { l.px = Q(l.px); l.py = Q(l.py); l.pz = Q(l.pz); l.rx = Q(l.rx); l.ry = Q(l.ry); l.rz = Q(l.rz); l.rw = Q(l.rw); }
+        foreach (var b in data.blocks) { b.px = Q(b.px); b.py = Q(b.py); b.pz = Q(b.pz); b.rx = Q(b.rx); b.ry = Q(b.ry); b.rz = Q(b.rz); b.rw = Q(b.rw); }
+        return JsonUtility.ToJson(data);
+    }
+
     /// <summary>Ricostruisce luci, blocchi e oscuramento da un JSON (vuoto = niente luci, oscuramento spento).</summary>
     public void ApplyExtras(string json)
     {
@@ -1027,6 +1040,7 @@ public class SceneLighting : MonoBehaviour
 
     public void OpenPanel()
     {
+        if (RoomCalibration.Blocking) return;
         if (_panel == null) BuildPanel();
         PlacePanel();
         _panel.gameObject.SetActive(true);
@@ -1314,6 +1328,7 @@ public class SceneLighting : MonoBehaviour
         t.alignment = align;
         t.textWrappingMode = TextWrappingModes.Normal;
         t.overflowMode = TextOverflowModes.Truncate;
+        t.enableAutoSizing = true; t.fontSizeMax = size; t.fontSizeMin = size * 0.55f;   // testi più lunghi (es. in inglese) rimpiccioliscono invece di venire tagliati
         t.richText = false;
         t.raycastTarget = false;
         return t;

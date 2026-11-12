@@ -50,7 +50,9 @@ public class SyncHost : MonoBehaviour
     readonly Dictionary<string, SyncObj> _pendingData = new Dictionary<string, SyncObj>();
     readonly Dictionary<string, SyncObj> _targets = new Dictionary<string, SyncObj>();   // posizioni ricevute verso cui l'oggetto si sta muovendo
     XRRayInteractor _left, _right;
-    float _next, _nextHands;
+    float _next, _nextHands, _nextLight;
+    SceneLighting _lighting;
+    string _lastLight;   // ultimo stato luci/occlusioni noto a entrambi (arrotondato): se cambia quello locale lo si invia
     string _sceneId = "", _sceneName = "";
     bool _synced;
 
@@ -80,6 +82,7 @@ public class SyncHost : MonoBehaviour
     void OnConnected()
     {
         _sent.Clear();
+        _lastLight = null;   // al primo giro l'host pubblica le sue luci e occlusioni
         string who = _library != null ? _library.Author : SystemInfo.deviceName;
 
         if (isCoHost)
@@ -146,6 +149,38 @@ public class SyncHost : MonoBehaviour
         }
 
         SendPose();
+        SendLighting();
+    }
+
+    // ── Luci e blocchi di occlusione ──────────────────────────────────
+
+    SceneLighting Lighting()
+    {
+        if (_lighting == null) _lighting = FindAnyObjectByType<SceneLighting>();
+        return _lighting;
+    }
+
+    // Controlla 2 volte al secondo se luci, blocchi o oscuramento locali sono cambiati e li manda all'altro editor e agli spettatori
+    void SendLighting()
+    {
+        if (Time.unscaledTime < _nextLight) return;
+        _nextLight = Time.unscaledTime + 0.5f;
+        var l = Lighting();
+        if (l == null) return;
+        string cur = l.SerializeShared();
+        if (cur == _lastLight) return;
+        _lastLight = cur;
+        _client.Send(new SyncMsg { t = "light", lighting = cur });
+    }
+
+    // Stato ricevuto dall'altro: lo applico e lo segno come noto, così non lo rimando indietro
+    void ApplyRemoteLighting(string json)
+    {
+        var l = Lighting();
+        if (l == null) return;
+        l.ApplyExtras(json ?? "");
+        _lastLight = l.SerializeShared();
+        _nextLight = Time.unscaledTime + 0.5f;
     }
 
     // ── Costruzione dei dati ──────────────────────────────────────────
@@ -254,6 +289,7 @@ public class SyncHost : MonoBehaviour
             case "del": ApplyRemoteDelete(m.id); break;
             case "clear": ApplyRemoteClear(); break;
             case "scene": ApplyRemoteScene(m.sceneId, m.sceneName); break;
+            case "light": ApplyRemoteLighting(m.lighting); break;
             case "pose": if (isCoHost) SetPeerPose(m); break;     // pose dell'host
             case "pose2": if (!isCoHost) SetPeerPose(m); break;   // pose del co-host
             case "host":
@@ -304,6 +340,7 @@ public class SyncHost : MonoBehaviour
 
         if (m.objs != null) foreach (var o in m.objs) if (o != null) ApplyRemote(o);
         ApplyRemoteScene(m.sceneId, m.sceneName);
+        ApplyRemoteLighting(m.lighting);
         _synced = true;
     }
 
@@ -394,7 +431,7 @@ public class SyncHost : MonoBehaviour
 
         d = _pendingData.TryGetValue(id, out var latest) ? latest : d;   // l'altro può averlo già spostato mentre scaricavo
 
-        _gen.PrepareObject(go, false);   // collider, presa, griglia/misure/aggancio, raddrizzamento: come per gli oggetti caricati da una scena
+        _gen.PrepareObject(go, false, d.al, true);   // collider, presa, griglia/misure/aggancio; raddrizzamento = quello dell'altro visore (stesso aspetto)
         var so = go.GetComponent<SceneObject>();
         if (so == null) so = go.AddComponent<SceneObject>();
         so.syncId = id;

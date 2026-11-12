@@ -8,7 +8,7 @@ using UnityEngine;
 public static class UiIcons
 {
     const int Size = 96;
-    static Texture2D s_minimize, s_gear, s_book, s_keyboard, s_mic;
+    static Texture2D s_minimize, s_gear, s_book, s_keyboard, s_mic, s_micOff;
 
     /// <summary>"_" : riduci a icona.</summary>
     public static Texture2D Minimize => s_minimize ??= Make((x, y) => RoundRect(x, y, 0.22f, 0.20f, 0.78f, 0.31f, 0.055f));
@@ -66,6 +66,21 @@ public static class UiIcons
         if (y <= 0.52f && r > 0.22f && r < 0.285f) return true;                              // staffa a U
         if (x > 0.485f && x < 0.515f && y > 0.14f && y < 0.27f) return true;                 // asta
         return RoundRect(x, y, 0.34f, 0.11f, 0.66f, 0.17f, 0.025f);                          // base
+    });
+
+    /// <summary>Microfono barrato: modalità solo tastiera (ascolto spento).</summary>
+    public static Texture2D MicOff => s_micOff ??= Make((x, y) =>
+    {
+        float d = Mathf.Abs(x + y - 1f) / 1.4142f;                  // distanza dalla diagonale alto-sinistra → basso-destra
+        bool slashZone = x > 0.14f && x < 0.86f && y > 0.14f && y < 0.86f;
+        if (slashZone && d < 0.04f) return true;                     // barra
+        if (slashZone && d < 0.085f) return false;                   // alone attorno alla barra
+        if (RoundRect(x, y, 0.39f, 0.42f, 0.61f, 0.86f, 0.11f)) return true;
+        float dx = x - 0.5f, dy = y - 0.52f;
+        float r = Mathf.Sqrt(dx * dx + dy * dy);
+        if (y <= 0.52f && r > 0.22f && r < 0.285f) return true;
+        if (x > 0.485f && x < 0.515f && y > 0.14f && y < 0.27f) return true;
+        return RoundRect(x, y, 0.34f, 0.11f, 0.66f, 0.17f, 0.025f);
     });
 
     // ── Disegno ──────────────────────────────────────────────────────

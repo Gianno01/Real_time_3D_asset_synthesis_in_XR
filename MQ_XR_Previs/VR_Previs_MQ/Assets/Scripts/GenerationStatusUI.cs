@@ -60,6 +60,8 @@ public class GenerationStatusUI : MonoBehaviour
     public bool movable = true;
     [Tooltip("Se il pannello fissato è fuori vista quando parte una nuova richiesta, torna davanti a te")]
     public bool recallWhenOutOfView = true;
+    [Tooltip("Il pannello resta dov'è e torna davanti al viso SOLO quando parte una richiesta (parola \"genera\"/\"generate\", pulsante o tastiera)")]
+    public bool frontOnlyOnRequest = true;
 
     [Header("Comportamento")]
     public bool showIdleHint = true;
@@ -87,7 +89,7 @@ public class GenerationStatusUI : MonoBehaviour
 
     RectTransform _toolbarRt;
     CanvasGroup _toolbarGroup;
-    Image _tbMinimize, _tbSettings, _tbLibrary, _tbKeyboard, _tbMic;
+    Image _tbMinimize, _tbSettings, _tbLibrary, _tbKeyboard, _tbMic, _tbKeyboardOnly;
     LibraryUI _libraryUI;
     SettingsUI _settingsUI;
     float _nextPanelCheck;
@@ -127,6 +129,9 @@ public class GenerationStatusUI : MonoBehaviour
 
     void Awake()
     {
+        // suggerimenti coerenti con il flusso vocale attuale (il valore salvato nella scena non conta)
+        handsFreeHint = "Di' <b>\"Genera...\"</b> seguito dall'oggetto, ad esempio <i>\"Genera una sedia di legno\"</i>";
+        previewHintHandsFree = "Di' <b>\"genera...\"</b> seguito da cosa cambiare";
         _rounded = MakeRoundedSprite(64, 24);
         _circle = MakeRoundedSprite(64, 32);
         BuildUI();
@@ -170,12 +175,13 @@ public class GenerationStatusUI : MonoBehaviour
             return;
         }
         generator.StateChanged += OnStateChanged;
+        generator.RequestBegan += OnRequestBegan;
         if (generator.handsFreeMode) _hint.text = handsFreeHint;
     }
 
     void OnDestroy()
     {
-        if (generator != null) generator.StateChanged -= OnStateChanged;
+        if (generator != null) { generator.StateChanged -= OnStateChanged; generator.RequestBegan -= OnRequestBegan; }
     }
 
     void LateUpdate()
@@ -258,6 +264,13 @@ public class GenerationStatusUI : MonoBehaviour
 
     // ── Eventi dal generator ──────────────────────────────────────────
 
+    // Parola di attivazione sentita (o richiesta da pulsante/tastiera): il pannello torna davanti al viso
+    void OnRequestBegan()
+    {
+        if (_minimized) SetMinimized(false);
+        Recenter();
+    }
+
     void OnStateChanged(PipelineState state, string detail)
     {
         float now = Time.realtimeSinceStartup;
@@ -268,7 +281,7 @@ public class GenerationStatusUI : MonoBehaviour
         _nextText = 0f;
         if (state != PipelineState.Error) _failedStep = -1;
 
-        if (startingNew && _pinned && recallWhenOutOfView && IsOutOfView()) { _pinned = false; _placed = false; }
+        if (!frontOnlyOnRequest && startingNew && _pinned && recallWhenOutOfView && IsOutOfView()) { _pinned = false; _placed = false; }
 
         switch (state)
         {
@@ -544,7 +557,7 @@ public class GenerationStatusUI : MonoBehaviour
         Transform h = Head();
         if (h == null) return;
 
-        if (_grabbed || _pinned)
+        if (_grabbed || _pinned || (frontOnlyOnRequest && !snap))
         {
             // Fissato dove l'hai lasciato: si gira solo verso di te, mantenendo l'inclinazione da pannello
             Vector3 toPanel = Flat(transform.position - h.position);
@@ -813,16 +826,19 @@ public class GenerationStatusUI : MonoBehaviour
         var tbGo = new GameObject("Toolbar", typeof(RectTransform), typeof(CanvasGroup));
         tbGo.transform.SetParent(root, false);
         _toolbarRt = (RectTransform)tbGo.transform;
-        _toolbarRt.sizeDelta = new Vector2(5 * ToolBtn + 4 * ToolGap, ToolBtn);   // tastiera e microfono stanno a sinistra e compaiono solo se la tastiera è attiva
+        _toolbarRt.sizeDelta = new Vector2(6 * ToolBtn + 5 * ToolGap, ToolBtn);   // tastiera e microfono stanno a sinistra e compaiono solo se la tastiera è attiva
         _toolbarRt.anchoredPosition = new Vector2(PillW / 2f - _toolbarRt.sizeDelta.x / 2f, PillH / 2f + ToolBtn / 2f + 10f);
         _toolbarGroup = tbGo.GetComponent<CanvasGroup>();
         _tbKeyboard = MakeIconButton(_toolbarRt, "Keyboard", UiIcons.Keyboard, 0, () => { if (generator != null) generator.RequestInput(); });
         _tbMic      = MakeIconButton(_toolbarRt, "Mic", UiIcons.Mic, ToolBtn + ToolGap, () => { if (generator != null) generator.StartVoiceRequest(); });
         _tbKeyboard.gameObject.SetActive(false);
         _tbMic.gameObject.SetActive(false);
-        _tbMinimize = MakeIconButton(_toolbarRt, "Minimize", UiIcons.Minimize, 2 * (ToolBtn + ToolGap), ToggleMinimized);
-        _tbSettings = MakeIconButton(_toolbarRt, "Settings", UiIcons.Gear, 3 * (ToolBtn + ToolGap), () => { FindPanels(); if (_settingsUI != null) _settingsUI.Toggle(); });
-        _tbLibrary  = MakeIconButton(_toolbarRt, "Library", UiIcons.Book, 4 * (ToolBtn + ToolGap), () => { FindPanels(); if (_libraryUI != null) _libraryUI.Toggle(); });
+        // modalità solo tastiera: ascolto spento, si procede solo scrivendo (accanto al pulsante di riduzione)
+        _tbKeyboardOnly = MakeIconButton(_toolbarRt, "KeyboardOnly", UiIcons.MicOff, 2 * (ToolBtn + ToolGap),
+            () => { if (generator != null && !RoomCalibration.Blocking) generator.SetKeyboardOnly(!generator.keyboardOnly); });
+        _tbMinimize = MakeIconButton(_toolbarRt, "Minimize", UiIcons.Minimize, 3 * (ToolBtn + ToolGap), ToggleMinimized);
+        _tbSettings = MakeIconButton(_toolbarRt, "Settings", UiIcons.Gear, 4 * (ToolBtn + ToolGap), () => { FindPanels(); if (_settingsUI != null) _settingsUI.Toggle(); });
+        _tbLibrary  = MakeIconButton(_toolbarRt, "Library", UiIcons.Book, 5 * (ToolBtn + ToolGap), () => { FindPanels(); if (_libraryUI != null) _libraryUI.Toggle(); });
     }
 
     Image MakeIconButton(RectTransform parent, string name, Texture2D icon, float x, System.Action onClick)
@@ -855,8 +871,11 @@ public class GenerationStatusUI : MonoBehaviour
         if (_toolbarRt == null) return;
 
         // tastiera attiva: compaiono i pulsanti tastiera e microfono, e il suggerimento cambia
-        bool kb = generator != null && generator.keyboardInput;
-        if (_tbKeyboard.gameObject.activeSelf != kb) { _tbKeyboard.gameObject.SetActive(kb); _tbMic.gameObject.SetActive(kb); }
+        bool kb = generator != null && generator.UsesKeyboard;
+        if (_tbKeyboard.gameObject.activeSelf != kb) { _tbKeyboard.gameObject.SetActive(kb); }
+        bool micOn = kb && !generator.keyboardOnly;
+        if (_tbMic.gameObject.activeSelf != micOn) _tbMic.gameObject.SetActive(micOn);
+        _tbKeyboardOnly.color = generator != null && generator.keyboardOnly ? ActiveBtn : CardBg;
         if (generator != null && _hint != null)
         {
             string want = kb ? keyboardHint : (generator.handsFreeMode ? handsFreeHint : idleHint);
@@ -969,6 +988,7 @@ public class GenerationStatusUI : MonoBehaviour
         t.alignment = align;
         t.textWrappingMode = TextWrappingModes.Normal;
         t.overflowMode = TextOverflowModes.Truncate;
+        t.enableAutoSizing = true; t.fontSizeMax = size; t.fontSizeMin = size * 0.55f;   // testi più lunghi (es. in inglese) rimpiccioliscono invece di venire tagliati
         t.richText = true;
         t.raycastTarget = false;
         return t;

@@ -40,4 +40,5 @@ public class SyncMsg
     public string cohostName = "";
     public string reason = "";         // denied: host (c'è già un host) · cohost (c'è già un co-host) · viewers (troppi spettatori)
     public int n;
+    public string lighting = "";       // t="light" e snapshot: luci, blocchi di occlusione e oscuramento (JSON di SceneLighting, spazio dell'ancora; "" = niente)
 }

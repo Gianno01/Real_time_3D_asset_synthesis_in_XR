@@ -91,6 +91,7 @@ public class KeyboardUI : MonoBehaviour
     /// <summary>Apre la tastiera. onDone riceve il testo, oppure null se annulli.</summary>
     public void Open(string title, string initial, Action<string> onDone)
     {
+        if (RoomCalibration.Blocking) return;   // prima si calibra la stanza
         if (generator == null) generator = FindAnyObjectByType<QuestObjectGenerator>();
         if (IsOpen) FinishCallback(null);   // una sola tastiera alla volta: la precedente viene annullata
 
@@ -98,6 +99,7 @@ public class KeyboardUI : MonoBehaviour
         _text = initial ?? "";
         _shift = _text.Length == 0 ? Shift.Once : Shift.Off;   // prima lettera maiuscola
         _dictating = false;
+        if (_micBg != null) _micBg.gameObject.SetActive(generator == null || !generator.keyboardOnly);   // solo tastiera: niente microfono
         _title.text = title ?? "Scrivi";
         _status.text = "Il microfono detta dentro il testo";
         RefreshKeys();
@@ -185,7 +187,7 @@ public class KeyboardUI : MonoBehaviour
 
     void StartDictation()
     {
-        if (_dictating || generator == null) return;
+        if (_dictating || generator == null || generator.keyboardOnly) return;
         StartCoroutine(DictateRoutine());
     }
 
@@ -262,6 +264,7 @@ public class KeyboardUI : MonoBehaviour
         _field = Txt(_root, "Field", 30, FontStyles.Normal, TextMain, TextAlignmentOptions.MidlineLeft);
         Place(_field.rectTransform, 38, 62, 610, 76);
         _field.overflowMode = TextOverflowModes.Truncate;
+        _field.enableAutoSizing = false;   // il testo digitato non si rimpicciolisce
         _field.richText = false;   // il testo scritto non deve essere letto come markup
 
         var mic = MakeButton(_root, "Mic", "", 672, 58, 100, 84, StartDictation);
@@ -391,6 +394,7 @@ public class KeyboardUI : MonoBehaviour
         t.alignment = align;
         t.textWrappingMode = TextWrappingModes.Normal;
         t.overflowMode = TextOverflowModes.Truncate;
+        t.enableAutoSizing = true; t.fontSizeMax = size; t.fontSizeMin = size * 0.55f;   // testi più lunghi (es. in inglese) rimpiccioliscono invece di venire tagliati
         t.richText = true;
         t.raycastTarget = false;
         return t;

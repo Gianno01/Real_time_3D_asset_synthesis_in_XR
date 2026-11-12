@@ -444,6 +444,11 @@ public class AssetLibrary : MonoBehaviour
 
             if (replace) ClearScene();
             int failed = 0;
+
+            // raddrizzamenti salvati con la scena: si riapplicano così come sono (ricalcolarli darebbe rotazioni diverse se l'algoritmo
+            // o l'impostazione "Raddrizza i modelli" sono cambiati dopo il salvataggio). Scene vecchie senza dati → si ricalcola.
+            List<AlignData> savedAligns = null;
+            try { savedAligns = JsonUtility.FromJson<LightingData>(r.scene.extras ?? "")?.align; } catch (Exception) { }
             for (int i = 0; i < r.objects.Count; i++)
             {
                 var rec = r.objects[i];
@@ -452,7 +457,8 @@ public class AssetLibrary : MonoBehaviour
                 yield return StartCoroutine(LoadAssetObject(rec.glb_key, rec.name, g => go = g, e => Debug.LogWarning($"[Library] {rec.name}: {e}")));
                 if (go == null) { failed++; continue; }
 
-                generator.PrepareObject(go, false);   // collider, presa, griglia/misure/aggancio (poi la posa salvata; niente effetto: gli oggetti salvati ricompaiono subito)
+                bool haveAlign = savedAligns != null && i < savedAligns.Count && savedAligns[i] != null && savedAligns[i].asset_id == rec.asset_id;
+                generator.PrepareObject(go, false, haveAlign ? savedAligns[i].al : null, haveAlign);   // collider, presa, griglia/misure/aggancio (poi la posa salvata; niente effetto: gli oggetti salvati ricompaiono subito)
                 var q = new Quaternion(rec.rx, rec.ry, rec.rz, rec.rw);
                 if (q.x == 0f && q.y == 0f && q.z == 0f && q.w == 0f) q = Quaternion.identity;
                 go.transform.localScale = Vector3.one * (rec.scale > 0f ? rec.scale : 1f);

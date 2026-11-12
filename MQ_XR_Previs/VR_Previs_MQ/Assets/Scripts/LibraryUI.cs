@@ -152,13 +152,13 @@ public class LibraryUI : MonoBehaviour
     }
 
     // Con la tastiera attiva i pulsanti "a voce" aprono la tastiera (col microfono accanto)
-    string Lbl(string voice, string keyboard) => generator != null && generator.keyboardInput ? keyboard : voice;
-    string Wait() => generator != null && generator.keyboardInput ? "Scrivi..." : "Ascolto...";
+    string Lbl(string voice, string keyboard) => generator != null && generator.UsesKeyboard ? keyboard : voice;
+    string Wait() => generator != null && generator.UsesKeyboard ? "Scrivi..." : "Ascolto...";
     bool _kbLabels;
 
     void UpdateInputLabels()
     {
-        bool kb = generator != null && generator.keyboardInput;
+        bool kb = generator != null && generator.UsesKeyboard;
         if (kb == _kbLabels && _searchLabel != null && _searchLabel.text != "Ascolto..." && _searchLabel.text != "Scrivi...") return;
         _kbLabels = kb;
         if (_searchLabel != null && _searchLabel.text != "Ascolto..." && _searchLabel.text != "Scrivi...") _searchLabel.text = Lbl("Cerca a voce", "Cerca");
@@ -201,6 +201,7 @@ public class LibraryUI : MonoBehaviour
     void TogglePanel()
     {
         if (_view != View.None) { ShowView(View.None); return; }
+        if (RoomCalibration.Blocking) return;
         ShowView(generator.State == PipelineState.Suggesting ? View.Suggest : View.Inventory);
         if (_view == View.Suggest) FillSuggestions();
     }
@@ -893,10 +894,10 @@ public class LibraryUI : MonoBehaviour
             {
                 if (idx < _styles.Count) { _saveStyle = _saveStyle == _styles[idx] ? "" : _styles[idx]; UpdateSaveChips(); }
             }, out var lbl);
-            lbl.fontSize = 14;
+            lbl.fontSize = 14; lbl.fontSizeMax = 14; lbl.fontSizeMin = 14*0.55f;
             _styleChips.Add((img, lbl));
         }
-        MakeButton(v, "VoiceStyle", "Nuovo stile a voce", 24, 282, 160, 36, VoiceNewStyle, out _styleVoiceLabel).GetComponentInChildren<TextMeshProUGUI>().fontSize = 15;
+        MakeButton(v, "VoiceStyle", "Nuovo stile a voce", 24, 282, 160, 36, VoiceNewStyle, out _styleVoiceLabel).GetComponentInChildren<TextMeshProUGUI>().fontSizeMax = 15;
 
         _saveInfo = Txt(v, "Info", 16, FontStyles.Normal, TextDim, TextAlignmentOptions.TopLeft);
         Place(_saveInfo.rectTransform, 24, 362, 672, 100);
@@ -918,7 +919,7 @@ public class LibraryUI : MonoBehaviour
         else t.SetParent(transform, false);
         var b = MakeButton(root, "Library", "Libreria", 0, 0, 150, 56, TogglePanel, out var lbl);
         b.color = new Color(0.07f, 0.08f, 0.11f, 0.85f);
-        lbl.fontSize = 22;
+        lbl.fontSize = 22; lbl.fontSizeMax = 22; lbl.fontSizeMin = 22*0.55f;
     }
 
     void BuildToolbar()
@@ -1023,6 +1024,7 @@ public class LibraryUI : MonoBehaviour
         t.alignment = align;
         t.textWrappingMode = TextWrappingModes.Normal;
         t.overflowMode = TextOverflowModes.Truncate;
+        t.enableAutoSizing = true; t.fontSizeMax = size; t.fontSizeMin = size * 0.55f;   // testi più lunghi (es. in inglese) rimpiccioliscono invece di venire tagliati
         t.richText = true;
         t.raycastTarget = false;
         return t;

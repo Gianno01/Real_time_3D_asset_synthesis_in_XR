@@ -150,6 +150,7 @@ public class SettingsUI : MonoBehaviour
 
         Add(_left, "VOCE",
             Bool("keyboard_input", "Tastiera al posto della voce", () => g.keyboardInput, v => g.keyboardInput = v),
+            Bool("keyboard_only", "Solo tastiera (ascolto spento)", () => g.keyboardOnly, v => g.SetKeyboardOnly(v)),
             Bool("hands_free", "Mani libere (\"genera...\")", () => g.handsFreeMode, v => g.SetHandsFree(v)),
             Bool("voice_proceed", "Prosegui a voce", () => g.voiceProceedEnabled, v => g.voiceProceedEnabled = v),
             Step("mic_threshold", "Sensibilità microfono", new[] { 0.08f, 0.06f, 0.04f, 0.03f, 0.02f },
@@ -170,6 +171,9 @@ public class SettingsUI : MonoBehaviour
         if (library != null)
             gen.Add(Step("suggest_score", "Somiglianza minima", new[] { 0.5f, 0.55f, 0.6f, 0.65f, 0.7f, 0.75f, 0.8f, 0.85f },
                          () => library.suggestMinScore, v => library.suggestMinScore = v, v => $"{Mathf.RoundToInt(v * 100f)}%"));
+        gen.Add(Step("model3d", "Modello 3D", new[] { 0f, 1f, 2f, 3f },
+                     () => g.model3D, v => g.model3D = Mathf.RoundToInt(v),
+                     v => new[] { "Predefinito", "IDOL", "Pixal3D", "Trellis2" }[Mathf.Clamp(Mathf.RoundToInt(v), 0, 3)]));
         gen.Add(Bool("auto_align", "Raddrizza i modelli", () => g.autoAlignModels, v => g.autoAlignModels = v));
         gen.Add(Step("target_size", "Dimensione iniziale", new[] { 0.15f, 0.2f, 0.3f, 0.5f, 0.75f, 1f, 1.5f },
                      () => g.targetObjectSize, v => g.targetObjectSize = v, Cm));
@@ -237,9 +241,13 @@ public class SettingsUI : MonoBehaviour
                     run = () => sync.Reconnect(),
                 });
 
-        if (statusUI != null)
-            Add(_right, "INTERFACCIA",
-                Bool("haptics", "Vibrazione dei controller", () => statusUI.haptics, v => statusUI.haptics = v));
+        var ui = new List<Setting>
+        {
+            Step("language", "Lingua", new[] { 0f, 1f }, () => Loc.Language, v => Loc.Language = Mathf.RoundToInt(v),
+                 v => Mathf.RoundToInt(v) == 1 ? "Italiano" : "English"),
+        };
+        if (statusUI != null) ui.Add(Bool("haptics", "Vibrazione dei controller", () => statusUI.haptics, v => statusUI.haptics = v));
+        Add(_right, "INTERFACCIA", ui.ToArray());
     }
 
     void Add(List<(string, List<Setting>)> column, string section, params Setting[] items)
@@ -365,6 +373,7 @@ public class SettingsUI : MonoBehaviour
 
     void SetOpen(bool open)
     {
+        if (open && RoomCalibration.Blocking) return;   // prima si calibra la stanza
         _open = open;
         if (_panel != null) _panel.gameObject.SetActive(open);
         if (open)
@@ -449,7 +458,7 @@ public class SettingsUI : MonoBehaviour
                     label.text = act.status != null ? act.status() : act.label;
                     Place(label.rectTransform, x, y, ColW - 126, RowH - 4);
                     act.toggleBg = MakeButton(root, s.key + "A", act.buttonText, x + ColW - 120, y + 2, 120, 34, () => RunAction(act), out var at);
-                    at.fontSize = 15;
+                    at.fontSize = 15; at.fontSizeMax = 15; at.fontSizeMin = 15*0.55f;
                     act.valueLabel = at;
                 }
                 else if (s is StepSetting st)
@@ -463,7 +472,7 @@ public class SettingsUI : MonoBehaviour
                 else
                 {
                     s.toggleBg = MakeButton(root, s.key + "T", "", x + ColW - 120, y + 2, 120, 34, () => Toggle(s), out var t);
-                    t.fontSize = 16;
+                    t.fontSize = 16; t.fontSizeMax = 16; t.fontSizeMin = 16*0.55f;
                     s.valueLabel = t;
                 }
                 y += RowH;
@@ -484,7 +493,7 @@ public class SettingsUI : MonoBehaviour
         else t.SetParent(transform, false);
         var b = MakeButton(root, "Settings", "Impostazioni", 0, 0, 150, 48, () => SetOpen(!_open), out var lbl);
         b.color = new Color(0.07f, 0.08f, 0.11f, 0.85f);
-        lbl.fontSize = 18;
+        lbl.fontSize = 18; lbl.fontSizeMax = 18; lbl.fontSizeMin = 18*0.55f;
     }
 
     // ── Utilità UI (come in LibraryUI) ────────────────────────────────
@@ -558,6 +567,7 @@ public class SettingsUI : MonoBehaviour
         t.alignment = align;
         t.textWrappingMode = TextWrappingModes.Normal;
         t.overflowMode = TextOverflowModes.Truncate;
+        t.enableAutoSizing = true; t.fontSizeMax = size; t.fontSizeMin = size * 0.55f;   // testi più lunghi (es. in inglese) rimpiccioliscono invece di venire tagliati
         t.richText = true;
         t.raycastTarget = false;
         return t;

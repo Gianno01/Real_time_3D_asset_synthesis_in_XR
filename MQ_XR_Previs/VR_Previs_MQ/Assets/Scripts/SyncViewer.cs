@@ -77,6 +77,7 @@ public class SyncViewer : MonoBehaviour
                 HostOnline = m.hostOnline;
                 SceneName = m.sceneName ?? "";
                 SetAll(m.objs);
+                ApplyLighting(m.lighting);
                 SetPose(m);
                 _co.SetOnline(m.cohostOnline);
                 AskCalibrationOnce();
@@ -85,11 +86,20 @@ public class SyncViewer : MonoBehaviour
             case "del": Remove(m.id); break;
             case "clear": ClearAll(); break;
             case "scene": SceneName = m.sceneName ?? ""; break;
+            case "light": ApplyLighting(m.lighting); break;
             case "pose": SetPose(m); break;
             case "pose2": _co.SetPose(m.hp, m.lp, m.rp); break;
             case "cohost": _co.SetOnline(m.cohostOnline); break;
             case "host": HostOnline = m.hostOnline; if (!HostOnline && _avatar != null) _avatar.SetActive(false); break;
         }
+    }
+
+    // Luci, blocchi di occlusione e oscuramento dell'host/co-host: si vedono uguali anche qui
+    void ApplyLighting(string json)
+    {
+        var l = FindAnyObjectByType<SceneLighting>();
+        if (l == null && !string.IsNullOrEmpty(json)) l = SceneLighting.EnsureExists(gameObject);
+        if (l != null) l.ApplyExtras(json ?? "");
     }
 
     // Se la stanza non è calibrata gli oggetti compaiono nel posto sbagliato: si avvia la procedura (una volta)

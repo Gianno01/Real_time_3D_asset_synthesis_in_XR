@@ -52,19 +52,26 @@ public class QuestObjectGenerator : MonoBehaviour
     [Header("Tastiera (alternativa alla voce)")]
     [Tooltip("Al posto di parlare puoi scrivere con la tastiera a schermo, con il microfono accanto per dettare. Spenta di default: si accende da Impostazioni → VOCE")]
     public bool keyboardInput = false;
+    [Tooltip("Modalità solo tastiera: ascolto spento, si procede solo scrivendo. Si attiva dal pulsante in alto accanto a quello di riduzione")]
+    public bool keyboardOnly = false;
+    public bool UsesKeyboard => keyboardInput || keyboardOnly;
+    const string KeyboardOnlyPref = "gen_keyboard_only";
+    /// <summary>Scatta quando parte una richiesta (parola di attivazione, pulsante, tastiera): l'interfaccia torna davanti al viso.</summary>
+    public event Action RequestBegan;
+    public void NotifyRequestBegan() => RequestBegan?.Invoke();
 
     [Header("Mani libere (parola di attivazione)")]
     [Tooltip("Modello 3D usato da n8n: 0 = predefinito del workflow, 1 = IDOL (splat → mesh), 2 = Pixal3D, 3 = Trellis2")]
     public int model3D = 0;
     public bool handsFreeMode = true;
     [Tooltip("Parole di attivazione (minuscolo). Vale anche l'inizio della parola: 'genera' riconosce 'generami'")]
-    public string[] wakeWords = { "genera", "crea" };
+    public string[] wakeWords = { "genera", "generate" };   // le uniche parole che avviano una richiesta o una modifica (forzate in Awake)
     [Tooltip("Volume minimo per considerare che stai parlando (0–1)")]
     public float voiceThreshold = 0.04f;
     [Tooltip("Durata minima (s) di suono sopra la soglia per considerarlo voce: scarta soffi, colpi e rumori brevi")]
     public float minSpeechSeconds = 0.3f;
     [Tooltip("Mani libere: l'interfaccia reagisce subito (Ti ascolto → Audio inviato) senza aspettare la risposta di Whisper")]
-    public bool instantListenFeedback = true;
+    public bool instantListenFeedback = false;   // spento: "Ti ascolto" compare solo dopo la parola di attivazione
     [Tooltip("Pausa (s) che chiude una frase in ascolto continuo")]
     public float utteranceSilence = 1.0f;
     [Tooltip("Secondi di attesa dell'oggetto dopo aver detto solo la parola di attivazione")]
@@ -297,6 +304,9 @@ public class QuestObjectGenerator : MonoBehaviour
     {
         _audioSource = gameObject.AddComponent<AudioSource>();
         if (library == null) library = FindAnyObjectByType<AssetLibrary>();
+        wakeWords = new[] { "genera", "generate" };   // il valore salvato nella scena non conta: solo queste due
+        instantListenFeedback = false;
+        keyboardOnly = PlayerPrefs.GetInt(KeyboardOnlyPref, 0) == 1;
         _sessionId = Guid.NewGuid().ToString("N").Substring(0, 8);
         if (whisperPrompt == OldWhisperPrompt) whisperPrompt = DefaultWhisperPrompt;   // il valore salvato nella scena ha la precedenza sul codice
 
@@ -467,24 +477,25 @@ public class QuestObjectGenerator : MonoBehaviour
     private void OnRecordButtonPressed(InputAction.CallbackContext context)
     {
         // Se stai puntando l'interfaccia (es. "Prosegui"), la pressione serve a cliccare, non a registrare
-        if (IsPointingAtUI() || IsDictating || _textEntry) return;
+        if (RoomCalibration.Blocking || IsPointingAtUI() || IsDictating || _textEntry) return;
 
         // con la tastiera attiva lo stick la apre (se stai già registrando, invece, chiude e invia)
-        if (keyboardInput && !_isRecording) { RequestInput(); return; }
+        if (UsesKeyboard && !_isRecording) { RequestInput(); return; }
         StartVoiceRequest();
     }
 
     /// <summary>Stick / pulsante della barra: apre la tastiera se è attiva, altrimenti registra a voce.</summary>
     public void RequestInput()
     {
+        if (RoomCalibration.Blocking) return;
         if (State == PipelineState.Preview) { CorrectionInput(); return; }
-        if (keyboardInput) OpenRequestKeyboard(); else StartVoiceRequest();
+        if (UsesKeyboard) OpenRequestKeyboard(); else StartVoiceRequest();
     }
 
     /// <summary>Registra a voce (o chiude la registrazione e invia). Vale sempre, anche con la tastiera attiva (pulsante microfono).</summary>
     public void StartVoiceRequest()
     {
-        if (IsDictating || _textEntry) return;
+        if (RoomCalibration.Blocking || keyboardOnly || IsDictating || _textEntry) return;
         if (State == PipelineState.Preview)
         {
             if (!_isRecording) StartCorrectionRecording();
@@ -497,6 +508,7 @@ public class QuestObjectGenerator : MonoBehaviour
         {
             _awaitingCommand = false;
             StopListening();
+            NotifyRequestBegan();
             StartRecording();
         }
         else StopRecordingAndSend();
@@ -531,7 +543,7 @@ public class QuestObjectGenerator : MonoBehaviour
     /// <summary>Chiede un testo: con la tastiera attiva la apre (col microfono accanto), altrimenti lo detta a voce.</summary>
     public IEnumerator AskText(string title, string initial, Action<string> callback)
     {
-        if (!keyboardInput)
+        if (!UsesKeyboard)
         {
             yield return StartCoroutine(Dictate(callback));
             yield break;
@@ -546,8 +558,9 @@ public class QuestObjectGenerator : MonoBehaviour
     /// <summary>Nuova richiesta scritta: stessa strada della voce (con o senza parola di attivazione davanti).</summary>
     public void OpenRequestKeyboard()
     {
-        if (_isGenerating || _isRecording || IsDictating || _textEntry || !IsRestingState) return;
+        if (RoomCalibration.Blocking || _isGenerating || _isRecording || IsDictating || _textEntry || !IsRestingState) return;
         _awaitingCommand = false;
+        NotifyRequestBegan();
         GetKeyboardUI().Open("Cosa vuoi generare?", "", text =>
         {
             if (string.IsNullOrWhiteSpace(text) || _isGenerating) return;
@@ -560,7 +573,7 @@ public class QuestObjectGenerator : MonoBehaviour
     /// <summary>Anteprima: correzione scritta (come "Correggi" a voce).</summary>
     public void OpenCorrectionKeyboard()
     {
-        if (State != PipelineState.Preview || _isRecording || IsDictating || _textEntry) return;
+        if (RoomCalibration.Blocking || State != PipelineState.Preview || _isRecording || IsDictating || _textEntry) return;
         GetKeyboardUI().Open("Cosa vuoi cambiare nell'immagine?", "", text =>
         {
             if (State != PipelineState.Preview || string.IsNullOrWhiteSpace(text)) return;
@@ -571,7 +584,7 @@ public class QuestObjectGenerator : MonoBehaviour
     /// <summary>Pulsante "Correggi": tastiera se è attiva, altrimenti registrazione a voce.</summary>
     public void CorrectionInput()
     {
-        if (keyboardInput) OpenCorrectionKeyboard(); else StartCorrectionRecording();
+        if (UsesKeyboard) OpenCorrectionKeyboard(); else StartCorrectionRecording();
     }
 
     // Vero se un raggio di controller o mano sta puntando un elemento dell'interfaccia
@@ -591,7 +604,7 @@ public class QuestObjectGenerator : MonoBehaviour
 
     private void StartListening()
     {
-        if (!handsFreeMode || IsListening || _isRecording || _textEntry) return;
+        if (!handsFreeMode || keyboardOnly || RoomCalibration.Blocking || IsListening || _isRecording || _textEntry) return;
         IsListening = true;
         _listenRoutine = StartCoroutine(ListenLoop());
     }
@@ -716,8 +729,7 @@ public class QuestObjectGenerator : MonoBehaviour
     // Si può mostrare "Ti ascolto" solo a riposo: mai sopra anteprima, generazione o altre richieste
     private bool CanShowListenFeedback()
     {
-        if (!instantListenFeedback || _isGenerating || _isRecording || _awaitingCommand) return false;
-        return IsRestingState;
+        return false;   // "Ti ascolto" compare solo quando senti la parola di attivazione (vedi HandleUtterance)
     }
 
     // Finita la frase: se non era un comando (rumore, conversazione, trascrizione scartata) l'interfaccia torna a riposo
@@ -756,6 +768,8 @@ public class QuestObjectGenerator : MonoBehaviour
         }
 
         if (!TryExtractCommand(text, out string command)) yield break;
+
+        NotifyRequestBegan();   // parola di attivazione sentita: l'interfaccia torna davanti al viso
 
         if (string.IsNullOrEmpty(command))
         {
@@ -1041,7 +1055,7 @@ public class QuestObjectGenerator : MonoBehaviour
 
     public void TriggerGeneration(string prompt)
     {
-        if (_isGenerating || string.IsNullOrWhiteSpace(prompt)) return;
+        if (RoomCalibration.Blocking || _isGenerating || string.IsNullOrWhiteSpace(prompt)) return;
         StartCoroutine(RunPipeline(prompt));
     }
 
@@ -1213,7 +1227,9 @@ public class QuestObjectGenerator : MonoBehaviour
     // ── API per la libreria (AssetLibrary / LibraryUI) ───────────────
 
     /// <summary>Prepara un oggetto caricato: davanti all'utente, collider, presa con una/due mani, griglia/misure/aggancio.</summary>
-    public void PrepareObject(GameObject obj, bool animate = true) => PlaceInScene(obj, animate);
+    /// <summary>useStoredAlign = true: il raddrizzamento è quello salvato (storedAlign, vuoto = nessuno) invece di essere ricalcolato.</summary>
+    public void PrepareObject(GameObject obj, bool animate = true, float[] storedAlign = null, bool useStoredAlign = false) =>
+        PlaceInScene(obj, animate, storedAlign, useStoredAlign);
 
     /// <summary>Crea un oggetto da un GLB già scaricato (non cambia lo stato della pipeline).</summary>
     public IEnumerator InstantiateGlb(byte[] data, string sourceUrl, string objectName, Action<GameObject, string> callback)
@@ -1347,9 +1363,10 @@ public class QuestObjectGenerator : MonoBehaviour
     /// <summary>Anteprima: registra una correzione a voce (pulsante "Correggi" o stick).</summary>
     public void StartCorrectionRecording()
     {
-        if (State != PipelineState.Preview || _isRecording) return;
+        if (keyboardOnly || State != PipelineState.Preview || _isRecording) return;
         StopListening();
         _correctionMode = true;
+        NotifyRequestBegan();
         StartRecording();
     }
 
@@ -1383,12 +1400,17 @@ public class QuestObjectGenerator : MonoBehaviour
     {
         Debug.Log($"[QuestObjectGenerator] Anteprima, sentito: \"{text}\"");
 
-        // "Genera ..." → nuova richiesta al posto di quella corrente
-        if (TryExtractCommand(text, out string cmd) && !string.IsNullOrEmpty(cmd))
+        // A voce una modifica parte solo con "genera ..." / "generate ...": è la sola parola di attivazione
+        if (!fromButton)
         {
-            _workingPrompt = cmd;
-            LastCorrection = "";
-            _previewDecision = PreviewDecision.Retry;
+            if (TryExtractCommand(text, out string wakeCmd))
+            {
+                if (string.IsNullOrEmpty(wakeCmd)) return;
+                NotifyRequestBegan();
+                ApplyCorrection(wakeCmd);
+                return;
+            }
+            if (StartsWithAny(text, proceedWords) && voiceProceedEnabled) ProceedToModel();
             return;
         }
 
@@ -1640,9 +1662,10 @@ public class QuestObjectGenerator : MonoBehaviour
         }
     }
 
-    private void PlaceInScene(GameObject obj, bool animate = true)
+    private void PlaceInScene(GameObject obj, bool animate = true, float[] storedAlign = null, bool useStoredAlign = false)
     {
-        if (autoAlignModels) ModelAlignment.Align(obj, alignTilt, maxTiltCorrection);   // prima di misurare: griglia e misure sui lati veri
+        if (useStoredAlign) ModelAlignment.ApplyStored(obj, storedAlign);   // scene salvate: stesso raddrizzamento di quando sono state salvate
+        else if (autoAlignModels) ModelAlignment.Align(obj, alignTilt, maxTiltCorrection);   // prima di misurare: griglia e misure sui lati veri
         var modelBounds = ModelBounds.Build(obj);   // ingombro e guscio dai vertici veri (dopo l'allineamento)
         AdjustScale(obj);
         Bounds bounds = GetWorldBounds(obj);
@@ -1747,6 +1770,16 @@ public class QuestObjectGenerator : MonoBehaviour
     }
 
     /// <summary>Attiva o disattiva l'ascolto continuo con parola di attivazione.</summary>
+    /// <summary>Modalità solo tastiera: spegne l'ascolto e il microfono; si procede solo scrivendo.</summary>
+    public void SetKeyboardOnly(bool on)
+    {
+        keyboardOnly = on;
+        PlayerPrefs.SetInt(KeyboardOnlyPref, on ? 1 : 0);
+        PlayerPrefs.Save();
+        if (on) StopListening();
+        else if (handsFreeMode && !_isRecording && !IsDictating && (!_isGenerating || State == PipelineState.Preview)) StartListening();
+    }
+
     public void SetHandsFree(bool on)
     {
         handsFreeMode = on;
