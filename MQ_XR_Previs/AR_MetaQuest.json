@@ -746,6 +746,131 @@
         5200
       ],
       "id": "4d8680b0-a824-41ed-926d-bdd18e7b421e"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "quest-cancel",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "name": "Webhook annulla",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -3616,
+        3700
+      ],
+      "id": "f21b3ada-a921-4389-a988-90245830fa8d",
+      "webhookId": "db5588d5-e99d-4539-972c-7093a3fe6a9f"
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "dataTableId": {
+          "__rl": true,
+          "value": "xxfr9mIyG88phlJJ",
+          "mode": "list",
+          "cachedResultName": "quest_cancel",
+          "cachedResultUrl": "/projects/jepgjIAB9ODKOGHf/datatables/xxfr9mIyG88phlJJ"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "session_id": "={{ $json.body.session_id }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "session_id",
+              "displayName": "session_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "name": "Segna sessione annullata",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        -3376,
+        3700
+      ],
+      "id": "6b68196f-36e7-4abb-afe4-2f117d6bfa80",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "content": "## Annullamento (per sessione)\nWebhook `quest-cancel`: segna la sessione in `quest_cancel` (il polling si ferma), poi cerca nella coda di ComfyUI solo i job con `ar_<session_id>` e li interrompe (in esecuzione) o li elimina (in coda). Gli altri visori non vengono toccati. Richiede un ComfyUI recente (`/interrupt` con `prompt_id`). Disattiva il vecchio workflow «Quest - Annulla richiesta».",
+        "height": 140,
+        "width": 420
+      },
+      "name": "Nota annullamento",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -3616,
+        3540
+      ],
+      "id": "1de4bac7-8f43-490b-98fd-c6a1bd085c33"
+    },
+    {
+      "parameters": {
+        "url": "http://10.54.15.50:8188/queue",
+        "options": {
+          "timeout": 5000
+        }
+      },
+      "name": "Leggi coda ComfyUI",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -3136,
+        3700
+      ],
+      "id": "8d4c540f-91f9-4330-943d-6e73b3f1114a",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Annullamento per sessione: cerca nella coda di ComfyUI SOLO i job di questa sessione\n// (i grafi salvano con prefisso \"ar_<session_id>\", anche \"3d/ar_<session_id>\"), così gli altri visori non vengono toccati.\nconst sid = String($('Webhook annulla').first().json.body?.session_id ?? '');\nif (!sid) return [];\nconst q = $input.first().json ?? {};\nconst needle = 'ar_' + sid;\nconst jobs = [];\nfor (const [list, running] of [[q.queue_running, true], [q.queue_pending, false]]) {\n  for (const item of (list ?? [])) {\n    // item = [numero, prompt_id, grafo, extra_data, output]\n    if (JSON.stringify(item[2] ?? {}).includes(needle)) jobs.push({ json: { prompt_id: item[1], running, session_id: sid } });\n  }\n}\nreturn jobs;   // nessun job trovato = nulla da fermare (la riga in quest_cancel ferma comunque il polling)"
+      },
+      "name": "Trova job della sessione",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2896,
+        3700
+      ],
+      "id": "a8fdd3c4-dec4-4ca8-8290-8d0fa7c7a1ab"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'http://10.54.15.50:8188' + ($json.running ? '/interrupt' : '/queue') }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.running ? { prompt_id: $json.prompt_id } : { delete: [$json.prompt_id] }) }}",
+        "options": {
+          "timeout": 5000
+        }
+      },
+      "name": "Interrompi o elimina job",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -2656,
+        3700
+      ],
+      "id": "dbd79ae0-2869-47f4-ad11-a0dc97c1befa",
+      "onError": "continueRegularOutput"
     }
   ],
   "pinData": {},
@@ -1156,6 +1281,50 @@
         [
           {
             "node": "Wait2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook annulla": {
+      "main": [
+        [
+          {
+            "node": "Segna sessione annullata",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Segna sessione annullata": {
+      "main": [
+        [
+          {
+            "node": "Leggi coda ComfyUI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leggi coda ComfyUI": {
+      "main": [
+        [
+          {
+            "node": "Trova job della sessione",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Trova job della sessione": {
+      "main": [
+        [
+          {
+            "node": "Interrompi o elimina job",
             "type": "main",
             "index": 0
           }
