@@ -126,10 +126,18 @@ public class KeyboardUI : MonoBehaviour
         try { cb?.Invoke(result); } catch (Exception e) { Debug.LogException(e); }
     }
 
+    PanelMover _mover;
+
     void PlaceInFrontOfHead()
     {
         var head = generator != null ? generator.Head : null;
         if (head == null) return;
+        if (_mover != null)
+        {
+            _mover.head = head;
+            if (!_mover.NeedsPlacement()) return;   // spostata a mano: resta dov'è
+            _mover.ResetPin();
+        }
         Vector3 fwd = Vector3.ProjectOnPlane(head.forward, Vector3.up);
         if (fwd.sqrMagnitude < 0.001f) fwd = Vector3.forward;
         fwd.Normalize();
@@ -250,6 +258,7 @@ public class KeyboardUI : MonoBehaviour
         _root = (RectTransform)go.transform;
         _root.sizeDelta = new Vector2(W, H);
         _root.localScale = Vector3.one * 0.001f;
+        _mover = PanelMover.Attach(_root, generator != null ? generator.Head : null, 1.5f);   // maniglia sotto la tastiera: si sposta a piacere
 
         var bg = Img(_root, "Background", _rounded, CardBg, true, 1f);
         Stretch(bg.rectTransform);

@@ -472,6 +472,7 @@ public class AssetLibrary : MonoBehaviour
                 so.assetId = rec.asset_id; so.inInventory = rec.in_inventory; so.glbKey = rec.glb_key; so.thumbKey = rec.thumb_key;
                 so.displayName = rec.name; so.objectName = rec.object_name; so.promptIt = rec.prompt_it; so.promptEn = rec.prompt_en;
                 so.category = rec.category; so.style = rec.style; so.placedBy = rec.placed_by;
+                so.SetLocked(true);   // gli oggetti di una scena caricata partono bloccati (si sbloccano col lucchetto)
             }
 
             if (SceneExtrasApplier != null && (replace || HasLighting(r.scene.extras)))

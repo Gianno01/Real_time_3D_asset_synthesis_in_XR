@@ -8,7 +8,14 @@ using UnityEngine;
 public static class UiIcons
 {
     const int Size = 96;
-    static Texture2D s_minimize, s_gear, s_book, s_keyboard, s_mic, s_micOff;
+    static Texture2D s_target, s_minimize, s_gear, s_book, s_keyboard, s_mic, s_micOff;
+
+    /// <summary>Mirino: riporta l'interfaccia davanti a te.</summary>
+    public static Texture2D Target => s_target ??= Make((x, y) =>
+    {
+        float dx = x - 0.5f, dy = y - 0.5f, r = Mathf.Sqrt(dx * dx + dy * dy);
+        return (r > 0.30f && r < 0.40f) || r < 0.10f;
+    });
 
     /// <summary>"_" : riduci a icona.</summary>
     public static Texture2D Minimize => s_minimize ??= Make((x, y) => RoundRect(x, y, 0.22f, 0.20f, 0.78f, 0.31f, 0.055f));

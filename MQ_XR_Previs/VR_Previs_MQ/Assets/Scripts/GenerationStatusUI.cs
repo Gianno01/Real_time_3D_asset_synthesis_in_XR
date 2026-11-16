@@ -62,6 +62,10 @@ public class GenerationStatusUI : MonoBehaviour
     public bool recallWhenOutOfView = true;
     [Tooltip("Il pannello resta dov'è e torna davanti al viso SOLO quando parte una richiesta (parola \"genera\"/\"generate\", pulsante o tastiera)")]
     public bool frontOnlyOnRequest = true;
+    [Tooltip("Distanza massima dal viso mentre si sposta il pannello (m): non si può spingere all'infinito")]
+    public float maxGrabDistance = 1.5f;
+    [Tooltip("Distanza minima dal viso mentre si sposta il pannello (m)")]
+    public float minGrabDistance = 0.25f;
 
     [Header("Comportamento")]
     public bool showIdleHint = true;
@@ -585,6 +589,16 @@ public class GenerationStatusUI : MonoBehaviour
 
         if (_grabbed || _pinned || (frontOnlyOnRequest && !snap))
         {
+            if (_grabbed)   // limite di distanza: né troppo lontano né dentro la faccia
+            {
+                Vector3 off = transform.position - h.position;
+                float d = off.magnitude;
+                if (d > 0.001f)
+                {
+                    float c = Mathf.Clamp(d, minGrabDistance, maxGrabDistance);
+                    if (!Mathf.Approximately(c, d)) transform.position = h.position + off / d * c;
+                }
+            }
             // Fissato dove l'hai lasciato: si gira solo verso di te, mantenendo l'inclinazione da pannello
             Vector3 toPanel = Flat(transform.position - h.position);
             Quaternion r = Quaternion.LookRotation(toPanel, Vector3.up) * Quaternion.Euler(deskTilt, 0f, 0f);
@@ -879,7 +893,7 @@ public class GenerationStatusUI : MonoBehaviour
         var tbGo = new GameObject("Toolbar", typeof(RectTransform), typeof(CanvasGroup));
         tbGo.transform.SetParent(root, false);
         _toolbarRt = (RectTransform)tbGo.transform;
-        _toolbarRt.sizeDelta = new Vector2(6 * ToolBtn + 5 * ToolGap, ToolBtn);   // tastiera e microfono stanno a sinistra e compaiono solo se la tastiera è attiva
+        _toolbarRt.sizeDelta = new Vector2(7 * ToolBtn + 6 * ToolGap, ToolBtn);   // tastiera e microfono stanno a sinistra e compaiono solo se la tastiera è attiva
         _toolbarRt.anchoredPosition = new Vector2(PillW / 2f - _toolbarRt.sizeDelta.x / 2f, PillH / 2f + ToolBtn / 2f + 10f);
         _toolbarGroup = tbGo.GetComponent<CanvasGroup>();
         _tbKeyboard = MakeIconButton(_toolbarRt, "Keyboard", UiIcons.Keyboard, 0, () => { if (generator != null) generator.RequestInput(); });
@@ -891,6 +905,7 @@ public class GenerationStatusUI : MonoBehaviour
             () => { if (generator != null && !RoomCalibration.Blocking) generator.SetKeyboardOnly(!generator.keyboardOnly); });
         _tbMinimize = MakeIconButton(_toolbarRt, "Minimize", UiIcons.Minimize, 3 * (ToolBtn + ToolGap), ToggleMinimized);
         _tbSettings = MakeIconButton(_toolbarRt, "Settings", UiIcons.Gear, 4 * (ToolBtn + ToolGap), () => { FindPanels(); if (_settingsUI != null) _settingsUI.Toggle(); });
+        MakeIconButton(_toolbarRt, "Recenter", UiIcons.Target, 6 * (ToolBtn + ToolGap), Recenter);   // riporta l'interfaccia al suo posto
         _tbLibrary  = MakeIconButton(_toolbarRt, "Library", UiIcons.Book, 5 * (ToolBtn + ToolGap), () => { FindPanels(); if (_libraryUI != null) _libraryUI.Toggle(); });
     }
 

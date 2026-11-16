@@ -1030,6 +1030,7 @@ public class SceneLighting : MonoBehaviour
     static readonly Color BadCol   = new Color(1.00f, 0.43f, 0.41f);
 
     RectTransform _panel;
+    PanelMover _mover;
     Sprite _rounded;
     GameObject _groupLight, _groupBlock;
     TextMeshProUGUI _selLabel, _hint;
@@ -1058,6 +1059,12 @@ public class SceneLighting : MonoBehaviour
     {
         var head = generator != null ? generator.Head : (Camera.main != null ? Camera.main.transform : null);
         if (head == null) return;
+        if (_mover != null)
+        {
+            _mover.head = head;
+            if (!_mover.NeedsPlacement()) return;   // spostato a mano: resta dov'è
+            _mover.ResetPin();
+        }
         Vector3 fwd = Vector3.ProjectOnPlane(head.forward, Vector3.up);
         if (fwd.sqrMagnitude < 0.001f) fwd = Vector3.forward;
         fwd.Normalize();
@@ -1133,6 +1140,7 @@ public class SceneLighting : MonoBehaviour
         const float gy = 70f + 5f * Pitch + 4f;
         float H = gy + Mathf.Max(lightGroupH, blockGroupH) + 70f;
         _panel.sizeDelta = new Vector2(W, H);
+        _mover = PanelMover.Attach(_panel, generator != null ? generator.Head : null, 1.5f);   // maniglia sotto il pannello: si sposta a piacere
 
         var bg = Img(_panel, "Background", _rounded, CardBg, true, 1f);
         Stretch(bg.rectTransform);
