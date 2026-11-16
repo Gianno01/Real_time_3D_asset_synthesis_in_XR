@@ -1223,6 +1223,8 @@ MonoBehaviour:
   recordButton: {fileID: 0}
   recordBindingPath: <XRController>{RightHand}/{Primary2DAxisClick}
   keyboardInput: 0
+  keyboardOnly: 0
+  generationMode: 0
   handsFreeMode: 1
   wakeWords:
   - genera
@@ -2559,6 +2561,7 @@ MonoBehaviour:
   followSpeed: 2.5
   movable: 1
   recallWhenOutOfView: 1
+  frontOnlyOnRequest: 1
   showIdleHint: 1
   showDoneSeconds: 6
   showErrorSeconds: 10
@@ -3941,7 +3944,7 @@ GameObject:
   m_IsActive: 1
 --- !u!114 &1876230102
 MonoBehaviour:
-  m_ObjectHideFlags: 2
+  m_ObjectHideFlags: 49
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}

@@ -39,9 +39,9 @@ public class GenerationStatusUI : MonoBehaviour
     [Header("Testi")]
     [TextArea] public string idleHint = "<b>Premi lo stick destro</b> e di' il nome di un oggetto";
     [TextArea] public string keyboardHint = "Tocca la <b>tastiera</b> per scrivere il nome di un oggetto, o il <b>microfono</b> per dettarlo";
-    [TextArea] public string handsFreeHint = "Di' <b>\"Genera...\"</b> seguito dall'oggetto, ad esempio <i>\"Genera una sedia di legno\"</i>";
+    [TextArea] public string handsFreeHint = "Di' <b>\"Genera...\"</b> seguito dall'oggetto, ad esempio <i>\"Genera una pizza\"</i>";
     [TextArea] public string previewHintHandsFree = "Di' <b>\"modifica...\"</b> o <b>\"aggiungi...\"</b> per correggerla · <b>\"genera...\"</b> per un altro oggetto";
-    [TextArea] public string previewHintButton = "Premi <b>Correggi</b> (o lo stick) e di' cosa cambiare";
+    [TextArea] public string previewHintButton = "Premi <b>Correggi</b> (o lo stick destro) e di' cosa cambiare";
 
     [Header("Posizione \"da scrivania\"")]
     [Tooltip("Distanza orizzontale davanti a te (m)")]

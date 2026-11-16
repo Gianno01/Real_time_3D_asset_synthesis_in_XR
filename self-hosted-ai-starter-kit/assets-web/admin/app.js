@@ -5,6 +5,7 @@
 
 import { loadGlb, GlbViewer, makeThumbnail, isGlb } from './glb.js';
 import { buildSceneGlb } from './blender_export.js';
+import { splitScene } from './import_scene.js';
 
 const API = '/api/library';
 const CATEGORIES = ['Personaggio', 'Environment', 'Decorazione', 'Props'];   // come in LibraryUI.cs
@@ -607,6 +608,100 @@ async function deleteScene(s, btn) {
     renderScenes();
     toast(`Scena "${s.name}" eliminata`, 'ok');
   } catch (e) { toast('Non eliminata: ' + e.message, 'bad'); }
+}
+
+// ── Carica scena: un .glb con tutta la scena → un oggetto per volta nell'inventario + una scena nuova ──
+
+const imp = { plan: null, busy: false };
+$('scImport').addEventListener('click', () => $('impFile').click());
+$('impFile').addEventListener('change', e => { const f = e.target.files[0]; e.target.value = ''; if (f) prepareImport(f); });
+$('impCancel').addEventListener('click', () => { if (!imp.busy) closeImport(); });
+$('impGo').addEventListener('click', runImport);
+$('impCat').replaceChildren(...CATEGORIES.map(c => el('option', { value: c }, c)));
+$('impCat').value = 'Decorazione';
+
+function closeImport() { imp.plan = null; $('imp').hidden = true; $('impList').replaceChildren(); $('impNote').textContent = ''; }
+
+async function prepareImport(file) {
+  if (imp.busy) return;
+  closeImport();
+  $('imp').hidden = false; $('impGo').disabled = true;
+  $('impTitle').textContent = 'Carica scena';
+  $('impInfo').textContent = 'Leggo il file…';
+  try {
+    if (file.size > MAX_FILE_MB * 1024 * 1024) throw new Error(`File troppo grande (massimo ${MAX_FILE_MB} MB)`);
+    const buf = await file.arrayBuffer();
+    if (!isGlb(buf)) throw new Error('non è un file glTF binario (.glb)');
+    const split = splitScene(new Uint8Array(buf));
+    $('impInfo').textContent = `Analizzo ${split.assets.length} oggetti…`;
+    for (const a of split.assets) {
+      const model = await loadGlb(a.glb.buffer);
+      a.size = model.bounds.size.map(v => v * a.unitScale);
+      a.heightCm = Math.max(1, Math.round(a.size[1] * 100));
+      if (!model.unsupported) { a.thumb = await makeThumbnail(model, 256); if (a.thumb) a.thumbUrl = URL.createObjectURL(a.thumb); }
+      a.skip = false;
+    }
+    imp.plan = split;
+    $('impName').value = file.name.replace(/\.glb$/i, '').replace(/[_-]+/g, ' ').trim().slice(0, 80) || 'Scena importata';
+    const n = split.objects.length;
+    $('impInfo').textContent = `${n} oggetti${split.assets.length < n ? ` (${split.assets.length} file diversi: le copie condividono lo stesso file)` : ''}.`
+      + (split.skipped.length ? ` Ignorati: ${split.skipped.join(', ')}.` : '')
+      + ' Le misure sono lette in metri. Gli oggetti compaiono nel visore dove sono nel file, senza raddrizzamento automatico.';
+    $('impList').replaceChildren(...split.assets.map(a => {
+      const img = a.thumbUrl ? el('img', { src: a.thumbUrl, alt: '' }) : el('span', { class: 'noimg' });
+      return el('li', {}, img, el('div', {}, el('span', { class: 'n' }, a.name), a.count > 1 ? el('span', { class: 'tag' }, '×' + a.count) : null,
+        el('div', { class: 'p' }, `${(a.size[0] * 100).toFixed(0)} × ${(a.size[1] * 100).toFixed(0)} × ${(a.size[2] * 100).toFixed(0)} cm · ${(a.glb.length / 1048576).toFixed(1)} MB`)));
+    }));
+    $('impGo').disabled = false;
+  } catch (e) {
+    $('imp').hidden = false; $('impInfo').textContent = 'Scena non letta: ' + e.message;
+  }
+}
+
+async function runImport() {
+  const plan = imp.plan; if (!plan || imp.busy) return;
+  const name = $('impName').value.trim() || 'Scena importata', category = $('impCat').value;
+  const inInv = $('impInv').checked;   // spenta: gli oggetti restano solo nella scena (più veloce, niente indicizzazione)
+  imp.busy = true; $('impGo').disabled = true; $('impCancel').disabled = true; $('impBarWrap').hidden = false;
+  const bar = p => { $('impBar').style.width = Math.round(p * 100) + '%'; };
+  const total = plan.assets.length;
+  try {
+    for (let i = 0; i < total; i++) {
+      const a = plan.assets[i];
+      $('impNote').textContent = `Carico ${a.name} (${i + 1}/${total})…`;
+      if (!a.id) {   // già caricato in un tentativo precedente: non si ripete
+        const id = uuid(), base = `assets/${id}/`;
+        await uploadFile(base + 'model.glb', new Blob([a.glb], { type: 'model/gltf-binary' }), 'model.glb', p => bar((i + p * 0.8) / total));
+        if (a.thumb) await uploadFile(base + 'thumb.jpg', a.thumb, 'thumb.jpg');
+        await api('register_asset', {
+          id, glb_key: base + 'model.glb', thumb_key: a.thumb ? base + 'thumb.jpg' : '',
+          name: a.name, category, style: '', prompt_it: '', tags: [], model: 'importato da scena', in_inventory: inInv,
+          width_cm: a.size[0] * 100, height_cm: a.size[1] * 100, depth_cm: a.size[2] * 100, glb_bytes: a.glb.length,
+        });
+        a.id = id;
+      }
+      bar((i + 1) / total);
+    }
+    $('impNote').textContent = 'Creo la scena…';
+    const byKey = new Map(plan.assets.map(a => [a.key, a]));
+    const objects = plan.objects.map(o => ({
+      asset_id: byKey.get(o.assetKey).id, placed_by: author,
+      px: o.p[0], py: o.p[1], pz: o.p[2], rx: o.q[0], ry: o.q[1], rz: o.q[2], rw: o.q[3], scale: o.s,
+    }));
+    // raddrizzamento "nullo" per ogni oggetto: il visore non deve ruotare i modelli, devono restare come nel file
+    const extras = JSON.stringify({ align: objects.map(o => ({ asset_id: o.asset_id, al: [0, 0, 0, 0, 0, 0, 1] })) });
+    await api('save_scene', { name, extras, objects });
+    inv.stale = true;
+    toast(`Scena "${name}" importata: ${objects.length} oggetti`, 'ok');
+    closeImport();
+    await loadScenes();
+    const made = sc.list.find(s => s.name === name);
+    if (made) openScene(made);
+  } catch (e) {
+    $('impNote').textContent = '';
+    toast('Importazione non riuscita: ' + e.message, 'bad');
+    $('impGo').disabled = false;   // si può riprovare: gli oggetti già caricati non vengono ricaricati
+  } finally { imp.busy = false; $('impCancel').disabled = false; $('impBarWrap').hidden = true; bar(0); }
 }
 
 // Esporta la scena in un unico .glb per Blender (oggetti nelle posizioni salvate + luci; niente blocchi di occlusione né oscuramento)

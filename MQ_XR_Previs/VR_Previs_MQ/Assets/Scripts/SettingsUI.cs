@@ -207,6 +207,10 @@ public class SettingsUI : MonoBehaviour
                 status = () => roomCalibration.StatusLabel,
                 run = () => { Hide(); roomCalibration.Begin(); },
             });
+        if (roomCalibration != null)
+            room.Add(Bool("calib_required", "Calibrazione obbligatoria",
+                () => roomCalibration.required,
+                v => roomCalibration.required = v));
 #if SCENE_OCCLUSION
         if (occlusion != null)
         {

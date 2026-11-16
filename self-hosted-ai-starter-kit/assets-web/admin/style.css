@@ -180,3 +180,12 @@ td input { height: 32px; padding: 4px 8px; }
   .upload { grid-template-columns: 1fr; }
   .tabs { overflow-x: auto; }
 }
+
+/* importazione scena */
+.import-panel { background: var(--card); border: 1px solid var(--line); border-radius: var(--r); padding: 14px 16px; margin: 0 0 14px; }
+.imp-row { display: flex; gap: 14px; flex-wrap: wrap; margin: 8px 0; }
+.imp-row label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--dim); flex: 1; min-width: 180px; }
+.imp-row input, .imp-row select { height: 34px; border-radius: 8px; border: 1px solid var(--line); background: var(--panel); color: var(--text); padding: 0 10px; font: inherit; }
+.imp-bar { height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; margin: 8px 0; }
+.imp-bar > div { height: 100%; width: 0; background: var(--accent); transition: width .2s; }
+.imp-check { display: flex; align-items: center; gap: 8px; font-size: 14px; margin: 6px 0; cursor: pointer; }

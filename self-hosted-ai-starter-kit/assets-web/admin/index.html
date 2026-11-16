@@ -92,7 +92,18 @@
     <section id="tab-scenes" class="tab" hidden>
       <div class="scenes">
         <div class="scene-list">
-          <div class="resultbar"><span id="scCount"></span><button class="btn small ghost" id="scRefresh">Aggiorna</button></div>
+          <div class="resultbar"><span id="scCount"></span><button class="btn small" id="scImport" type="button" title="Scegli un file .glb con una scena intera (per esempio da Blender): viene scomposto in un oggetto per volta e aggiunto alle scene">Carica scena…</button><button class="btn small ghost" id="scRefresh">Aggiorna</button></div>
+          <input type="file" id="impFile" accept=".glb,model/gltf-binary" hidden>
+          <div class="import-panel" id="imp" hidden>
+            <h2 id="impTitle">Carica scena</h2>
+            <p class="dim small" id="impInfo"></p>
+            <div class="imp-row"><label>Nome scena <input id="impName" maxlength="80"></label>
+              <label>Categoria degli oggetti <select id="impCat"></select></label></div>
+            <label class="imp-check"><input type="checkbox" id="impInv"> Salva gli oggetti nell'inventario <span class="dim small">(più lento: li rende cercabili e riutilizzabili in altre scene)</span></label>
+            <ul class="scene-objects" id="impList"></ul>
+            <div class="imp-bar" id="impBarWrap" hidden><div id="impBar"></div></div>
+            <p><button class="btn primary" id="impGo" type="button">Importa</button> <button class="btn ghost" id="impCancel" type="button">Annulla</button> <span class="dim small" id="impNote"></span></p>
+          </div>
           <table>
             <thead><tr><th>Scena</th><th>Oggetti</th><th>Autore</th><th>Aggiornata</th><th></th></tr></thead>
             <tbody id="scRows"></tbody>

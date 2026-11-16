@@ -3,7 +3,7 @@
 // ogni oggetto è al suo posto (posizione, rotazione, scala, raddrizzamento automatico) e le luci sono luci vere (KHR_lights_punctual).
 // Blocchi di occlusione e oscuramento NON vengono esportati.
 //
-// Conversioni: Unity è sinistrorso (Z avanti), glTF destrorso: posizione (x,y,z) → (x,y,-z), rotazione (qx,qy,qz,qw) → (-qx,-qy,qz,qw).
+// Conversioni: Unity è sinistrorso (Z avanti), glTF destrorso: posizione (x,y,z) → (-x,y,z), rotazione (qx,qy,qz,qw) → (qx,-qy,-qz,qw) (come glTFast: i modelli restano orientati come nel visore).
 // Blender poi converte da glTF (Y in alto) al suo asse Z in alto. L'origine è l'origine del pavimento (ancora di scena).
 
 const WATT_PER_UNIT = 250;                    // potenza Blender (W) per ogni unità di intensità del visore
@@ -11,9 +11,9 @@ const CANDELA_PER_WATT = 683 / (4 * Math.PI); // l'importatore di Blender conver
 const CHUNK_JSON = 0x4E4F534A, CHUNK_BIN = 0x004E4942;
 const UNSUPPORTED = ['KHR_draco_mesh_compression', 'EXT_meshopt_compression', 'KHR_meshopt_compression', 'KHR_texture_basisu'];
 
-const tr = (x, y, z) => [x, y, -z];
+const tr = (x, y, z) => [-x, y, z];
 const rot = (x, y, z, w) => {
-  const q = [-x, -y, z, w], l = Math.hypot(...q);
+  const q = [x, -y, -z, w], l = Math.hypot(...q);
   return l < 1e-6 ? [0, 0, 0, 1] : q.map(v => v / l);
 };
 

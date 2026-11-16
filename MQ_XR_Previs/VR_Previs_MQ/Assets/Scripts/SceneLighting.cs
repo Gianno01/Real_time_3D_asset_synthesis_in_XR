@@ -26,7 +26,7 @@ using UnityEngine.XR;
 using UnityEngine.XR.Interaction.Toolkit.Interactables;
 using UnityEngine.XR.Interaction.Toolkit.Interactors;
 using UnityEngine.XR.Interaction.Toolkit.UI;
-
+ 
 [Serializable]
 public class LightData
 {
@@ -815,7 +815,7 @@ public class SceneLighting : MonoBehaviour
 
         // i raggi si spengono: il grilletto non deve premere pulsanti né afferrare oggetti
         _capRays.Clear(); _capRightRay = null;
-        foreach (var ri in FindObjectsByType<XRRayInteractor>(FindObjectsSortMode.None))
+        foreach (var ri in FindObjectsByType<XRRayInteractor>(FindObjectsSortMode.None)) 
         {
             if (_capRightRay == null && IsRight(ri)) _capRightRay = ri;
             if (ri.enabled) { ri.enabled = false; _capRays.Add(ri); }

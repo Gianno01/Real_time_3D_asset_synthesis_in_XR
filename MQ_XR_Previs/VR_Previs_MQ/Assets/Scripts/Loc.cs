@@ -247,6 +247,7 @@ public static class Loc
         A("Somiglianza minima", "Minimum similarity");
         A("Predefinito", "Default");
         A("Modalità 3D", "3D mode");
+        A("Calibrazione obbligatoria", "Calibration required");
         A("Rapido", "Fast");
         A("Dettagliato", "Detailed");
         A("Multivista", "Multiview");
