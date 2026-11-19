@@ -1281,7 +1281,7 @@ MonoBehaviour:
   voiceProceedEnabled: 1
   proceedWords:
   - prosegui
-  - procedi
+  - ok
   - vai
   - conferma
   library: {fileID: 0}
@@ -2562,6 +2562,8 @@ MonoBehaviour:
   movable: 1
   recallWhenOutOfView: 1
   frontOnlyOnRequest: 1
+  maxGrabDistance: 1.5
+  minGrabDistance: 0.25
   showIdleHint: 1
   showDoneSeconds: 6
   showErrorSeconds: 10
@@ -3944,7 +3946,7 @@ GameObject:
   m_IsActive: 1
 --- !u!114 &1876230102
 MonoBehaviour:
-  m_ObjectHideFlags: 49
+  m_ObjectHideFlags: 2
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}

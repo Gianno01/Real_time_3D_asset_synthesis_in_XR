@@ -55,6 +55,12 @@ public class GenerationStatusUI : MonoBehaviour
     [Tooltip("Velocità del ricentramento")]
     public float followSpeed = 2.5f;
 
+    [Header("Blocco davanti a te")]
+    [Tooltip("Il pannello resta sempre davanti a te e ti segue quando ti giri (si cambia anche da Impostazioni). Le maniglie di spostamento si disattivano")]
+    public bool lockFront = false;
+    [Tooltip("Velocità con cui il pannello ti raggiunge in modalità bloccata (più alto = più rigido)")]
+    public float lockFollowSpeed = 12f;
+
     [Header("Spostamento manuale")]
     [Tooltip("Mostra una maniglia sotto il pannello per afferrarlo e spostarlo")]
     public bool movable = true;
@@ -220,7 +226,8 @@ public class GenerationStatusUI : MonoBehaviour
         Fade(_icon, _minimized, dt * 5f);
 
         bool anyVisible = _card.alpha > 0f || _pill.alpha > 0f || _icon.alpha > 0f || _preview.alpha > 0f;
-        if (_handleCollider != null) _handleCollider.gameObject.SetActive(anyVisible);
+        if (_handleCollider != null) _handleCollider.gameObject.SetActive(anyVisible && !lockFront);
+        if (_grab != null && _grab.enabled == lockFront) _grab.enabled = !lockFront;   // bloccato davanti: niente presa
         if (!anyVisible) return;
 
         UpdatePlacement(!_placed, dt);
@@ -586,6 +593,20 @@ public class GenerationStatusUI : MonoBehaviour
     {
         Transform h = Head();
         if (h == null) return;
+
+        if (lockFront && !_grabbed)
+        {
+            // sempre davanti: segue la direzione dello sguardo in orizzontale, alla distanza e altezza "da scrivania"
+            Vector3 f = Flat(h.forward);
+            _anchorFwd = f;
+            _recentering = false;
+            Vector3 tgt = h.position + f * distance + Vector3.up * heightOffset;
+            Quaternion rr = Quaternion.LookRotation(f, Vector3.up) * Quaternion.Euler(deskTilt, 0f, 0f);
+            float k = snap ? 1f : 1f - Mathf.Exp(-lockFollowSpeed * dt);
+            transform.position = Vector3.Lerp(transform.position, tgt, k);
+            transform.rotation = snap ? rr : Quaternion.Slerp(transform.rotation, rr, k);
+            return;
+        }
 
         if (_grabbed || _pinned || (frontOnlyOnRequest && !snap))
         {

@@ -24,6 +24,7 @@ using Unity.XR.CoreUtils;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.XR;
+using UnityEngine.XR.Hands;
 using UnityEngine.XR.Interaction.Toolkit.Interactors;
 
 public class RoomCalibration : MonoBehaviour
@@ -65,6 +66,17 @@ public class RoomCalibration : MonoBehaviour
     bool _wasWorn = true;
     bool _originChanged;
     readonly List<XRInputSubsystem> _subsystems = new List<XRInputSubsystem>();
+
+    [Header("Mani (pizzico pollice-indice)")]
+    [Tooltip("Con le mani libere (senza controller) il pizzico di pollice e indice conferma il punto, come il grilletto")]
+    public bool allowHandPinch = true;
+    [Tooltip("Distanza tra le punte di pollice e indice sotto la quale il pizzico è attivo (m)")]
+    public float pinchOn = 0.02f;
+    [Tooltip("Distanza sopra la quale il pizzico si rilascia (m)")]
+    public float pinchOff = 0.035f;
+    XRHandSubsystem _hands;
+    readonly List<XRHandSubsystem> _handSubs = new List<XRHandSubsystem>();
+    readonly bool[] _pinching = new bool[2];
 
     // ── Calibrazione automatica all'apertura ──────────────────────────
 
@@ -221,13 +233,15 @@ public class RoomCalibration : MonoBehaviour
         }
 
         FollowHead();
-        Vector3 tip = TipPosition();
+        bool handPinch = ReadHands(out Vector3 handTip, out bool handTracked);
+        Vector3 tip = handTracked ? handTip : TipPosition();
         _tipMarker.transform.position = tip;
 
         var dev = InputDevices.GetDeviceAtXRNode(XRNode.RightHand);
         bool trigger = false, cancel = false;
         dev.TryGetFeatureValue(CommonUsages.triggerButton, out trigger);
         dev.TryGetFeatureValue(CommonUsages.secondaryButton, out cancel);
+        trigger |= handPinch;
         bool triggerDown = trigger && !_prevTrigger;
         bool cancelDown = cancel && !_prevCancel;
         _prevTrigger = trigger;
@@ -236,6 +250,7 @@ public class RoomCalibration : MonoBehaviour
         bool tracked = true;
         if (dev.isValid && dev.TryGetFeatureValue(CommonUsages.isTracked, out bool tr)) tracked = tr;
         if (!dev.isValid) tracked = false;
+        if (handTracked) tracked = true;
         if (!tracked) triggerDown = false;   // controller non tracciato: la posa non è affidabile
 
         if (cancelDown)
@@ -248,7 +263,7 @@ public class RoomCalibration : MonoBehaviour
 
         if (_step == Step.PointA)
         {
-            _text.text = $"<b>Calibrazione 1/2</b>\nPoggia la punta del controller destro sul <b>PUNTO A</b>\n(es. un angolo della scrivania) e premi il <b>grilletto</b>\n<size=70%>{(required && !IsCalibrated ? "Obbligatoria per usare l'app - B = ricomincia" : "B = annulla")}{(tracked ? "" : " - <color=#ffb060>controller non rilevato</color>")}</size>";
+            _text.text = $"<b>Calibrazione 1/2</b>\nPoggia la punta del controller destro sul <b>PUNTO A</b>\n(es. un angolo della scrivania) e premi il <b>grilletto</b> o <b>pizzica</b> pollice e indice\n<size=70%>{(required && !IsCalibrated ? "Obbligatoria per usare l'app - B = ricomincia" : "B = annulla")}{(tracked ? "" : " - <color=#ffb060>controller non rilevato</color>")}</size>";
             if (triggerDown)
             {
                 _a = tip;
@@ -262,7 +277,7 @@ public class RoomCalibration : MonoBehaviour
         {
             float d = Vector3.ProjectOnPlane(tip - _a, Vector3.up).magnitude;
             string dist = d < minDistance ? $"<color=#ffb060>distanza da A: {d:0.00} m (servono almeno {minDistance:0.0} m)</color>" : $"distanza da A: {d:0.00} m";
-            _text.text = $"<b>Calibrazione 2/2</b>\nOra sul <b>PUNTO B</b>, lontano da A (meglio oltre 1 m)\ne premi il <b>grilletto</b>\n<size=70%>{dist} - B = {(required && !IsCalibrated ? "ricomincia" : "annulla")}</size>";
+            _text.text = $"<b>Calibrazione 2/2</b>\nOra sul <b>PUNTO B</b>, lontano da A (meglio oltre 1 m)\ne premi il <b>grilletto</b> o <b>pizzica</b> pollice e indice\n<size=70%>{dist} - B = {(required && !IsCalibrated ? "ricomincia" : "annulla")}</size>";
             if (triggerDown && d >= minDistance)
             {
                 Apply(_a, tip);
@@ -286,6 +301,34 @@ public class RoomCalibration : MonoBehaviour
         IsCalibrated = true;
         if (library != null) library.sceneAnchor = _roomOrigin;
         Debug.Log($"[RoomCalibration] Stanza calibrata: A={a}, B={b}, distanza {Vector3.ProjectOnPlane(b - a, Vector3.up).magnitude:F2} m, rotazione Y {rot.eulerAngles.y:F0}°.");
+    }
+
+    // Mani libere: punto toccato = metà tra punta del pollice e punta dell'indice; pizzico = conferma. Torna true se una mano sta pizzicando.
+    bool ReadHands(out Vector3 tip, out bool tracked)
+    {
+        tip = default; tracked = false;
+        if (!allowHandPinch || _xr == null) return false;
+        if (_hands == null || !_hands.running)
+        {
+            _hands = null;
+            SubsystemManager.GetSubsystems(_handSubs);
+            foreach (var s in _handSubs) if (s.running) { _hands = s; break; }
+            if (_hands == null) return false;
+        }
+        Transform space = _xr.CameraFloorOffsetObject != null ? _xr.CameraFloorOffsetObject.transform : _xr.transform;
+        bool pinch = false;
+        for (int i = 0; i < 2; i++)
+        {
+            var hand = i == 0 ? _hands.rightHand : _hands.leftHand;
+            if (!hand.isTracked) { _pinching[i] = false; continue; }
+            if (!hand.GetJoint(XRHandJointID.IndexTip).TryGetPose(out Pose ip) || !hand.GetJoint(XRHandJointID.ThumbTip).TryGetPose(out Pose tp)) { _pinching[i] = false; continue; }
+            Vector3 a = space.TransformPoint(ip.position), b = space.TransformPoint(tp.position);
+            _pinching[i] = Vector3.Distance(a, b) < (_pinching[i] ? pinchOff : pinchOn);
+            // guida la mano che pizzica; se nessuna pizzica, la prima tracciata (destra per prima)
+            if (!tracked || (_pinching[i] && !pinch)) { tip = (a + b) * 0.5f; tracked = true; }
+            if (_pinching[i]) pinch = true;
+        }
+        return pinch;
     }
 
     // Punta del controller destro: origine del raggio (posa "aim") + un piccolo scarto avanti.

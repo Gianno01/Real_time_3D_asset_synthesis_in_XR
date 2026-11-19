@@ -1023,7 +1023,7 @@ public class QuestObjectGenerator : MonoBehaviour
         bodyWriter.Write(Encoding.UTF8.GetBytes($"--{boundary}\r\nContent-Disposition: form-data; name=\"file\"; filename=\"audio.wav\"\r\nContent-Type: audio/wav\r\n\r\n"));
         bodyWriter.Write(wavData);
         bodyWriter.Write(Encoding.UTF8.GetBytes("\r\n"));
-        Field("model", "Systran/faster-whisper-base");
+        Field("model", "Systran/faster-whisper-medium");
         Field("language", "it");
         if (!string.IsNullOrEmpty(whisperPrompt)) Field("prompt", whisperPrompt);
         bodyWriter.Write(Encoding.UTF8.GetBytes($"--{boundary}--\r\n"));

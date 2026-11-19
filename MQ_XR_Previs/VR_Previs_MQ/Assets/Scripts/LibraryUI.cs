@@ -35,7 +35,7 @@ public class LibraryUI : MonoBehaviour
         { "Realistico", "Moderno", "Medievale", "Rinascimentale", "Futuristico", "Fantasy", "Cartoon", "Punk" };
 
     [Header("Posizione rispetto al pannello di controllo")]
-    public Vector3 panelOffset = new Vector3(0f, 0.50f, 0.10f);
+    public Vector3 panelOffset = new Vector3(0f, 0.50f, 0f);   // Z non usata: il pannello sta sullo stesso piano dell'interfaccia
     [Tooltip("Rotazione del monitor rispetto al pannello di controllo (negativo = più verticale)")]
     public float panelTilt = -30f;
     public Vector3 dockOffset = new Vector3(0.40f, 0f, 0f);
@@ -696,7 +696,7 @@ public class LibraryUI : MonoBehaviour
         if (statusUI != null)
         {
             _panelRoot.SetParent(statusUI.transform, false);
-            _panelRoot.localPosition = panelOffset;
+            _panelRoot.localPosition = new Vector3(panelOffset.x, panelOffset.y, 0f);
             _panelRoot.localRotation = Quaternion.Euler(panelTilt, 0f, 0f);
         }
         else

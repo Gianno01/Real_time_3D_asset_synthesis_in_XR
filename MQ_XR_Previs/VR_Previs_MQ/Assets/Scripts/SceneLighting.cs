@@ -77,6 +77,14 @@ public class SceneLighting : MonoBehaviour
     [Tooltip("Abbassa anche luce ambiente e luci direzionali della scena virtuale con l'oscuramento")]
     public bool dimVirtualAmbient = true;
 
+    [Header("Aspetto delle luci")]
+    [Tooltip("Mostra la pallina (nucleo + alone) anche quando le luci sono attive. Spenta: la pallina si vede solo mentre modifichi le luci")]
+    public bool showBulbWhenLit = false;
+    [Tooltip("Mostra un fascio di luce volumetrico per i fari (spot)")] public bool showBeam = true;
+    [Tooltip("Visibilità del fascio (0 = invisibile)")] [Range(0f, 1f)] public float beamOpacity = 0.22f;
+    [Tooltip("Lunghezza massima disegnata del fascio (m)")] public float beamMaxLength = 3f;
+    [Tooltip("Alone morbido sulle luci puntiformi quando sono attive (senza la pallina)")] public bool showSoftGlow = true;
+
     [Header("Blocchi di occlusione")]
     [Tooltip("I blocchi nascondono gli oggetti virtuali che finiscono dietro")] public bool blocksEnabled = true;
 
@@ -104,7 +112,7 @@ public class SceneLighting : MonoBehaviour
 
     // ── Elementi ──────────────────────────────────────────────────────
 
-    class LightItem { public LightData d; public GameObject go; public Light light; public Renderer gizmo, arrowRenderer; public Transform arrow; public Material gizmoMat, arrowMat; public SpriteRenderer halo; }
+    class LightItem { public LightData d; public GameObject go; public Light light; public Renderer gizmo, arrowRenderer; public Transform arrow; public Material gizmoMat, arrowMat; public SpriteRenderer halo; public MeshRenderer beam; public MeshFilter beamFilter; public Mesh beamMesh; public Material beamMat; }
     class BlockItem { public BlockData d; public GameObject go; public MeshFilter depthMf, visMf; public Renderer depth, vis; public Collider col; public LineRenderer edges; public Collider phys; public int physShape = -1; public XRGrabInteractable grab; }
 
     readonly List<LightItem> _lights = new List<LightItem>();
@@ -112,7 +120,8 @@ public class SceneLighting : MonoBehaviour
     LightItem _selLight;
     BlockItem _selBlock;
 
-    Material _dimMat, _depthMat, _visMat, _gizmoBase;
+    Material _dimMat, _depthMat, _visMat, _gizmoBase, _beamBase;
+    bool _beamSoft;
     GameObject _overlay;
     bool _started;
     float _lastBlockW = 0.5f, _lastBlockH = 0.5f, _lastBlockD = 0.5f;
@@ -376,7 +385,7 @@ public class SceneLighting : MonoBehaviour
     static Sprite GlowSprite()
     {
         if (_glowSprite != null) return _glowSprite;
-        const int n = 64;
+        const int n = 128;
         var tex = new Texture2D(n, n, TextureFormat.RGBA32, false) { wrapMode = TextureWrapMode.Clamp, filterMode = FilterMode.Bilinear };
         var px = new Color32[n * n];
         for (int y = 0; y < n; y++)
@@ -384,7 +393,8 @@ public class SceneLighting : MonoBehaviour
         {
             float dx = (x + 0.5f) / n * 2f - 1f, dy = (y + 0.5f) / n * 2f - 1f;
             float r = Mathf.Sqrt(dx * dx + dy * dy);
-            float a = Mathf.Pow(Mathf.Clamp01(1f - r), 2.2f);
+            float s = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(1f - r));
+            float a = s * s;   // dissolvenza liscia fino a zero sul bordo: niente scalini
             px[y * n + x] = new Color32(255, 255, 255, (byte)(a * 255f));
         }
         tex.SetPixels32(px);
@@ -424,6 +434,25 @@ public class SceneLighting : MonoBehaviour
         item.halo.sprite = GlowSprite();
         item.halo.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
         item.halo.receiveShadows = false;
+
+        // fascio di luce: coni sovrapposti con dissolvenza lungo l'asse (si legge come luce nell'aria, non come un oggetto)
+        var beamGo = new GameObject("Fascio");
+        beamGo.transform.SetParent(go.transform, false);
+        item.beamFilter = beamGo.AddComponent<MeshFilter>();
+        item.beam = beamGo.AddComponent<MeshRenderer>();
+        item.beam.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+        item.beam.receiveShadows = false;
+        if (_beamBase == null)
+        {
+            var bs = Shader.Find("XR/LightBeam");   // bordi morbidi; se manca (LightBeam.shader non in Resources) ripiega sullo shader semplice
+            _beamSoft = bs != null;
+            if (!_beamSoft) Debug.LogWarning("[SceneLighting] Shader XR/LightBeam non trovato: metti LightBeam.shader in Assets/Resources per un fascio più morbido.");
+            _beamBase = new Material(bs != null ? bs : Shader.Find("Sprites/Default"));
+        }
+        item.beamMat = new Material(_beamBase);
+        item.beam.sharedMaterial = item.beamMat;
+        item.beamMesh = new Mesh { name = "FascioLuce" };
+        item.beamFilter.sharedMesh = item.beamMesh;
 
         var arrow = GameObject.CreatePrimitive(PrimitiveType.Cube);
         arrow.name = "Direzione";
@@ -466,19 +495,77 @@ public class SceneLighting : MonoBehaviour
         l.light.enabled = lightingOn;
 
         // la lampadina con l'alone si vede quando le luci sono attive (o mentre modifichi); la barretta di direzione solo in modifica
-        bool bulb = lightingOn || Editing;
-        l.gizmo.enabled = bulb;
-        l.halo.enabled = bulb;
+        bool lit = lightingOn;
+        bool core = Editing || (lit && showBulbWhenLit);                 // nucleo solido: solo in modifica (o se lo chiedi)
+        bool softGlow = !core && lit && showSoftGlow && d.kind == 0;     // luce puntiforme accesa: solo un alone morbido
+        l.gizmo.enabled = core;
+        l.halo.enabled = core || softGlow;
+        bool beamOn = showBeam && d.kind == 1 && (lit || Editing) && beamOpacity > 0.001f;
+        l.beam.enabled = beamOn;
+        if (beamOn) BuildBeam(l, c);
         l.arrow.gameObject.SetActive(Editing && d.kind == 1);
 
         l.gizmoMat.color = Color.Lerp(c, Color.white, 0.55f);                       // nucleo quasi bianco, tinto dalla temperatura
-        l.gizmo.transform.localScale = Vector3.one * (l == _selLight ? 0.085f : 0.06f);
-        float glow = Mathf.Clamp(0.20f + 0.07f * d.intensity, 0.2f, 0.8f);
-        l.halo.color = new Color(c.r, c.g, c.b, Mathf.Clamp01(0.40f + 0.08f * d.intensity));
-        l.halo.transform.localScale = Vector3.one * (l == _selLight ? glow * 1.25f : glow);
+        l.gizmo.transform.localScale = Vector3.one * (l == _selLight ? 0.05f : 0.035f);   // pallina piccola: solo un segnaposto per afferrare la luce
+        float glow = Mathf.Clamp(0.10f + 0.035f * d.intensity, 0.10f, 0.40f);
+        float haloA = Mathf.Clamp01(0.40f + 0.08f * d.intensity) * (core ? 1f : 0.55f);
+        l.halo.color = new Color(c.r, c.g, c.b, haloA);
+        l.halo.transform.localScale = Vector3.one * (l == _selLight ? glow * 1.25f : glow) * (core ? 1f : 1.3f);
 
         var col = l.go.GetComponent<Collider>();
         if (col != null) col.enabled = Editing;
+    }
+
+    static readonly float[] BeamRingZ = { 0f, 0.3f, 0.65f, 1f };      // frazione della lunghezza
+    static readonly float[] BeamRingA = { 1f, 0.55f, 0.2f, 0f };      // opacità relativa: piena alla sorgente, svanisce in fondo
+    static readonly float[] BeamLayersSoft = { 1f };                  // con lo shader morbido basta un cono
+    static readonly float[] BeamLayersSimple = { 1f, 0.62f, 0.32f };  // senza: coni annidati, il centro è più luminoso dei bordi
+    const int BeamSegs = 28;
+
+    void BuildBeam(LightItem l, Color c)
+    {
+        var d = l.d;
+        float len = Mathf.Min(d.range, Mathf.Max(0.5f, beamMaxLength));
+        float tan = Mathf.Tan(Mathf.Deg2Rad * d.angle * 0.5f);
+        float aMax = beamOpacity * Mathf.Clamp(0.45f + 0.18f * d.intensity, 0.45f, 1.5f);
+
+        var BeamLayer = _beamSoft ? BeamLayersSoft : BeamLayersSimple;
+        int layers = BeamLayer.Length, rings = BeamRingZ.Length;
+        var verts = new Vector3[layers * rings * BeamSegs];
+        var cols = new Color32[verts.Length];
+        var tris = new int[layers * (rings - 1) * BeamSegs * 6];
+        int vi = 0, ti = 0;
+        for (int k = 0; k < layers; k++)
+        {
+            int baseV = vi;
+            for (int r = 0; r < rings; r++)
+            {
+                float z = BeamRingZ[r] * len;
+                float rad = tan * z * BeamLayer[k];
+                float a = Mathf.Clamp01(aMax * BeamRingA[r] * (_beamSoft ? 1.15f : (k == 0 ? 0.55f : 0.45f)));
+                var col = new Color(c.r, c.g, c.b, a);
+                for (int s = 0; s < BeamSegs; s++)
+                {
+                    float ang = s * Mathf.PI * 2f / BeamSegs;
+                    verts[vi] = new Vector3(Mathf.Cos(ang) * rad, Mathf.Sin(ang) * rad, z);
+                    cols[vi] = col;
+                    vi++;
+                }
+            }
+            for (int r = 0; r < rings - 1; r++)
+                for (int s = 0; s < BeamSegs; s++)
+                {
+                    int a0 = baseV + r * BeamSegs + s, a1 = baseV + r * BeamSegs + (s + 1) % BeamSegs;
+                    int b0 = a0 + BeamSegs, b1 = a1 + BeamSegs;
+                    tris[ti++] = a0; tris[ti++] = b0; tris[ti++] = a1;
+                    tris[ti++] = a1; tris[ti++] = b0; tris[ti++] = b1;
+                }
+        }
+        var m = l.beamMesh;
+        m.Clear();
+        m.vertices = verts; m.colors32 = cols; m.triangles = tris;
+        m.RecalculateNormals();
+        m.RecalculateBounds();
     }
 
     // ── Blocchi ───────────────────────────────────────────────────────
@@ -875,7 +962,9 @@ public class SceneLighting : MonoBehaviour
             _capPanel.rotation = Quaternion.LookRotation(_capPanel.position - head.position, Vector3.up);
         }
 
-        Vector3 tip = TipPosition();
+        Transform handSpace = _xr != null ? (_xr.CameraFloorOffsetObject != null ? _xr.CameraFloorOffsetObject.transform : _xr.transform) : null;
+        bool handPinch = HandPinch.Read(handSpace, out Vector3 handTip, out bool handTracked);   // mani libere: pizzico = grilletto
+        Vector3 tip = handTracked ? handTip : TipPosition();
         _capTip.transform.position = tip;
 
         var dev = InputDevices.GetDeviceAtXRNode(XRNode.RightHand);
@@ -883,6 +972,7 @@ public class SceneLighting : MonoBehaviour
         dev.TryGetFeatureValue(CommonUsages.triggerButton, out trig);
         dev.TryGetFeatureValue(CommonUsages.primaryButton, out a);
         dev.TryGetFeatureValue(CommonUsages.secondaryButton, out b);
+        trig |= handPinch;
         bool trigDown = trig && !_capPrevTrig, aDown = a && !_capPrevA, bDown = b && !_capPrevB;
         _capPrevTrig = trig; _capPrevA = a; _capPrevB = b;
 
@@ -892,7 +982,7 @@ public class SceneLighting : MonoBehaviour
         if (_cap == Cap.Corners)
         {
             int n = _capPts.Count;
-            _capText.text = $"<b>{what}: angolo {n + 1} di 4</b>\nPoggia la punta del controller destro su un angolo\n(in ordine, partendo da uno spigolo) e premi il <b>grilletto</b>\n<size=70%>A = annulla l'ultimo punto - B = esci</size>";
+            _capText.text = $"<b>{what}: angolo {n + 1} di 4</b>\nPoggia la punta del controller destro su un angolo\n(in ordine, partendo da uno spigolo) e premi il <b>grilletto</b> o <b>pizzica</b> pollice e indice\n<size=70%>A = annulla l'ultimo punto - B = esci</size>";
             if (trigDown)
             {
                 _capPts.Add(tip);
@@ -924,7 +1014,7 @@ public class SceneLighting : MonoBehaviour
             float baseY = 0f; foreach (var p in _capPts) baseY += p.y; baseY /= _capPts.Count;
             float h = tip.y - baseY;   // positivo = verso l'alto, negativo = verso il basso
             string dirTxt = Mathf.Abs(h) < 0.03f ? "" : (h > 0f ? "verso l'alto" : "verso il basso");
-            _capText.text = $"<b>{what}: altezza</b>\nTocca un punto <b>più in alto o più in basso</b> della base (es. il pavimento sotto i piedi del tavolo) e premi il <b>grilletto</b>\n<size=85%>{Mathf.Abs(h) * 100f:0} cm {dirTxt}</size>\n<size=70%>A = usa {Mathf.RoundToInt(_lastBlockH * 100f)} cm verso l'alto - B = esci</size>";
+            _capText.text = $"<b>{what}: altezza</b>\nTocca un punto <b>più in alto o più in basso</b> della base (es. il pavimento sotto i piedi del tavolo) e premi il <b>grilletto</b> o <b>pizzica</b> pollice e indice\n<size=85%>{Mathf.Abs(h) * 100f:0} cm {dirTxt}</size>\n<size=70%>A = usa {Mathf.RoundToInt(_lastBlockH * 100f)} cm verso l'alto - B = esci</size>";
             var pts = new List<Vector3>(_capPts) { _capPts[0] };   // base chiusa
             _capLine.positionCount = pts.Count;
             for (int i = 0; i < pts.Count; i++) _capLine.SetPosition(i, pts[i]);

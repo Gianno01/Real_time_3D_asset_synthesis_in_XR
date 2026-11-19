@@ -248,6 +248,7 @@ public static class Loc
         A("Predefinito", "Default");
         A("Modalità 3D", "3D mode");
         A("Calibrazione obbligatoria", "Calibration required");
+        A("Pannello sempre davanti", "Panel always in front");
         A("Rapido", "Fast");
         A("Dettagliato", "Detailed");
         A("Multivista", "Multiview");

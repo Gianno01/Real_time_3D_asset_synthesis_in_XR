@@ -40,9 +40,9 @@ public class SettingsUI : MonoBehaviour
     [Tooltip("Pulsante \"Impostazioni\" usato solo se nella scena non c'è il pannello di controllo (GenerationStatusUI)")]
     public Vector3 dockOffset = new Vector3(0.40f, -0.065f, 0f);
 #if SCENE_OCCLUSION
-    public Vector3 panelOffset = new Vector3(0f, 0.61f, 0.10f);
+    public Vector3 panelOffset = new Vector3(0f, 0.61f, 0f);   // Z non usata: il pannello sta sullo stesso piano dell'interfaccia
 #else
-    public Vector3 panelOffset = new Vector3(0f, 0.545f, 0.10f);
+    public Vector3 panelOffset = new Vector3(0f, 0.545f, 0f);   // Z non usata: il pannello sta sullo stesso piano dell'interfaccia
 #endif
     public float panelTilt = -30f;
 
@@ -97,7 +97,7 @@ public class SettingsUI : MonoBehaviour
     class StepSetting : Setting
     {
         public float[] options; public Func<float> get; public Action<float> set; public Func<float, string> format;
-        public override float Get() => get();
+        public override float Get() => get(); 
         public override void Set(float v) => set(v);
         public override string Text() => format(get());
         public int Index()
@@ -250,6 +250,7 @@ public class SettingsUI : MonoBehaviour
             Step("language", "Lingua", new[] { 0f, 1f }, () => Loc.Language, v => Loc.Language = Mathf.RoundToInt(v),
                  v => Mathf.RoundToInt(v) == 1 ? "Italiano" : "English"),
         };
+        if (statusUI != null) ui.Add(Bool("lock_front", "Pannello sempre davanti", () => statusUI.lockFront, v => statusUI.lockFront = v));
         if (statusUI != null) ui.Add(Bool("haptics", "Vibrazione dei controller", () => statusUI.haptics, v => statusUI.haptics = v));
         Add(_right, "INTERFACCIA", ui.ToArray());
     }
@@ -408,7 +409,7 @@ public class SettingsUI : MonoBehaviour
         if (statusUI != null)
         {
             _panel.SetParent(statusUI.transform, false);
-            _panel.localPosition = panelOffset + Vector3.up * ((PanelH - BasePanelH) * 0.0005f);   // più alto: il pannello cresce verso l'alto
+            _panel.localPosition = new Vector3(panelOffset.x, panelOffset.y, 0f) + Vector3.up * ((PanelH - BasePanelH) * 0.0005f);   // più alto: il pannello cresce verso l'alto
             _panel.localRotation = Quaternion.Euler(panelTilt, 0f, 0f);
         }
         else
