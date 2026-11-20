@@ -145,8 +145,8 @@ public class GenerationStatusUI : MonoBehaviour
     void Awake()
     {
         // suggerimenti coerenti con il flusso vocale attuale (il valore salvato nella scena non conta)
-        handsFreeHint = "Di' <b>\"Genera...\"</b> seguito dall'oggetto, ad esempio <i>\"Genera una sedia di legno\"</i>";
-        previewHintHandsFree = "Di' <b>\"genera...\"</b> seguito da cosa cambiare";
+        handsFreeHint = "Di' <b>\"Genera...\"</b> seguito dall'oggetto, ad esempio <i>\"Genera una pizza\"</i>";
+        previewHintHandsFree = "Di' <b>\"modifica...\"</b> seguito da cosa cambiare";
         _rounded = MakeRoundedSprite(64, 24);
         _circle = MakeRoundedSprite(64, 32);
         BuildUI();
@@ -884,7 +884,7 @@ public class GenerationStatusUI : MonoBehaviour
                    () => { if (generator != null) generator.RetryImage(); });
         MakeButton(pvRt, "PreviewCancelButton", "Annulla", 324, 420, 136, 36,
                    () => { if (generator != null) generator.CancelRequest(); });
-        var proceed = MakeButton(pvRt, "ProceedButton", "Prosegui", 472, 420, 140, 36,
+        var proceed = MakeButton(pvRt, "ProceedButton", "Ok", 472, 420, 140, 36,
                                  () => { if (generator != null) generator.ProceedToModel(); });
         proceed.GetComponent<Image>().color = ActiveBtn;   // blu scuro (il Button raddoppia il colore)
 

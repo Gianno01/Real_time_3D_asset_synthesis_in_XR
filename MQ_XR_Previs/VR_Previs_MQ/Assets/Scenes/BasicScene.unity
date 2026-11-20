@@ -2559,6 +2559,8 @@ MonoBehaviour:
   deskTilt: 22
   recenterAngle: 40
   followSpeed: 2.5
+  lockFront: 0
+  lockFollowSpeed: 12
   movable: 1
   recallWhenOutOfView: 1
   frontOnlyOnRequest: 1
@@ -3607,11 +3609,11 @@ MonoBehaviour:
   generator: {fileID: 0}
   statusUI: {fileID: 0}
   categories:
-  - Personaggio
+  - Personaggi
   - Environment
-  - Decorazione
-  - Props
+  - Oggetti
   - Veicoli
+  - props
   - Animali/Creature
   - Attrezzatura
   - Altro
@@ -3625,9 +3627,9 @@ MonoBehaviour:
   - Cartoon
   - Punk
   - Altro
-  panelOffset: {x: 0, y: 0.5, z: 0.1}
-  panelTilt: -30
-  dockOffset: {x: 0.4, y: 0, z: 0}
+  panelOffset: {x: 0, y: 0.5, z: 0}
+  panelTilt: -15
+  dockOffset: {x: 0, y: 0, z: 0}
   toolbarSeconds: 8
   toolbarNearDistance: 1.5
 --- !u!114 &1524779516
@@ -3649,7 +3651,7 @@ MonoBehaviour:
   sync: {fileID: 0}
   lighting: {fileID: 0}
   dockOffset: {x: 0.4, y: -0.065, z: 0}
-  panelOffset: {x: 0, y: 0.5, z: 0.1}
+  panelOffset: {x: 0, y: 0.545, z: 0}
   panelTilt: -30
 --- !u!1 &1655702713
 GameObject:

@@ -161,7 +161,7 @@ public class QuestObjectGenerator : MonoBehaviour
     [Tooltip("A mani libere, una frase durante l'anteprima vale come correzione solo se inizia con una di queste parole " +
              "(evita che una conversazione nella stanza diventi una correzione)")]
     public bool requireCorrectionKeyword = true;
-    public string[] correctionWords = { "modifica", "aggiungi", "cambia", "togli", "rendi", "fallo", "falla", "mettici", "più", "meno" };
+    public string[] correctionWords = { "modifica", "aggiungi", "cambia", "change", "togli", "rendi", "fallo", "falla", "mettici", "più", "meno" };
     [Tooltip("Proseguire al 3D dicendo una di queste parole. Disattivato per ora")]
     public bool voiceProceedEnabled = false;
     public string[] proceedWords = { "prosegui", "procedi", "vai", "conferma" };
@@ -1113,9 +1113,9 @@ public class QuestObjectGenerator : MonoBehaviour
         {
             _sessionId = NewSessionId();   // ogni immagine ha la sua sessione (nome file + annullamento)
             PreviewAttempt++;
-            LastTranscript = _workingPrompt;
+            LastTranscript = DisplayPrompt();
             PlaySound(recordingStartSound);
-            SetState(PipelineState.GeneratingImage, _workingPrompt);
+            SetState(PipelineState.GeneratingImage, DisplayPrompt());
 
             float ti = Time.realtimeSinceStartup;
             string imgError = null;
@@ -1176,7 +1176,7 @@ public class QuestObjectGenerator : MonoBehaviour
 
         // 2) Modello 3D dall'immagine approvata
         PlaySound(recordingStartSound);
-        SetState(PipelineState.Generating, _workingPrompt);
+        SetState(PipelineState.Generating, DisplayPrompt());
 
         float t0 = Time.realtimeSinceStartup;
         N8NResponse result = null;
@@ -1228,7 +1228,7 @@ public class QuestObjectGenerator : MonoBehaviour
         so.sourceImagePath = LastImagePath;
         so.displayName = NiceName(_originalPrompt);
         so.objectName = LastObjectName;
-        so.promptIt = _workingPrompt;
+        so.promptIt = DisplayPrompt();
         so.promptEn = PreviewPrompt;
         so.model = generationMode == ModeFast ? "idol" : IsMultiview ? "pixal3d-multiview" : "pixal3d";
         so.genImageSeconds = _imgSeconds;
@@ -1378,6 +1378,9 @@ public class QuestObjectGenerator : MonoBehaviour
         _previewDecision = PreviewDecision.Proceed;
     }
 
+    /// <summary>La richiesta come la vede l'utente: senza l'etichetta "Modifica richiesta" che serve solo al workflow.</summary>
+    private string DisplayPrompt() => _workingPrompt.Replace(". Modifica richiesta: ", ", ");
+
     /// <summary>Anteprima: aggiunge una correzione alla richiesta e rigenera l'immagine.</summary>
     public void ApplyCorrection(string correction)
     {
@@ -1435,6 +1438,13 @@ public class QuestObjectGenerator : MonoBehaviour
                 if (string.IsNullOrEmpty(wakeCmd)) return;
                 NotifyRequestBegan();
                 ApplyCorrection(wakeCmd);
+                return;
+            }
+            // le parole di correzione (modifica, aggiungi, cambia, change, togli...) valgono come correzione; il testo resta intero
+            if (StartsWithAny(text, correctionWords))
+            {
+                NotifyRequestBegan();
+                ApplyCorrection(text);
                 return;
             }
             if (StartsWithAny(text, proceedWords) && voiceProceedEnabled) ProceedToModel();

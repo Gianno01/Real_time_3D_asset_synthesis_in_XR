@@ -57,6 +57,7 @@ public static class Loc
     public static string T(string it)
     {
         if (string.IsNullOrEmpty(it) || Language == 1) return it;
+        if (it.Trim().Length <= 1) return it;   // tasti della tastiera e simboli: mai tradotti ("o" non diventa "or")
         if (Cache.TryGetValue(it, out var hit)) return hit;
         Build();
 
@@ -109,9 +110,11 @@ public static class Loc
         A("microfono", "microphone");
         A("per dettarlo", "to dictate it");
         A("Di'", "Say");
+        A("modifica", "Change");
         A("\"Genera...\"", "\"Generate...\"");
         A("seguito dall'oggetto, ad esempio", "followed by the object, for example");
         A("\"Genera una sedia di legno\"", "\"Generate a wooden chair\"");
+        A("\"Genera un trancio di pizza\"", "\"Generate a slice of pizza\""); 
         A("\"genera...\"", "\"generate...\"");
         A("seguito da cosa cambiare", "followed by what to change");
         A("Premi", "Press");
@@ -148,7 +151,7 @@ public static class Loc
         A("scegli nella Libreria: Usa o Genera nuovo", "choose in the Library: Use or Generate new");
         A("prima generazione: stima in corso", "first generation: estimating time");
         A("manca poco...", "almost there...");
-        A("download e caricamento", "downloading and loading");
+        A("download e caricamento", "downloading and loading"); 
         A("completato", "completed");
         A("riprova quando vuoi", "try again whenever you like");
         A("annullata", "cancelled");
@@ -159,11 +162,12 @@ public static class Loc
         A("Annulla", "Cancel");
         A("Ripeti", "Retry");
         A("Prosegui", "Continue");
+        A("Modifica Richiesta", " Requested change:"); 
         A("Anteprima non disponibile", "Preview not available");
         A("PROMPT", "PROMPT");
 
         // ── Messaggi della pipeline ───────────────────────────────────
-        A("Dimmi quale oggetto vuoi generare", "Tell me which object you want to generate");
+        A("Dimmi quale oggetto vuoi generare", "Tell me which object you want to generate"); 
         A("Parla ora: l'invio parte dopo 1,5 s di silenzio", "Speak now: it is sent after 1.5 s of silence");
         A("Non ho capito: riprova", "I didn't understand: try again");
         A("Non ho capito l'oggetto: riprova", "I didn't catch the object: try again");
@@ -467,6 +471,46 @@ public static class Loc
         R(@"^Host · (\d+) spettatori$", "Host · $1 viewers");
         R(@"· co-host presente", "· co-host present");
         R(@"\(web non raggiungibile\)", "(web unreachable)");
+
+        // ── Aggiunte: testi trovati senza traduzione ──────────────────
+        // ("o" da solo vale "or" solo come pezzo di una frase: T() non traduce un testo di un solo carattere, es. il tasto "o" della tastiera)
+        A("o", "or");
+        A("pizzica", "pinch");
+        A("pollice e indice", "thumb and index finger");
+        A("\"modifica...\"", "\"change...\"");
+        A("\"aggiungi...\"", "\"add...\"");
+        A("\"Genera una pizza\"", "\"Generate a pizza\"");
+        A("per correggerla ·", "to edit it ·");
+        A("per un altro oggetto", "for another object");
+        A("(o lo stick destro) e di' cosa cambiare", "(or the right stick) and say what to change");
+        A("Prec.", "Prev.");
+        A("Succ.", "Next");
+        A("Nome:", "Name:");
+        A("· corrente", "· current");
+        A("Netcode (non installato)", "Netcode (not installed)");
+        A("Netcode: avvio host non riuscito", "Netcode: host start failed");
+        A("Netcode: avvio client non riuscito", "Netcode: client start failed");
+        A("Netcode: host non raggiungibile", "Netcode: host unreachable");
+        A("Co-host · ricevo la scena...", "Co-host · receiving the scene...");
+        A("sta generando", "is generating");
+        A("nessun file", "no file");
+        A("permesso ok · ascolto non attivo", "permission ok · listening not active");
+        R(@"^permesso ok · (\d+) dispositivi · mani libere spente$", "permission ok · $1 devices · hands-free off");
+        R(@"^permesso ok · ascolto attivo · livello (.*)$", "permission ok · listening active · level $1");
+        R(@"^Luce (\d+) \(faro\)$", "Light $1 (spotlight)");
+        R(@"^Luce (\d+) \(puntiforme\)$", "Light $1 (point)");
+        R(@"^Blocco (\d+)$", "Block $1");
+        R(@"^Cilindro (\d+)$", "Cylinder $1");
+        R(@"^Blocco: angolo (\d+) di (\d+)$", "Block: corner $1 of $2");
+        R(@"^Cilindro: angolo (\d+) di (\d+)$", "Cylinder: corner $1 of $2");
+        R(@"^Blocco: altezza$", "Block: height");
+        R(@"^Cilindro: altezza$", "Cylinder: height");
+        R(@"^· immagine (\d+)$", "· image $1");
+        R(@"^Dall'inventario(?=\s)", "From the inventory");
+        R(@"^Whisper non raggiungibile: ", "Whisper unreachable: ");
+        R(@"^Risposta n8n non valida: ", "Invalid n8n response: ");
+        R(@"^Download del modello fallito: ", "Model download failed: ");
+        R(@"^Il workflow n8n non ha restituito le 3 viste: importa la versione aggiornata", "The n8n workflow did not return the 3 views: import the updated version");
         R(@"· cerco l'host \((.*)\)$", "· looking for the host ($1)");
         R(@"· cerco l'host\.\.\.$", "· looking for the host...");
         R(@"(\d+) gradi", "$1 degrees");
